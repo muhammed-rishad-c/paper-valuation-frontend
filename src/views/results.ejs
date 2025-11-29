@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title><%= title %></title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 50px; }
+        .container { max-width: 700px; margin: auto; padding: 20px; border: 1px solid #ccc; border-radius: 8px; }
+        h1 { text-align: center; color: #28a745; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Valuation Test Success!</h1>
+        <p>The Python backend confirmed file receipt.</p>
+        <h2>Test Output from Flask:</h2>
+        <pre><%= JSON.stringify(result, null, 2) %></pre> 
+        <a href="/">Evaluate Another Paper</a>
+    </div>
+</body>
+</html>

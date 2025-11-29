@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Automated Paper Valuator</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            margin: 0; 
+            padding: 40px;
+            background-color: #f4f7f9;
+            color: #333;
+        }
+        .container { 
+            max-width: 600px; 
+            margin: 50px auto; 
+            padding: 30px; 
+            background-color: #ffffff; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); 
+        }
+        h1 { 
+            text-align: center; 
+            color: #1e88e5; 
+            margin-bottom: 30px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        input[type="file"] {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 25px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+        }
+        button { 
+            width: 100%;
+            padding: 12px; 
+            background-color: #43a047; 
+            color: white; 
+            border: none; 
+            border-radius: 6px; 
+            font-size: 1.1em;
+            cursor: pointer; 
+            transition: background-color 0.3s;
+        }
+        button:hover:enabled {
+            background-color: #388e3c;
+        }
+        button:disabled {
+            background-color: #9e9e9e;
+            cursor: not-allowed;
+        }
+        .loading { 
+            display: none; 
+            text-align: center; 
+            color: #1e88e5; 
+            margin-top: 20px; 
+            font-style: italic;
+        }
+        .note {
+            font-size: 0.9em;
+            color: #757575;
+            margin-top: 15px;
+            border-top: 1px solid #eee;
+            padding-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Automated Paper Valuator (MVP)</h1>
+        
+        <form id="uploadForm" action="/evaluate" method="POST" enctype="multipart/form-data">
+            
+            <label for="paper_image">Select Handwritten Paper (JPEG or PNG):</label>
+            
+            <input type="file" id="paper_image" name="paper_image" accept="image/jpeg, image/png" required>
+            
+            <button type="submit" id="submitButton">Start Valuation</button>
+        </form>
+        
+        <div id="loadingMessage" class="loading">
+            <p>Processing paper via Google Vision API and Python Engine...</p>
+            <p>This may take up to 30 seconds for OCR and scoring.</p>
+        </div>
+        
+        <div class="note">
+            Note: Ensure question numbers (Q1, Q2, etc.) are clearly marked on the right side of the paper for accurate segmentation.
+        </div>
+    </div>
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', function() {
+            // Show loading message and disable button to prevent double submission
+            document.getElementById('loadingMessage').style.display = 'block';
+            document.getElementById('submitButton').disabled = true;
+            document.getElementById('submitButton').innerText = 'Processing...';
+        });
+    </script>
+</body>
+</html>

@@ -3,8 +3,8 @@ const path=require('path')
 require('dotenv').config()
 
 const app=express()
-const port=process.env.PORT
-
+const PORT=process.env.PORT
+ 
 app.set('view engine','ejs')
 app.set('views',path.join(__dirname,'src/views'))
 
