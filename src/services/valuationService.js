@@ -1,29 +1,25 @@
-
 const axios = require('axios');
-const FormData = require('form-data');
-const fs = require('fs');
-const path = require('path');
 
+// The URL should point to your Flask server (e.g., http://localhost:5000/api/evaluate)
+const PYTHON_API_URL = process.env.PYTHON_API_URL || "http://localhost:5000/api/evaluate"; 
 
-const PYTHON_API_URL = process.env.PYTHON_API_URL; 
-
-
-async function sendToPythonAPI(file) {
-
-    const form = new FormData();
-
-    const fileStream = fs.createReadStream(file.path);
-    form.append('paper_image', fileStream, path.basename(file.path));
-
+/**
+ * Sends multi-part form data containing multiple images to the Python Flask API.
+ * @param {FormData} formData - The populated FormData object from the controller.
+ * @param {Object} options - Headers and configurations (like maxBodyLength).
+ */
+async function sendToPythonAPI(formData, options = {}) {
     try {
-
-        const response = await axios.post(PYTHON_API_URL, form, {
-            
+        // We pass the formData directly. The 'options' argument contains 
+        // the necessary multi-part boundaries in the headers.
+        const response = await axios.post(PYTHON_API_URL, formData, {
             headers: {
-                ...form.getHeaders(),
+                ...options.headers,
             },
-            
-            timeout: 60000 
+            // Increase timeouts for multiple pages as OCR takes time
+            timeout: 90000, 
+            maxContentLength: Infinity,
+            maxBodyLength: Infinity
         });
 
         return response.data;
@@ -31,7 +27,9 @@ async function sendToPythonAPI(file) {
     } catch (error) {
         console.error("Error communicating with Python API:", error.message);
         
-        throw new Error(error.response?.data?.error || "Python service communication failed.");
+        // Provide clear feedback if the Flask service is down or errors out
+        const errorMessage = error.response?.data?.error || "Python service communication failed.";
+        throw new Error(errorMessage);
     }
 }
 
