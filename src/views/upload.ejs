@@ -30,16 +30,13 @@
             margin-bottom: 8px;
             font-weight: 600;
         }
-        input[type="file"] {
-            display: block;
-            width: 100%;
-            padding: 10px;
+        .button-group {
+            display: flex;
+            gap: 10px;
             margin-bottom: 25px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
         }
         button { 
-            width: 100%;
+            flex: 1;
             padding: 12px; 
             background-color: #43a047; 
             color: white; 
@@ -56,6 +53,12 @@
             background-color: #9e9e9e;
             cursor: not-allowed;
         }
+        .add-button {
+            background-color: #1e88e5;
+        }
+        .add-button:hover:enabled {
+            background-color: #1565c0;
+        }
         .loading { 
             display: none; 
             text-align: center; 
@@ -64,9 +67,53 @@
             font-style: italic;
         }
         .file-list {
-            margin-top: 10px;
+            margin-top: 15px;
+            margin-bottom: 15px;
+        }
+        .file-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px;
+            margin-bottom: 8px;
+            background-color: #f5f5f5;
+            border-radius: 6px;
+            border-left: 3px solid #1e88e5;
+        }
+        .file-item span {
+            flex-grow: 1;
+            font-size: 0.9em;
+        }
+        .file-item .page-number {
+            font-weight: bold;
+            color: #1e88e5;
+            margin-right: 10px;
+            min-width: 70px;
+        }
+        .file-item button {
+            width: auto;
+            padding: 5px 10px;
             font-size: 0.85em;
-            color: #555;
+            background-color: #e53935;
+            flex: none;
+        }
+        .file-item button:hover {
+            background-color: #c62828;
+        }
+        .reorder-buttons {
+            display: flex;
+            gap: 5px;
+            margin-right: 10px;
+        }
+        .reorder-buttons button {
+            width: 30px;
+            padding: 5px;
+            font-size: 0.9em;
+            background-color: #757575;
+            flex: none;
+        }
+        .reorder-buttons button:hover:enabled {
+            background-color: #616161;
         }
         .note {
             font-size: 0.9em;
@@ -75,22 +122,58 @@
             border-top: 1px solid #eee;
             padding-top: 10px;
         }
+        .warning {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 12px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+        .warning strong {
+            color: #856404;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #757575;
+            font-style: italic;
+        }
+        #hiddenFileInput {
+            display: none;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Automated Paper Valuator (MVP)</h1>
         
-        <form id="uploadForm" action="/evaluate" method="POST" enctype="multipart/form-data">
-            
-            <label for="paper_images">Select Handwritten Paper Pages (JPEG or PNG):</label>
-            
-            <input type="file" id="paper_images" name="paper_images" accept="image/jpeg, image/png" multiple required>
-            
-            <div id="fileNames" class="file-list"></div>
+        <div class="warning">
+            <strong>⚠️ IMPORTANT:</strong> Add pages in the correct order (Page 1, then Page 2, then Page 3, etc.). 
+            Use the ↑↓ arrows to reorder if needed.
+        </div>
+        
+        <!-- Hidden file input -->
+        <input type="file" id="hiddenFileInput" accept="image/jpeg, image/png" multiple style="display: none;">
+        
+        <div class="button-group">
+            <button type="button" id="addPagesButton" class="add-button">
+                📄 Add Pages
+            </button>
+            <button type="button" id="clearAllButton" onclick="clearAll()" style="background-color: #e53935; flex: 0.5;">
+                🗑️ Clear All
+            </button>
+        </div>
+        
+        <div id="fileList" class="file-list"></div>
+        
+        <div id="emptyState" class="empty-state">
+            No pages added yet. Click "Add Pages" to start.
+        </div>
 
-            <button type="submit" id="submitButton">Start Valuation</button>
-        </form>
+        <button type="button" id="submitButton" onclick="submitEvaluation()" style="display: none;">
+            🚀 Start Valuation
+        </button>
         
         <div id="loadingMessage" class="loading">
             <p>Processing paper via Google Vision API and Python Engine...</p>
@@ -98,28 +181,146 @@
         </div>
         
         <div class="note">
-            Note: Ensure question numbers (Q1, Q2, etc.) are clearly marked on the <b>left</b> side of the paper. You can select multiple files at once by holding Ctrl/Command.
+            <strong>How to use:</strong>
+            <ol style="margin: 10px 0; padding-left: 20px;">
+                <li>Click "Add Pages" and select one or more images</li>
+                <li>Repeat to add more pages (they will be appended in order)</li>
+                <li>Use ↑↓ arrows to reorder pages if needed</li>
+                <li>Click "Start Valuation" when ready</li>
+            </ol>
+            <strong>Note:</strong> Ensure question numbers (Q1, Q2, etc.) are clearly marked on the <b>left</b> side of the paper.
         </div>
     </div>
+    
     <script>
-        const fileInput = document.getElementById('paper_images');
-        const fileNamesDiv = document.getElementById('fileNames');
+        const fileInput = document.getElementById('hiddenFileInput');
+        const fileListDiv = document.getElementById('fileList');
+        const submitButton = document.getElementById('submitButton');
+        const addPagesButton = document.getElementById('addPagesButton');
+        const emptyState = document.getElementById('emptyState');
+        
+        // Store files in order
+        let orderedFiles = [];
 
-        // Optional: Show the user a list of files they selected
-        fileInput.addEventListener('change', function() {
-            const files = Array.from(fileInput.files);
-            if (files.length > 0) {
-                fileNamesDiv.innerHTML = "<strong>Selected files:</strong> " + files.map(f => f.name).join(', ');
-            } else {
-                fileNamesDiv.innerHTML = "";
+        // Trigger file selection when "Add Pages" button is clicked
+        addPagesButton.addEventListener('click', function() {
+            fileInput.click();
+        });
+
+        // Handle file selection - APPEND new files to existing ones
+        fileInput.addEventListener('change', function(e) {
+            const newFiles = Array.from(e.target.files);
+            
+            if (newFiles.length > 0) {
+                // Append new files to existing array
+                orderedFiles = orderedFiles.concat(newFiles);
+                renderFileList();
             }
+            
+            // Reset input so same file can be selected again if needed
+            fileInput.value = '';
         });
 
-        document.getElementById('uploadForm').addEventListener('submit', function() {
+        function renderFileList() {
+            if (orderedFiles.length === 0) {
+                fileListDiv.innerHTML = '';
+                submitButton.style.display = 'none';
+                emptyState.style.display = 'block';
+                return;
+            }
+
+            emptyState.style.display = 'none';
+            fileListDiv.innerHTML = '';
+            
+            orderedFiles.forEach((file, index) => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                
+                fileItem.innerHTML = `
+                    <span class="page-number">Page ${index + 1}:</span>
+                    <span>${file.name}</span>
+                    <div class="reorder-buttons">
+                        <button type="button" onclick="moveUp(${index})" ${index === 0 ? 'disabled' : ''}>↑</button>
+                        <button type="button" onclick="moveDown(${index})" ${index === orderedFiles.length - 1 ? 'disabled' : ''}>↓</button>
+                    </div>
+                    <button type="button" onclick="removeFile(${index})">Remove</button>
+                `;
+                
+                fileListDiv.appendChild(fileItem);
+            });
+
+            submitButton.style.display = 'block';
+        }
+
+        function moveUp(index) {
+            if (index > 0) {
+                [orderedFiles[index], orderedFiles[index - 1]] = [orderedFiles[index - 1], orderedFiles[index]];
+                renderFileList();
+            }
+        }
+
+        function moveDown(index) {
+            if (index < orderedFiles.length - 1) {
+                [orderedFiles[index], orderedFiles[index + 1]] = [orderedFiles[index + 1], orderedFiles[index]];
+                renderFileList();
+            }
+        }
+
+        function removeFile(index) {
+            orderedFiles.splice(index, 1);
+            renderFileList();
+        }
+
+        function clearAll() {
+            if (orderedFiles.length > 0 && confirm('Are you sure you want to clear all pages?')) {
+                orderedFiles = [];
+                renderFileList();
+            }
+        }
+
+        function submitEvaluation() {
+            if (orderedFiles.length === 0) {
+                alert('Please add at least one page.');
+                return;
+            }
+
+            // Create FormData with files in correct order
+            const formData = new FormData();
+            orderedFiles.forEach(file => {
+                formData.append('paper_images', file);
+            });
+
+            // Show loading
             document.getElementById('loadingMessage').style.display = 'block';
-            document.getElementById('submitButton').disabled = true;
-            document.getElementById('submitButton').innerText = 'Processing Pages...';
-        });
+            submitButton.disabled = true;
+            submitButton.innerText = '⏳ Processing Pages...';
+            addPagesButton.disabled = true;
+
+            // Send to server
+            fetch('/evaluate', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Server error');
+                }
+                return response.text();
+            })
+            .then(html => {
+                // Replace entire page with results
+                document.open();
+                document.write(html);
+                document.close();
+            })
+            .catch(error => {
+                alert('Error: ' + error.message);
+                document.getElementById('loadingMessage').style.display = 'none';
+                submitButton.disabled = false;
+                submitButton.innerText = '🚀 Start Valuation';
+                addPagesButton.disabled = false;
+            });
+        }
     </script>
 </body>
 </html>

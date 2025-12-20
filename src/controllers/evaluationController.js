@@ -1,5 +1,5 @@
 const fs = require('fs');
-const FormData = require('form-data'); // Ensure this is imported
+const FormData = require('form-data');
 const valuationService = require('../services/valuationService');
 
 exports.getUploadPage = (req, res) => {
@@ -11,19 +11,30 @@ exports.postEvaluate = async (req, res) => {
     if (!req.files || req.files.length === 0) {
         return res.status(400).render('error', { message: 'Please upload at least one image file (JPEG/PNG).' });
     }
+
+    console.log('=================================================');
+    console.log('FILES RECEIVED BY NODE.JS (in order):');
+    req.files.forEach((file, index) => {
+        console.log(`  Page ${index + 1}: ${file.originalname}`);
+    });
+    console.log('=================================================');
  
     const formData = new FormData();
 
     try {
-        // 2. Append all files to the same key 'paper_images'
-        req.files.forEach(file => {
+        // 2. CRITICAL: Append files in the EXACT ORDER they appear in req.files
+        // Do NOT use forEach - use a standard for loop to guarantee order
+        for (let i = 0; i < req.files.length; i++) {
+            const file = req.files[i];
+            console.log(`Appending Page ${i + 1}: ${file.originalname}`);
+            
             formData.append('paper_images', fs.createReadStream(file.path), {
                 filename: file.originalname,
                 contentType: file.mimetype
             });
-        });
+        }
 
-        console.log(`Sending ${req.files.length} pages to Flask for evaluation...`);
+        console.log(`Sending ${req.files.length} pages to Flask in order...`);
 
         // 3. Send to your service which calls the Python API
         const resultData = await valuationService.sendToPythonAPI(formData, {
