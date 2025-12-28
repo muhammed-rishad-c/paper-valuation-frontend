@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; padding: 40px; background-color: #f4f7f9; }
+        .container { max-width: 1000px; margin: auto; }
+        .student-block { 
+            background: white; 
+            padding: 25px; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05); 
+            margin-bottom: 30px;
+            border-left: 5px solid #1e88e5;
+        }
+        .student-header { 
+            display: flex; 
+            justify-content: space-between; 
+            border-bottom: 2px solid #f0f2f5; 
+            padding-bottom: 10px; 
+            margin-bottom: 15px;
+        }
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        .info-item { font-size: 0.95em; color: #555; }
+        .info-item strong { color: #333; }
+        pre { 
+            background: #272822; 
+            color: #f8f8f2; 
+            padding: 15px; 
+            border-radius: 6px; 
+            overflow-x: auto; 
+            font-size: 13px;
+        }
+        .error-msg { color: #d32f2f; font-weight: bold; }
+        .back-link { display: inline-block; margin-top: 20px; color: #1e88e5; text-decoration: none; font-weight: 600; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Batch Valuation Summary</h1>
+        <p>Total Students Processed: <strong><%= studentCount %></strong></p>
+
+        <% result.forEach((studentResult, index) => { %>
+            <div class="student-block">
+                <div class="student-header">
+                    <span style="font-size: 1.2em; font-weight: bold;">Student #<%= index + 1 %></span>
+                    <% if (studentResult.status === "Success") { %>
+                        <span style="color: #43a047;">✅ Processed</span>
+                    <% } else { %>
+                        <span style="color: #e53935;">❌ Failed</span>
+                    <% } %>
+                </div>
+
+                <% if (studentResult.status === "Success") { %>
+                    <div class="info-grid">
+                        <div class="info-item"><strong>Name:</strong> <%= studentResult.student_info.name %></div>
+                        <div class="info-item"><strong>Roll No:</strong> <%= studentResult.student_info.roll_no %></div>
+                        <div class="info-item"><strong>Class:</strong> <%= studentResult.student_info.class %></div>
+                        <div class="info-item"><strong>Subject:</strong> <%= studentResult.student_info.subject %></div>
+                    </div>
+
+                    <h4>Recognized Answers:</h4>
+                    <pre><%= JSON.stringify(studentResult.recognition_result.answers, null, 2) %></pre>
+                <% } else { %>
+                    <p class="error-msg">Error: <%= studentResult.error %></p>
+                <% } %>
+            </div>
+        <% }) %>
+
+        <a href="/" class="back-link">← Return to Dashboard</a>
+    </div>
+</body>
+</html>

@@ -2,12 +2,15 @@ const fs = require('fs');
 const FormData = require('form-data');
 const valuationService = require('../services/valuationService');
 
+exports.getIndexPage=(req,res)=>{
+    res.render('index');
+}
+
 exports.getUploadPage = (req, res) => {
-    res.render('upload', { title: 'Upload Paper' });
+    res.render('individual', { title: 'Upload Paper' });
 };
 
 exports.postEvaluate = async (req, res) => {
-    // 1. Validate that files exist
     if (!req.files || req.files.length === 0) {
         return res.status(400).render('error', { message: 'Please upload at least one image file (JPEG/PNG).' });
     }
@@ -37,7 +40,9 @@ exports.postEvaluate = async (req, res) => {
         console.log(`Sending ${req.files.length} pages to Flask in order...`);
 
         // 3. Send to your service which calls the Python API
-        const resultData = await valuationService.sendToPythonAPI(formData, {
+        const resultData = await valuationService.sendToPythonAPI(formData,
+            '/api/evaluate',
+            {
             headers: {
                 ...formData.getHeaders()
             },
@@ -67,6 +72,103 @@ exports.postEvaluate = async (req, res) => {
                     });
                 }
             });
+        }
+    }
+};
+
+exports.getSeriesBatch=(req,res)=>{
+    res.render('seriesBatch.ejs')
+}
+
+exports.postEvaluateSeriesBatch = async (req, res) => {
+    // 1. Basic validation
+    if (!req.files || req.files.length === 0) {
+        return res.status(400).render('error', { message: 'No images uploaded.' });
+    }
+
+    const finalBatchResults = [];
+    const studentCount = parseInt(req.body.student_count) || 0;
+
+    try {
+        console.log(`🚀 Starting Batch Processing for ${studentCount} students...`);
+
+        // 2. Iterate through each student index
+        for (let i = 0; i < studentCount; i++) {
+            const studentKey = `student_${i}`;
+            
+            // Filter all files belonging to this specific student
+            const studentFiles = req.files.filter(f => f.fieldname === studentKey);
+
+            if (studentFiles.length === 0) {
+                console.log(`⚠️ No files found for ${studentKey}, skipping.`);
+                continue;
+            }
+
+            const formData = new FormData();
+
+            // 3. Identification: The FIRST file is the Identity Page
+            const idPage = studentFiles[0];
+            formData.append('identity_page', fs.createReadStream(idPage.path), {
+                filename: idPage.originalname,
+                contentType: idPage.mimetype
+            });
+
+            // 4. Answers: The REMAINING files are Answer Pages
+            const answerPages = studentFiles.slice(1);
+            answerPages.forEach((file) => {
+                formData.append('paper_images', fs.createReadStream(file.path), {
+                    filename: file.originalname,
+                    contentType: file.mimetype
+                });
+            });
+
+            console.log(`📦 Processing Student #${i + 1}: ${answerPages.length} answer pages found.`);
+
+            
+             
+
+            // 5. Call Flask API for this individual student
+            try {
+                // Inside exports.postEvaluateSeriesBatch
+                const studentResult = await valuationService.sendToPythonAPI(
+                    formData, 
+                    '/api/seriesBundleEvaluate', // The Teacher Bundle Route
+                    { headers: { ...formData.getHeaders() } }
+                );
+
+                finalBatchResults.push(studentResult);
+            } catch (apiError) {
+                console.error(`❌ Error processing Student #${i + 1}:`, apiError.message);
+                // Push a placeholder so the batch continues
+                finalBatchResults.push({ 
+                    status: "Failed", 
+                    student_index: i, 
+                    error: apiError.message 
+                });
+            }
+        }
+
+        // 6. Final Render: Send the merged results to your results-batch view
+        res.render('results-batch', { 
+            title: 'Batch Evaluation Results',
+            result: finalBatchResults, // This is the array of all students
+            studentCount: finalBatchResults.length
+        });
+
+    } catch (error) {
+        console.error("🔥 Critical Batch Error:", error.message);
+        res.status(500).render('series-bundle', { 
+            error: `Batch Processing Failed: ${error.message}` 
+        });
+    } finally {
+        // 7. Cleanup: Delete all temporary files from the uploads folder
+        if (req.files) {
+            req.files.forEach(file => {
+                if (fs.existsSync(file.path)) {
+                    fs.unlinkSync(file.path);
+                }
+            });
+            console.log("🧹 Uploaded temporary files cleaned up.");
         }
     }
 };

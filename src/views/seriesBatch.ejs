@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher Bundle Valuation - Series Exam</title>
+</head>
+<body>
+    <div class="container">
+        <h1>👨‍🏫 Series Exam Bundle Valuation</h1>
+        <p>Add students one by one. For each student, add their pages in order (Identity Page first).</p>
+
+        <div id="studentContainer">
+            </div>
+
+        <div style="margin-top: 20px;">
+            <button type="button" onclick="addStudentBlock()">➕ Add Student</button>
+            <button type="button" id="submitBatchButton" onclick="submitBatchEvaluation()" style="display: none; background-color: #43a047; color: white;">🚀 Start Batch Valuation</button>
+        </div>
+
+        <input type="file" id="globalFileInput" accept="image/jpeg, image/png" multiple style="display: none;">
+
+        <div id="loadingMessage" style="display: none; color: blue; margin-top: 20px;">
+            <p>Processing Batch Bundle... Please wait.</p>
+        </div>
+    </div>
+
+    <script>
+        let studentData = []; // Array of { id: 1, files: [] }
+        let currentTargetStudentId = null;
+        const globalFileInput = document.getElementById('globalFileInput');
+
+        // Function to create a new student block
+        function addStudentBlock() {
+            const studentId = Date.now();
+            studentData.push({ id: studentId, files: [] });
+
+            const container = document.getElementById('studentContainer');
+            const card = document.createElement('div');
+            card.id = `card-${studentId}`;
+            card.style.border = "1px solid #ccc";
+            card.style.padding = "15px";
+            card.style.margin = "10px 0";
+
+            card.innerHTML = `
+                <h3>Student Block</h3>
+                <button type="button" onclick="triggerFileInput(${studentId})">📄 Add Pages for this Student</button>
+                <button type="button" onclick="removeStudent(${studentId})" style="background-color: #ff4444; color: white;">Remove Student</button>
+                <div id="list-${studentId}" style="margin-top: 10px;"></div>
+            `;
+            container.appendChild(card);
+            updateSubmitButtonVisibility();
+        }
+
+        function triggerFileInput(studentId) {
+            currentTargetStudentId = studentId;
+            globalFileInput.click();
+        }
+
+        globalFileInput.addEventListener('change', function(e) {
+            const newFiles = Array.from(e.target.files);
+            if (newFiles.length > 0 && currentTargetStudentId) {
+                const student = studentData.find(s => s.id === currentTargetStudentId);
+                student.files = student.files.concat(newFiles);
+                renderStudentFileList(currentTargetStudentId);
+            }
+            globalFileInput.value = ''; // Reset
+        });
+
+        function renderStudentFileList(studentId) {
+            const student = studentData.find(s => s.id === studentId);
+            const listDiv = document.getElementById(`list-${studentId}`);
+            listDiv.innerHTML = '';
+
+            student.files.forEach((file, index) => {
+                const item = document.createElement('div');
+                item.style.padding = "5px";
+                item.style.background = "#f9f9f9";
+                item.style.margin = "2px 0";
+                
+                // First page is always labeled ID PAGE
+                const label = (index === 0) ? "<strong>[ID PAGE]</strong>" : `[Page ${index}]`;
+                
+                item.innerHTML = `
+                    ${label} ${file.name}
+                    <button type="button" onclick="movePage(${studentId}, ${index}, -1)">↑</button>
+                    <button type="button" onclick="movePage(${studentId}, ${index}, 1)">↓</button>
+                    <button type="button" onclick="removePage(${studentId}, ${index})">x</button>
+                `;
+                listDiv.appendChild(item);
+            });
+            updateSubmitButtonVisibility();
+        }
+
+        function movePage(studentId, index, direction) {
+            const student = studentData.find(s => s.id === studentId);
+            const newIndex = index + direction;
+            if (newIndex >= 0 && newIndex < student.files.length) {
+                const temp = student.files[index];
+                student.files[index] = student.files[newIndex];
+                student.files[newIndex] = temp;
+                renderStudentFileList(studentId);
+            }
+        }
+
+        function removePage(studentId, index) {
+            const student = studentData.find(s => s.id === studentId);
+            student.files.splice(index, 1);
+            renderStudentFileList(studentId);
+        }
+
+        function removeStudent(studentId) {
+            studentData = studentData.filter(s => s.id !== studentId);
+            document.getElementById(`card-${studentId}`).remove();
+            updateSubmitButtonVisibility();
+        }
+
+        function updateSubmitButtonVisibility() {
+            const btn = document.getElementById('submitBatchButton');
+            const hasFiles = studentData.some(s => s.files.length > 0);
+            btn.style.display = hasFiles ? 'inline-block' : 'none';
+        }
+
+        function submitBatchEvaluation() {
+            const loading = document.getElementById('loadingMessage');
+            loading.style.display = 'block';
+
+            const formData = new FormData();
+            
+            // Filter out students with no files
+            const activeStudents = studentData.filter(s => s.files.length > 0);
+            formData.append('student_count', activeStudents.length);
+
+            activeStudents.forEach((student, sIdx) => {
+                student.files.forEach((file, fIdx) => {
+                    // student_0, student_1, etc.
+                    formData.append(`student_${sIdx}`, file);
+                });
+            });
+
+            fetch('/seriesBundleEvaluate', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.text())
+            .then(html => {
+                document.open();
+                document.write(html);
+                document.close();
+            })
+            .catch(error => {
+                alert('Error: ' + error.message);
+                loading.style.display = 'none';
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,23 +1,27 @@
 const axios = require('axios');
 
-// The URL should point to your Flask server (e.g., http://localhost:5000/api/evaluate)
-const PYTHON_API_URL = process.env.PYTHON_API_URL || "http://localhost:5000/api/evaluate"; 
+// Define your base Python API URL (e.g., http://localhost:5000)
+const PYTHON_BASE_URL = "http://localhost:5000";
 
 /**
- * Sends multi-part form data containing multiple images to the Python Flask API.
- * @param {FormData} formData - The populated FormData object from the controller.
- * @param {Object} options - Headers and configurations (like maxBodyLength).
+ * Sends multi-part form data to specific Python Flask API routes.
+ * @param {FormData} formData - The populated FormData object.
+ * @param {string} endpoint - The specific route (e.g., '/api/evaluate' or '/seriesBundleEvaluate').
+ * @param {Object} options - Headers provided by formData.getHeaders().
  */
-async function sendToPythonAPI(formData, options = {}) {
+async function sendToPythonAPI(formData, endpoint, options = {}) {
+    // Construct the full URL based on the requested endpoint
+    const targetUrl = `${PYTHON_BASE_URL}${endpoint}`;
+    
     try {
-        // We pass the formData directly. The 'options' argument contains 
-        // the necessary multi-part boundaries in the headers.
-        const response = await axios.post(PYTHON_API_URL, formData, {
+        console.log(`📡 Sending request to Python API: ${targetUrl}`);
+        
+        const response = await axios.post(targetUrl, formData, {
             headers: {
                 ...options.headers,
             },
-            // Increase timeouts for multiple pages as OCR takes time
-            timeout: 90000, 
+            // Increase timeout to 5 minutes (300000ms) for large batch processing
+            timeout: 300000, 
             maxContentLength: Infinity,
             maxBodyLength: Infinity
         });
@@ -25,9 +29,8 @@ async function sendToPythonAPI(formData, options = {}) {
         return response.data;
 
     } catch (error) {
-        console.error("Error communicating with Python API:", error.message);
+        console.error(`❌ Error communicating with Python API at ${endpoint}:`, error.message);
         
-        // Provide clear feedback if the Flask service is down or errors out
         const errorMessage = error.response?.data?.error || "Python service communication failed.";
         throw new Error(errorMessage);
     }
