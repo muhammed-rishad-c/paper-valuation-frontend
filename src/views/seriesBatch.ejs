@@ -4,14 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Teacher Bundle Valuation - Series Exam</title>
+    <style>
+        /* Basic styling for the new input */
+        .roll-no-input {
+            padding: 8px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 200px;
+            display: block;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
         <h1>👨‍🏫 Series Exam Bundle Valuation</h1>
         <p>Add students one by one. For each student, add their pages in order (Identity Page first).</p>
 
-        <div id="studentContainer">
-            </div>
+        <div id="studentContainer"></div>
 
         <div style="margin-top: 20px;">
             <button type="button" onclick="addStudentBlock()">➕ Add Student</button>
@@ -26,14 +36,14 @@
     </div>
 
     <script>
-        let studentData = []; // Array of { id: 1, files: [] }
+        let studentData = []; 
         let currentTargetStudentId = null;
         const globalFileInput = document.getElementById('globalFileInput');
 
-        // Function to create a new student block
         function addStudentBlock() {
             const studentId = Date.now();
-            studentData.push({ id: studentId, files: [] });
+            // Initialize with an empty roll_no
+            studentData.push({ id: studentId, files: [], roll_no: "" });
 
             const container = document.getElementById('studentContainer');
             const card = document.createElement('div');
@@ -44,12 +54,27 @@
 
             card.innerHTML = `
                 <h3>Student Block</h3>
-                <button type="button" onclick="triggerFileInput(${studentId})">📄 Add Pages for this Student</button>
+                <label for="roll-${studentId}">Manual Roll No (Optional):</label>
+                <input type="text" 
+                       id="roll-${studentId}" 
+                       class="roll-no-input" 
+                       placeholder="Enter Roll No" 
+                       oninput="updateRollNo(${studentId}, this.value)">
+
+                <button type="button" onclick="triggerFileInput(${studentId})">📄 Add Pages</button>
                 <button type="button" onclick="removeStudent(${studentId})" style="background-color: #ff4444; color: white;">Remove Student</button>
                 <div id="list-${studentId}" style="margin-top: 10px;"></div>
             `;
             container.appendChild(card);
             updateSubmitButtonVisibility();
+        }
+
+        // Helper function to update the roll_no in our data array
+        function updateRollNo(studentId, value) {
+            const student = studentData.find(s => s.id === studentId);
+            if (student) {
+                student.roll_no = value;
+            }
         }
 
         function triggerFileInput(studentId) {
@@ -64,7 +89,7 @@
                 student.files = student.files.concat(newFiles);
                 renderStudentFileList(currentTargetStudentId);
             }
-            globalFileInput.value = ''; // Reset
+            globalFileInput.value = ''; 
         });
 
         function renderStudentFileList(studentId) {
@@ -77,8 +102,6 @@
                 item.style.padding = "5px";
                 item.style.background = "#f9f9f9";
                 item.style.margin = "2px 0";
-                
-                // First page is always labeled ID PAGE
                 const label = (index === 0) ? "<strong>[ID PAGE]</strong>" : `[Page ${index}]`;
                 
                 item.innerHTML = `
@@ -111,7 +134,8 @@
 
         function removeStudent(studentId) {
             studentData = studentData.filter(s => s.id !== studentId);
-            document.getElementById(`card-${studentId}`).remove();
+            const card = document.getElementById(`card-${studentId}`);
+            if (card) card.remove();
             updateSubmitButtonVisibility();
         }
 
@@ -126,14 +150,14 @@
             loading.style.display = 'block';
 
             const formData = new FormData();
-            
-            // Filter out students with no files
             const activeStudents = studentData.filter(s => s.files.length > 0);
             formData.append('student_count', activeStudents.length);
 
             activeStudents.forEach((student, sIdx) => {
+                // Also send the manual roll number to the backend
+                formData.append(`roll_no_${sIdx}`, student.roll_no);
+                
                 student.files.forEach((file, fIdx) => {
-                    // student_0, student_1, etc.
                     formData.append(`student_${sIdx}`, file);
                 });
             });

@@ -81,7 +81,7 @@ exports.getSeriesBatch=(req,res)=>{
 }
 
 exports.postEvaluateSeriesBatch = async (req, res) => {
-    // 1. Basic validation
+    
     if (!req.files || req.files.length === 0) {
         return res.status(400).render('error', { message: 'No images uploaded.' });
     }
@@ -92,11 +92,14 @@ exports.postEvaluateSeriesBatch = async (req, res) => {
     try {
         console.log(`🚀 Starting Batch Processing for ${studentCount} students...`);
 
-        // 2. Iterate through each student index
+        
         for (let i = 0; i < studentCount; i++) {
             const studentKey = `student_${i}`;
             
-            // Filter all files belonging to this specific student
+            const roll_no=req.body[`roll_no_${i}`] || "";
+            console.log(`roll no is ${roll_no}`);
+            
+            
             const studentFiles = req.files.filter(f => f.fieldname === studentKey);
 
             if (studentFiles.length === 0) {
@@ -105,6 +108,8 @@ exports.postEvaluateSeriesBatch = async (req, res) => {
             }
 
             const formData = new FormData();
+
+            formData.append("manual_roll_no",roll_no)
 
             // 3. Identification: The FIRST file is the Identity Page
             const idPage = studentFiles[0];
