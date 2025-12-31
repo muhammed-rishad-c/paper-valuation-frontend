@@ -91,6 +91,11 @@ exports.postEvaluateSeriesBatch = async (req, res) => {
 
     try {
         console.log(`🚀 Starting Batch Processing for ${studentCount} students...`);
+        const global_class=req.body.global_class
+        const global_subject=req.body.global_subject
+
+        
+        
 
         
         for (let i = 0; i < studentCount; i++) {
@@ -110,6 +115,8 @@ exports.postEvaluateSeriesBatch = async (req, res) => {
             const formData = new FormData();
 
             formData.append("manual_roll_no",roll_no)
+            formData.append("manual_class",global_class)
+            formData.append("manual_subject",global_subject)
 
             // 3. Identification: The FIRST file is the Identity Page
             const idPage = studentFiles[0];

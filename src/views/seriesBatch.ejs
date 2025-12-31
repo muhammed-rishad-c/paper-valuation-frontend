@@ -5,33 +5,60 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Teacher Bundle Valuation - Series Exam</title>
     <style>
-        /* Basic styling for the new input */
-        .roll-no-input {
+        .container { font-family: sans-serif; max-width: 800px; margin: auto; padding: 20px; }
+        .global-header {
+            background: #e3f2fd;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            border: 1px solid #90caf9;
+        }
+        .flex-row { display: flex; gap: 15px; margin-top: 10px; }
+        .input-box {
             padding: 8px;
-            margin: 10px 0;
             border: 1px solid #ccc;
             border-radius: 4px;
-            width: 200px;
-            display: block;
+            width: 100%;
         }
+        .student-card {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 6px;
+            background: #fff;
+        }
+        label { font-weight: bold; font-size: 0.9em; display: block; margin-bottom: 5px; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>👨‍🏫 Series Exam Bundle Valuation</h1>
-        <p>Add students one by one. For each student, add their pages in order (Identity Page first).</p>
+
+        <div class="global-header">
+            <h3>📝 Exam General Details</h3>
+            <div class="flex-row">
+                <div style="flex: 1;">
+                    <label>Batch Class (e.g., S8):</label>
+                    <input type="text" id="globalClass" class="input-box" placeholder="S8" value="S8">
+                </div>
+                <div style="flex: 1;">
+                    <label>Subject (e.g., AI):</label>
+                    <input type="text" id="globalSubject" class="input-box" placeholder="AI" value="AI">
+                </div>
+            </div>
+        </div>
 
         <div id="studentContainer"></div>
 
         <div style="margin-top: 20px;">
             <button type="button" onclick="addStudentBlock()">➕ Add Student</button>
-            <button type="button" id="submitBatchButton" onclick="submitBatchEvaluation()" style="display: none; background-color: #43a047; color: white;">🚀 Start Batch Valuation</button>
+            <button type="button" id="submitBatchButton" onclick="submitBatchEvaluation()" style="display: none; background-color: #2e7d32; color: white; padding: 10px 20px; border: none; cursor: pointer; border-radius: 4px;">🚀 Start Batch Valuation</button>
         </div>
 
-        <input type="file" id="globalFileInput" accept="image/jpeg, image/png" multiple style="display: none;">
+        <input type="file" id="globalFileInput" accept="image/*" multiple style="display: none;">
 
-        <div id="loadingMessage" style="display: none; color: blue; margin-top: 20px;">
-            <p>Processing Batch Bundle... Please wait.</p>
+        <div id="loadingMessage" style="display: none; color: #1565c0; margin-top: 20px; font-weight: bold;">
+            <p>Processing Bundle... Please stay on this page.</p>
         </div>
     </div>
 
@@ -42,43 +69,38 @@
 
         function addStudentBlock() {
             const studentId = Date.now();
-            // Initialize with an empty roll_no
+            // We only need to store roll_no per student now
             studentData.push({ id: studentId, files: [], roll_no: "" });
 
             const container = document.getElementById('studentContainer');
             const card = document.createElement('div');
             card.id = `card-${studentId}`;
-            card.style.border = "1px solid #ccc";
-            card.style.padding = "15px";
-            card.style.margin = "10px 0";
+            card.className = "student-card";
 
             card.innerHTML = `
-                <h3>Student Block</h3>
-                <label for="roll-${studentId}">Manual Roll No (Optional):</label>
-                <input type="text" 
-                       id="roll-${studentId}" 
-                       class="roll-no-input" 
-                       placeholder="Enter Roll No" 
-                       oninput="updateRollNo(${studentId}, this.value)">
-
-                <button type="button" onclick="triggerFileInput(${studentId})">📄 Add Pages</button>
-                <button type="button" onclick="removeStudent(${studentId})" style="background-color: #ff4444; color: white;">Remove Student</button>
-                <div id="list-${studentId}" style="margin-top: 10px;"></div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="width: 200px;">
+                        <label>Student Roll No:</label>
+                        <input type="text" class="input-box" placeholder="Enter Roll No" oninput="updateRollNo(${studentId}, this.value)">
+                    </div>
+                    <div>
+                        <button type="button" onclick="triggerFileInput(${studentId})">📄 Add Pages</button>
+                        <button type="button" onclick="removeStudent(${studentId})" style="color: #d32f2f; background: none; border: 1px solid #d32f2f; padding: 5px; cursor: pointer; border-radius: 3px;">Remove</button>
+                    </div>
+                </div>
+                <div id="list-${studentId}" style="margin-top: 10px; font-size: 0.85em; color: #555;"></div>
             `;
             container.appendChild(card);
-            updateSubmitButtonVisibility();
+            updateSubmitBtn();
         }
 
-        // Helper function to update the roll_no in our data array
-        function updateRollNo(studentId, value) {
-            const student = studentData.find(s => s.id === studentId);
-            if (student) {
-                student.roll_no = value;
-            }
+        function updateRollNo(id, val) {
+            const student = studentData.find(s => s.id === id);
+            if (student) student.roll_no = val;
         }
 
-        function triggerFileInput(studentId) {
-            currentTargetStudentId = studentId;
+        function triggerFileInput(id) {
+            currentTargetStudentId = id;
             globalFileInput.click();
         }
 
@@ -87,94 +109,61 @@
             if (newFiles.length > 0 && currentTargetStudentId) {
                 const student = studentData.find(s => s.id === currentTargetStudentId);
                 student.files = student.files.concat(newFiles);
-                renderStudentFileList(currentTargetStudentId);
+                renderFileList(currentTargetStudentId);
             }
             globalFileInput.value = ''; 
         });
 
-        function renderStudentFileList(studentId) {
-            const student = studentData.find(s => s.id === studentId);
-            const listDiv = document.getElementById(`list-${studentId}`);
-            listDiv.innerHTML = '';
-
-            student.files.forEach((file, index) => {
-                const item = document.createElement('div');
-                item.style.padding = "5px";
-                item.style.background = "#f9f9f9";
-                item.style.margin = "2px 0";
-                const label = (index === 0) ? "<strong>[ID PAGE]</strong>" : `[Page ${index}]`;
-                
-                item.innerHTML = `
-                    ${label} ${file.name}
-                    <button type="button" onclick="movePage(${studentId}, ${index}, -1)">↑</button>
-                    <button type="button" onclick="movePage(${studentId}, ${index}, 1)">↓</button>
-                    <button type="button" onclick="removePage(${studentId}, ${index})">x</button>
-                `;
-                listDiv.appendChild(item);
-            });
-            updateSubmitButtonVisibility();
+        function renderFileList(id) {
+            const student = studentData.find(s => s.id === id);
+            const listDiv = document.getElementById(`list-${id}`);
+            listDiv.innerHTML = student.files.map((f, i) => 
+                `<div>${i === 0 ? '<b>[ID]</b>' : '[Pg ' + i + ']'} ${f.name}</div>`
+            ).join('');
+            updateSubmitBtn();
         }
 
-        function movePage(studentId, index, direction) {
-            const student = studentData.find(s => s.id === studentId);
-            const newIndex = index + direction;
-            if (newIndex >= 0 && newIndex < student.files.length) {
-                const temp = student.files[index];
-                student.files[index] = student.files[newIndex];
-                student.files[newIndex] = temp;
-                renderStudentFileList(studentId);
-            }
+        function removeStudent(id) {
+            studentData = studentData.filter(s => s.id !== id);
+            document.getElementById(`card-${id}`).remove();
+            updateSubmitBtn();
         }
 
-        function removePage(studentId, index) {
-            const student = studentData.find(s => s.id === studentId);
-            student.files.splice(index, 1);
-            renderStudentFileList(studentId);
-        }
-
-        function removeStudent(studentId) {
-            studentData = studentData.filter(s => s.id !== studentId);
-            const card = document.getElementById(`card-${studentId}`);
-            if (card) card.remove();
-            updateSubmitButtonVisibility();
-        }
-
-        function updateSubmitButtonVisibility() {
+        function updateSubmitBtn() {
             const btn = document.getElementById('submitBatchButton');
-            const hasFiles = studentData.some(s => s.files.length > 0);
-            btn.style.display = hasFiles ? 'inline-block' : 'none';
+            btn.style.display = studentData.some(s => s.files.length > 0) ? 'inline-block' : 'none';
         }
 
         function submitBatchEvaluation() {
-            const loading = document.getElementById('loadingMessage');
-            loading.style.display = 'block';
-
+            document.getElementById('loadingMessage').style.display = 'block';
             const formData = new FormData();
+            
+            // Send Global Details once
+            formData.append('global_class', document.getElementById('globalClass').value);
+            formData.append('global_subject', document.getElementById('globalSubject').value);
+
             const activeStudents = studentData.filter(s => s.files.length > 0);
             formData.append('student_count', activeStudents.length);
 
-            activeStudents.forEach((student, sIdx) => {
-                // Also send the manual roll number to the backend
-                formData.append(`roll_no_${sIdx}`, student.roll_no);
+            activeStudents.forEach((student, i) => {
+                // Send manual roll_no for this specific student
+                formData.append(`roll_no_${i}`, student.roll_no);
                 
-                student.files.forEach((file, fIdx) => {
-                    formData.append(`student_${sIdx}`, file);
+                student.files.forEach(file => {
+                    formData.append(`student_${i}`, file);
                 });
             });
 
-            fetch('/seriesBundleEvaluate', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.text())
+            fetch('/seriesBundleEvaluate', { method: 'POST', body: formData })
+            .then(res => res.text())
             .then(html => {
                 document.open();
                 document.write(html);
                 document.close();
             })
-            .catch(error => {
-                alert('Error: ' + error.message);
-                loading.style.display = 'none';
+            .catch(err => {
+                alert('Evaluation Failed: ' + err.message);
+                document.getElementById('loadingMessage').style.display = 'none';
             });
         }
     </script>
