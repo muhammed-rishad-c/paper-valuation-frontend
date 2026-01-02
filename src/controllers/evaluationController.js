@@ -76,6 +76,10 @@ exports.postEvaluate = async (req, res) => {
     }
 };
 
+exports.getTeacherKeySetup=(req,res)=>{
+    res.render('teacherKeySetup.ejs')
+}
+
 exports.getSeriesBatch=(req,res)=>{
     res.render('seriesBatch.ejs')
 }
