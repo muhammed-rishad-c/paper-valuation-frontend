@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Answer Key Setup</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            background: #667eea;
+            color: white;
+            padding: 30px;
+            text-align: center;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .header h1 {
+            margin-bottom: 10px;
+        }
+
+        .progress-bar {
+            display: flex;
+            justify-content: space-around;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+
+        .progress-step {
+            text-align: center;
+            flex: 1;
+            position: relative;
+        }
+
+        .step-circle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #ddd;
+            color: #666;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .progress-step.active .step-circle {
+            background: #667eea;
+            color: white;
+        }
+
+        .progress-step.completed .step-circle {
+            background: #4caf50;
+            color: white;
+        }
+
+        .step-label {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .progress-step.active .step-label {
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .step-section {
+            display: none;
+        }
+
+        .step-section.active {
+            display: block;
+        }
+
+        .info-box {
+            background: #e7f3ff;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            font-size: 1em;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-group small {
+            display: block;
+            margin-top: 5px;
+            color: #666;
+            font-size: 0.85em;
+        }
+
+        .upload-area {
+            border: 3px dashed #ddd;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+
+        .upload-area:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+
+        .upload-icon {
+            font-size: 3em;
+            margin-bottom: 10px;
+        }
+
+        .upload-text {
+            font-size: 1.1em;
+            margin-bottom: 5px;
+        }
+
+        .upload-subtext {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .extracted-answers {
+            margin-top: 20px;
+        }
+
+        .answer-item {
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .answer-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .answer-label {
+            font-weight: 600;
+            color: #667eea;
+            font-size: 1.1em;
+        }
+
+        .delete-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .delete-btn:hover {
+            background: #c82333;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 100px;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            font-family: inherit;
+            resize: vertical;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            justify-content: space-between;
+            margin-top: 30px;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 6px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-success {
+            background: #4caf50;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #45a049;
+        }
+
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .loading-overlay.active {
+            display: flex;
+        }
+
+        .loading-content {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔑 Answer Key Setup Wizard</h1>
+            <p>Configure your exam answer key in 3 easy steps</p>
+        </div>
+
+        <div class="progress-bar">
+            <div class="progress-step active" data-step="1">
+                <div class="step-circle">1</div>
+                <div class="step-label">Exam Details</div>
+            </div>
+            <div class="progress-step" data-step="2">
+                <div class="step-circle">2</div>
+                <div class="step-label">Short Answers</div>
+            </div>
+            <div class="progress-step" data-step="3">
+                <div class="step-circle">3</div>
+                <div class="step-label">Long Answers</div>
+            </div>
+        </div>
+
+        <div class="content">
+            <!-- STEP 1: Exam Metadata -->
+            <div class="step-section active" id="step1">
+                <h2>📋 Step 1: Exam Information</h2>
+
+                <div class="info-box">
+                    <strong>ℹ️ Instructions:</strong> Fill in the basic exam details and specify which questions are
+                    short answers vs long answers.
+                </div>
+
+                <form id="metadata-form">
+                    <div class="form-group">
+                        <label for="exam-name">Exam Name *</label>
+                        <input type="text" id="exam-name" name="exam_name" placeholder="e.g., Mathematics Mid-Term 2025"
+                            required>
+                        <small>Give this answer key a unique, descriptive name</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="class-name">Class *</label>
+                        <input type="text" id="class-name" name="class_name" placeholder="e.g., S5" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="subject">Subject *</label>
+                        <input type="text" id="subject" name="subject" placeholder="e.g., Mathematics" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="short-questions">Short Answer Questions *</label>
+                        <input type="text" id="short-questions" name="short_questions"
+                            placeholder="e.g., 1-10 or 1,2,3,4,5" required>
+                        <small>Use ranges (1-10) or comma-separated (1,2,3). These will be extracted as single
+                            paragraphs.</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="long-questions">Long Answer Questions *</label>
+                        <input type="text" id="long-questions" name="long_questions"
+                            placeholder="e.g., 11-20 or 11,12,13" required>
+                        <small>Use ranges (11-20) or comma-separated (11,12,13). These will preserve formatting and
+                            structure.</small>
+                    </div>
+
+                    <div class="button-group">
+                        <a href="/" class="btn btn-secondary">← Back to Home</a>
+                        <button type="button" class="btn btn-primary" onclick="goToStep2()">Next: Upload Short Answers
+                            →</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- STEP 2: Short Answer Upload -->
+            <div class="step-section" id="step2">
+                <h2>📝 Step 2: Upload Short Answer Key</h2>
+
+                <div class="info-box">
+                    <strong>ℹ️ Instructions:</strong> Upload images of your short answer key pages one by one.
+                    The system will extract text in real-time for you to review and edit.
+                </div>
+
+                <div class="upload-area" id="short-upload-area"
+                    onclick="document.getElementById('short-file-input').click()">
+                    <div class="upload-icon">📤</div>
+                    <div class="upload-text">Click to upload or drag and drop</div>
+                    <div class="upload-subtext">PNG, JPG up to 10MB</div>
+                </div>
+                <input type="file" id="short-file-input" accept="image/*" style="display: none;">
+
+                <div class="extracted-answers" id="short-answers-container">
+                    <!-- Extracted answers will appear here -->
+                </div>
+
+                <div class="button-group">
+                    <button type="button" class="btn btn-secondary" onclick="goToStep1()">← Back</button>
+                    <button type="button" class="btn btn-primary" onclick="goToStep3()">Next: Upload Long Answers
+                        →</button>
+                </div>
+            </div>
+
+            <!-- STEP 3: Long Answer Upload -->
+            <div class="step-section" id="step3">
+                <h2>📖 Step 3: Upload Long Answer Key</h2>
+
+                <div class="info-box">
+                    <strong>ℹ️ Instructions:</strong> Upload images of your long answer key pages one by one.
+                    These answers will preserve paragraph structure and formatting.
+                </div>
+
+                <div class="upload-area" id="long-upload-area"
+                    onclick="document.getElementById('long-file-input').click()">
+                    <div class="upload-icon">📤</div>
+                    <div class="upload-text">Click to upload or drag and drop</div>
+                    <div class="upload-subtext">PNG, JPG up to 10MB</div>
+                </div>
+                <input type="file" id="long-file-input" accept="image/*" style="display: none;">
+
+                <div class="extracted-answers" id="long-answers-container">
+                    <!-- Extracted answers will appear here -->
+                </div>
+
+                <div class="button-group">
+                    <button type="button" class="btn btn-secondary" onclick="goToStep2()">← Back</button>
+                    <button type="button" class="btn btn-success" onclick="saveAnswerKey()">💾 Save & Continue to Batch
+                        Upload →</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <h3>Processing...</h3>
+            <p id="loading-message">Extracting text from image</p>
+        </div>
+    </div>
+
+    <script>
+        let currentStep = 1;
+        let examMetadata = {};
+        let shortAnswers = {};
+        let longAnswers = {};
+
+        function goToStep1() {
+            showStep(1);
+        }
+
+        function goToStep2() {
+            const form = document.getElementById('metadata-form');
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+
+            examMetadata = {
+                exam_name: document.getElementById('exam-name').value,
+                class_name: document.getElementById('class-name').value,
+                subject: document.getElementById('subject').value,
+                short_questions: document.getElementById('short-questions').value,
+                long_questions: document.getElementById('long-questions').value
+            };
+
+            showStep(2);
+        }
+
+        function goToStep3() {
+            showStep(3);
+        }
+
+        function showStep(stepNumber) {
+            document.querySelectorAll('.step-section').forEach(section => {
+                section.classList.remove('active');
+            });
+
+            document.getElementById(`step${stepNumber}`).classList.add('active');
+
+            document.querySelectorAll('.progress-step').forEach(step => {
+                const stepNum = parseInt(step.dataset.step);
+                step.classList.remove('active', 'completed');
+
+                if (stepNum === stepNumber) {
+                    step.classList.add('active');
+                } else if (stepNum < stepNumber) {
+                    step.classList.add('completed');
+                }
+            });
+
+            currentStep = stepNumber;
+        }
+
+        document.getElementById('short-file-input').addEventListener('change', (e) => {
+            handleFileUpload(e.target.files[0], 'short');
+        });
+
+        document.getElementById('long-file-input').addEventListener('change', (e) => {
+            handleFileUpload(e.target.files[0], 'long');
+        });
+
+        ['short-upload-area', 'long-upload-area'].forEach(areaId => {
+            const area = document.getElementById(areaId);
+
+            area.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                area.classList.add('dragover');
+            });
+
+            area.addEventListener('dragleave', () => {
+                area.classList.remove('dragover');
+            });
+
+            area.addEventListener('drop', (e) => {
+                e.preventDefault();
+                area.classList.remove('dragover');
+                const type = areaId.includes('short') ? 'short' : 'long';
+                handleFileUpload(e.dataTransfer.files[0], type);
+            });
+        });
+
+        async function handleFileUpload(file, answerType) {
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('answer_key_image', file);
+            formData.append('answer_type', answerType);
+
+            showLoading('Extracting text from image...');
+
+            try {
+                const response = await fetch('/api/extract-answer-key', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                hideLoading();
+
+                if (result.status === 'Success') {
+                    displayExtractedAnswers(result.answers, answerType);
+                    showAlert('success', `✅ Successfully extracted ${Object.keys(result.answers).length} answers!`);
+                } else {
+                    showAlert('error', `❌ Extraction failed: ${result.error}`);
+                }
+            } catch (error) {
+                hideLoading();
+                showAlert('error', `❌ Upload failed: ${error.message}`);
+            }
+        }
+
+        function displayExtractedAnswers(answers, answerType) {
+            const container = document.getElementById(`${answerType}-answers-container`);
+
+            Object.entries(answers).forEach(([qLabel, answerText]) => {
+                const answerItem = document.createElement('div');
+                answerItem.className = 'answer-item';
+                answerItem.dataset.question = qLabel;
+                answerItem.dataset.type = answerType;
+
+                answerItem.innerHTML = `
+                    <div class="answer-header">
+                        <span class="answer-label">${qLabel}</span>
+                        <button class="delete-btn" onclick="deleteAnswer('${qLabel}', '${answerType}')">🗑️ Delete</button>
+                    </div>
+                    <textarea id="${answerType}-${qLabel}">${answerText}</textarea>
+                `;
+
+                container.appendChild(answerItem);
+
+                if (answerType === 'short') {
+                    shortAnswers[qLabel] = answerText;
+                } else {
+                    longAnswers[qLabel] = answerText;
+                }
+            });
+        }
+
+        function deleteAnswer(qLabel, answerType) {
+            const container = document.getElementById(`${answerType}-answers-container`);
+            const item = container.querySelector(`[data-question="${qLabel}"]`);
+
+            if (item && confirm(`Are you sure you want to delete ${qLabel}?`)) {
+                item.remove();
+
+                if (answerType === 'short') {
+                    delete shortAnswers[qLabel];
+                } else {
+                    delete longAnswers[qLabel];
+                }
+            }
+        }
+
+        async function saveAnswerKey() {
+            // Collect all edited answers
+            document.querySelectorAll('#short-answers-container textarea').forEach(textarea => {
+                const qLabel = textarea.id.replace('short-', '');
+                shortAnswers[qLabel] = textarea.value;
+            });
+
+            document.querySelectorAll('#long-answers-container textarea').forEach(textarea => {
+                const qLabel = textarea.id.replace('long-', '');
+                longAnswers[qLabel] = textarea.value;
+            });
+
+            // Validate
+            if (Object.keys(shortAnswers).length === 0 && Object.keys(longAnswers).length === 0) {
+                showAlert('error', '❌ Please upload at least one answer key page!');
+                return;
+            }
+
+            showLoading('Saving answer key...');
+
+            // Create the payload - NO STRINGIFYING OF NESTED OBJECTS
+            const payload = {
+                exam_name: examMetadata.exam_name,
+                class_name: examMetadata.class_name,
+                subject: examMetadata.subject,
+                short_questions: examMetadata.short_questions,
+                long_questions: examMetadata.long_questions,
+                short_answers: shortAnswers,  // Raw object
+                long_answers: longAnswers     // Raw object
+            };
+
+            console.log('Payload to send:', payload);  // Debug
+
+            try {
+                const response = await fetch('/api/save-answer-key', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)  // Only stringify ONCE, here
+                });
+
+                const result = await response.json();
+                hideLoading();
+
+                if (result.status === 'Success') {
+                    showAlert('success', `✅ Answer key saved! Exam ID: ${result.exam_id}`);
+
+                    sessionStorage.setItem('latest_exam_id', result.exam_id);
+                    sessionStorage.setItem('exam_class', examMetadata.class_name);
+                    sessionStorage.setItem('exam_subject', examMetadata.subject);
+
+                    setTimeout(() => {
+                        window.location.href = '/upload-series';
+                    }, 1500);
+                } else {
+                    showAlert('error', `❌ Save failed: ${result.error}`);
+                }
+            } catch (error) {
+                hideLoading();
+                console.error('Save error:', error);
+                showAlert('error', `❌ Save failed: ${error.message}`);
+            }
+        }
+
+        function showLoading(message) {
+            document.getElementById('loading-message').textContent = message;
+            document.getElementById('loading-overlay').classList.add('active');
+        }
+
+        function hideLoading() {
+            document.getElementById('loading-overlay').classList.remove('active');
+        }
+
+        function showAlert(type, message) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.textContent = message;
+
+            const content = document.querySelector('.content');
+            content.insertBefore(alertDiv, content.firstChild);
+
+            setTimeout(() => alertDiv.remove(), 5000);
+        }
+    </script>
+</body>
+
+</html>

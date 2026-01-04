@@ -3,82 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Automated Paper Valuator - Dashboard</title>
-    <style>
-        body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            margin: 0; 
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            background: linear-gradient(135deg, #f4f7f9 0%, #e9ecef 100%);
-            color: #333;
-        }
-        .dashboard-container { 
-            max-width: 800px; 
-            width: 90% ;
-            padding: 40px; 
-            background-color: #ffffff; 
-            border-radius: 16px; 
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1); 
-            text-align: center;
-        }
-        h1 { 
-            color: #1e88e5; 
-            margin-bottom: 10px;
-            font-size: 2.2em;
-        }
-        p.subtitle {
-            color: #757575;
-            margin-bottom: 40px;
-        }
-        .menu-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 25px;
-        }
-        .menu-card {
-            padding: 30px;
-            border: 2px solid #f0f2f5;
-            border-radius: 12px;
-            transition: all 0.3s ease;
-            cursor: pointer;
-            text-decoration: none;
-            color: inherit;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        .menu-card:hover {
-            border-color: #1e88e5;
-            transform: translateY(-5px);
-            box-shadow: 0 5px 15px rgba(30, 136, 229, 0.1);
-        }
-        .icon {
-            font-size: 3em;
-            margin-bottom: 15px;
-        }
-        .card-title {
-            font-weight: bold;
-            font-size: 1.2em;
-            margin-bottom: 10px;
-            color: #1e88e5;
-        }
-        .card-desc {
-            font-size: 0.9em;
-            color: #616161;
-            line-height: 1.4;
-        }
-        .btn-go {
-            margin-top: 20px;
-            padding: 10px 20px;
-            background-color: #1e88e5;
-            color: white;
-            border-radius: 6px;
-            font-weight: 600;
-        }
-    </style>
+    <title>Paper Valuator - Dashboard</title>
+    <link rel="stylesheet" href="/css/index.css">
 </head>
 <body>
     <div class="dashboard-container">
@@ -96,18 +22,18 @@
                 <div class="btn-go">Enter Mode</div>
             </a>
 
-            <a href="/upload-series" class="menu-card">
+            <a href="/answer-key-setup" class="menu-card teacher">
                 <div class="icon">📚</div>
-                <div class="card-title">Series Exam Bundle</div>
+                <div class="card-title">Series Valuation</div>
                 <div class="card-desc">
-                    Teachers only. Process multiple students. 
-                    Extracts personal details from cover pages.
+                    Teachers: Setup answer key and process multiple students.
+                    Complete workflow from key setup to batch evaluation.
                 </div>
-                <div class="btn-go">Enter Mode</div>
+                <div class="btn-go">Start Setup</div>
             </a>
         </div>
 
-        <div style="margin-top: 40px; font-size: 0.8em; color: #9e9e9e;">
+        <div class="footer-text">
             Powered by Google Vision AI & Python Segmentation Engine
         </div>
     </div>
