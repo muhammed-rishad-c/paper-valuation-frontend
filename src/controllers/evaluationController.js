@@ -312,6 +312,7 @@ exports.postEvaluateSeriesBatch = async (req, res) => {
 
                 finalBatchResults.push(studentResult);
                 console.log(`✅ Successfully processed Student #${i + 1}`);
+                console.log("📊 Student Result:", JSON.stringify(studentResult, null, 2));
             } catch (apiError) {
                 console.error(`❌ Error processing Student #${i + 1}:`, apiError.message);
                 finalBatchResults.push({ 
