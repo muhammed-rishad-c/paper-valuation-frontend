@@ -161,9 +161,13 @@ exports.postExtractAnswerKey = async (req, res) => {
  * POST: Save the complete answer key with all metadata
  * Called when teacher clicks "Save Answer Key" after verifying all answers
  */
+/**
+ * POST: Save the complete answer key with all metadata INCLUDING MARKS
+ * Called when teacher clicks "Save Answer Key" after verifying all answers
+ */
 exports.postSaveAnswerKey = async (req, res) => {
     try {
-        console.log('Received body:', req.body);  // Debug log
+        console.log('Received body:', req.body);
 
         const {
             exam_name,
@@ -171,12 +175,15 @@ exports.postSaveAnswerKey = async (req, res) => {
             subject,
             short_questions,
             long_questions,
+            short_marks,      // ✅ NEW
+            long_marks,       // ✅ NEW
             short_answers,
             long_answers
         } = req.body;
 
-        console.log('💾 Saving complete answer key...');
+        console.log('💾 Saving complete answer key with marks...');
         console.log(`   Exam: ${exam_name}, Class: ${class_name}, Subject: ${subject}`);
+        console.log(`   Short marks: ${short_marks}, Long marks: ${long_marks}`);
         console.log(`   Short answers type: ${typeof short_answers}`);
         console.log(`   Long answers type: ${typeof long_answers}`);
 
@@ -188,17 +195,27 @@ exports.postSaveAnswerKey = async (req, res) => {
             });
         }
 
+        // Validate marks are provided
+        if (!short_marks && !long_marks) {
+            return res.status(400).json({
+                status: 'Failed',
+                error: 'Please provide marks for at least one question type.'
+            });
+        }
+
         const payload = {
             exam_name,
             class_name,
             subject,
             short_questions,
             long_questions,
+            short_marks: short_marks || '',      // ✅ NEW
+            long_marks: long_marks || '',        // ✅ NEW
             short_answers: short_answers || {},
             long_answers: long_answers || {}
         };
 
-        console.log('Sending to Flask:', JSON.stringify(payload, null, 2));  // Debug
+        console.log('Sending to Flask:', JSON.stringify(payload, null, 2));
 
         // Use axios directly for JSON
         const axios = require('axios');
@@ -214,10 +231,12 @@ exports.postSaveAnswerKey = async (req, res) => {
         const resultData = response.data;
 
         console.log(`✅ Answer key saved with exam_id: ${resultData.exam_id}`);
+        console.log(`📊 Total marks: ${resultData.total_marks}`);
 
         res.json({
             status: 'Success',
             exam_id: resultData.exam_id,
+            total_marks: resultData.total_marks,  // ✅ NEW - return total marks
             message: 'Answer key saved successfully!'
         });
 

@@ -103,6 +103,13 @@
             margin-bottom: 20px;
         }
 
+        .warning-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
         .form-group {
             margin-bottom: 20px;
         }
@@ -131,6 +138,19 @@
             margin-top: 5px;
             color: #666;
             font-size: 0.85em;
+        }
+
+        .marks-example {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 0.9em;
+        }
+
+        .marks-example strong {
+            color: #667eea;
         }
 
         .upload-area {
@@ -353,7 +373,7 @@
 
                 <div class="info-box">
                     <strong>ℹ️ Instructions:</strong> Fill in the basic exam details and specify which questions are
-                    short answers vs long answers.
+                    short answers vs long answers with their marks.
                 </div>
 
                 <form id="metadata-form">
@@ -383,11 +403,35 @@
                     </div>
 
                     <div class="form-group">
+                        <label for="short-marks">Marks for Short Questions *</label>
+                        <input type="text" id="short-marks" name="short_marks"
+                            placeholder="e.g., 2 or 2,2,3" required>
+                        <small>Single number for uniform marks (e.g., "2") or comma-separated for individual marks (e.g., "2,2,3")</small>
+                        <div class="marks-example">
+                            <strong>Examples:</strong><br>
+                            • Questions 1-3, Marks "2" → Q1=2, Q2=2, Q3=2<br>
+                            • Questions 1-3, Marks "2,2,3" → Q1=2, Q2=2, Q3=3
+                        </div>
+                    </div>
+
+                    <div class="form-group">
                         <label for="long-questions">Long Answer Questions *</label>
                         <input type="text" id="long-questions" name="long_questions"
                             placeholder="e.g., 11-20 or 11,12,13" required>
                         <small>Use ranges (11-20) or comma-separated (11,12,13). These will preserve formatting and
                             structure.</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="long-marks">Marks for Long Questions *</label>
+                        <input type="text" id="long-marks" name="long_marks"
+                            placeholder="e.g., 8 or 7,10,8" required>
+                        <small>Single number for uniform marks (e.g., "8") or comma-separated for individual marks (e.g., "7,10,8")</small>
+                        <div class="marks-example">
+                            <strong>Examples:</strong><br>
+                            • Questions 4-5, Marks "8" → Q4=8, Q5=8<br>
+                            • Questions 4-5, Marks "7,10" → Q4=7, Q5=10
+                        </div>
                     </div>
 
                     <div class="button-group">
@@ -482,15 +526,37 @@
                 return;
             }
 
+            // Validate marks format
+            const shortMarks = document.getElementById('short-marks').value.trim();
+            const longMarks = document.getElementById('long-marks').value.trim();
+
+            if (!validateMarksFormat(shortMarks)) {
+                showAlert('error', '❌ Invalid format for short question marks. Use single number (e.g., "2") or comma-separated (e.g., "2,2,3")');
+                return;
+            }
+
+            if (!validateMarksFormat(longMarks)) {
+                showAlert('error', '❌ Invalid format for long question marks. Use single number (e.g., "8") or comma-separated (e.g., "7,10")');
+                return;
+            }
+
             examMetadata = {
                 exam_name: document.getElementById('exam-name').value,
                 class_name: document.getElementById('class-name').value,
                 subject: document.getElementById('subject').value,
                 short_questions: document.getElementById('short-questions').value,
-                long_questions: document.getElementById('long-questions').value
+                long_questions: document.getElementById('long-questions').value,
+                short_marks: shortMarks,
+                long_marks: longMarks
             };
 
             showStep(2);
+        }
+
+        function validateMarksFormat(marksStr) {
+            // Allow single number or comma-separated numbers
+            const pattern = /^\d+(\s*,\s*\d+)*$/;
+            return pattern.test(marksStr);
         }
 
         function goToStep3() {
@@ -638,18 +704,20 @@
 
             showLoading('Saving answer key...');
 
-            // Create the payload - NO STRINGIFYING OF NESTED OBJECTS
+            // Create the payload with marks included
             const payload = {
                 exam_name: examMetadata.exam_name,
                 class_name: examMetadata.class_name,
                 subject: examMetadata.subject,
                 short_questions: examMetadata.short_questions,
                 long_questions: examMetadata.long_questions,
-                short_answers: shortAnswers,  // Raw object
-                long_answers: longAnswers     // Raw object
+                short_marks: examMetadata.short_marks,
+                long_marks: examMetadata.long_marks,
+                short_answers: shortAnswers,
+                long_answers: longAnswers
             };
 
-            console.log('Payload to send:', payload);  // Debug
+            console.log('Payload to send:', payload);
 
             try {
                 const response = await fetch('/api/save-answer-key', {
@@ -657,14 +725,14 @@
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify(payload)  // Only stringify ONCE, here
+                    body: JSON.stringify(payload)
                 });
 
                 const result = await response.json();
                 hideLoading();
 
                 if (result.status === 'Success') {
-                    showAlert('success', `✅ Answer key saved! Exam ID: ${result.exam_id}`);
+                    showAlert('success', `✅ Answer key saved! Exam ID: ${result.exam_id} | Total Marks: ${result.total_marks}`);
 
                     sessionStorage.setItem('latest_exam_id', result.exam_id);
                     sessionStorage.setItem('exam_class', examMetadata.class_name);
