@@ -2,17 +2,11 @@ const fs = require('fs');
 const FormData = require('form-data');
 const valuationService = require('../services/valuationService');
 
-// ============================================
-// HOME PAGE
-// ============================================
 
 exports.getIndexPage = (req, res) => {
     res.render('index');
 }
 
-// ============================================
-// INDIVIDUAL EVALUATION ROUTES
-// ============================================
 
 exports.getUploadPage = (req, res) => {
     res.render('individual', { title: 'Upload Paper' });
@@ -79,14 +73,7 @@ exports.postEvaluate = async (req, res) => {
     }
 };
 
-// ============================================
-// ANSWER KEY SETUP ROUTES (NEW)
-// ============================================
 
-/**
- * GET: Render the Answer Key Setup page (3-step wizard)
- * This is where teachers define exam metadata and upload answer keys
- */
 exports.getAnswerKeySetup = (req, res) => {
     res.render('answerKeySetup', { 
         title: 'Answer Key Setup',
@@ -94,11 +81,7 @@ exports.getAnswerKeySetup = (req, res) => {
     });
 };
 
-/**
- * POST: Extract text from a single uploaded answer key image
- * This is called via AJAX when teacher uploads each page
- * Returns extracted text immediately for teacher verification
- */
+
 exports.postExtractAnswerKey = async (req, res) => {
     if (!req.file) {
         return res.status(400).json({ 
@@ -153,18 +136,7 @@ exports.postExtractAnswerKey = async (req, res) => {
     }
 };
 
-/**
- * POST: Save the complete answer key with all metadata
- * Called when teacher clicks "Save Answer Key" after verifying all answers
- */
-/**
- * POST: Save the complete answer key with all metadata
- * Called when teacher clicks "Save Answer Key" after verifying all answers
- */
-/**
- * POST: Save the complete answer key with all metadata INCLUDING MARKS
- * Called when teacher clicks "Save Answer Key" after verifying all answers
- */
+
 exports.postSaveAnswerKey = async (req, res) => {
     try {
         console.log('Received body:', req.body);
