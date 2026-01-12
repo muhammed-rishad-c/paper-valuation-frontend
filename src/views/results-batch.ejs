@@ -7,6 +7,35 @@
     <style>
         body { font-family: 'Segoe UI', sans-serif; padding: 40px; background-color: #f4f7f9; }
         .container { max-width: 1000px; margin: auto; }
+        
+        /* 🆕 NEW: Exam info banner */
+        .exam-info-banner {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
+        }
+        .exam-info-banner h3 { margin: 0 0 15px 0; font-size: 1.3em; }
+        .exam-info-banner p { margin: 5px 0; font-size: 0.95em; }
+        .valuation-btn {
+            display: inline-block;
+            margin-top: 15px;
+            padding: 12px 30px;
+            background: white;
+            color: #667eea;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            transition: transform 0.2s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .valuation-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
         .student-block {
             background: white;
             padding: 25px;
@@ -25,6 +54,25 @@
         .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
         .info-item { font-size: 0.95em; color: #555; }
         .info-item strong { color: #333; }
+        
+        /* 🆕 NEW: Save status badge */
+        .save-status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+        .save-status.saved {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        .save-status.not-saved {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+        
         pre {
             background: #272822;
             color: #f8f8f2;
@@ -45,6 +93,22 @@
         <h1>Batch Valuation Summary</h1>
         <p>Total Students Processed: <strong><%= studentCount %></strong></p>
 
+        <!-- 🆕 NEW: Exam Info Banner -->
+        <% if (examInfo && examInfo.exam_id) { %>
+            <div class="exam-info-banner">
+                <h3>✅ Submissions Saved to Exam</h3>
+                <p><strong>Exam ID:</strong> <%= examInfo.exam_id %></p>
+                <p><strong>Students Successfully Saved:</strong> <%= examInfo.student_count %> / <%= studentCount %></p>
+                <p style="font-size: 0.9em; margin-top: 10px; opacity: 0.9;">
+                    All student submissions have been stored with the exam's answer key. 
+                    You can now proceed to the valuation interface to compare answers.
+                </p>
+                <a href="/valuation-prep/<%= examInfo.exam_id %>" class="valuation-btn">
+                    📊 Prepare Valuation for this Exam
+                </a>
+            </div>
+        <% } %>
+
         <% result.forEach((studentResult, index) => { %>
             <div class="student-block">
                 <div class="student-header">
@@ -63,6 +127,17 @@
                         <div class="info-item"><strong>Class:</strong> <%= studentResult.student_info.class %></div>
                         <div class="info-item"><strong>Subject:</strong> <%= studentResult.student_info.subject %></div>
                     </div>
+
+                    <!-- 🆕 NEW: Save Status -->
+                    <% if (studentResult.saved_to_exam) { %>
+                        <div class="save-status saved">
+                            ✅ Saved to Exam: <%= studentResult.saved_to_exam %>
+                        </div>
+                    <% } else { %>
+                        <div class="save-status not-saved">
+                            ⚠️ Not saved to exam storage (no exam_id provided)
+                        </div>
+                    <% } %>
 
                     <h4>Recognized Answers:</h4>
                     <pre><%= JSON.stringify(studentResult.recognition_result.answers, null, 2) %></pre>

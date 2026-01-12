@@ -47,6 +47,24 @@
                 </div>
             </div>
         </div>
+        <!-- 🆕 ADD THIS SECTION -->
+<div class="global-header" style="background: #f3e5f5; border-color: #ba68c8;">
+    <h3>🎯 Link to Existing Answer Key (Optional)</h3>
+    <p style="font-size: 0.9em; color: #666; margin-bottom: 10px;">
+        Select an exam to save student submissions for future valuation. 
+        Leave blank if you just want to extract answers without saving.
+    </p>
+    <div>
+        <label>Select Exam:</label>
+        <select id="examIdSelect" class="input-box" style="cursor: pointer;">
+            <option value="">-- No Exam (Just Extract Answers) --</option>
+        </select>
+    </div>
+    <div id="examPreview" style="margin-top: 10px; padding: 10px; background: #fff; border-radius: 4px; display: none;">
+        <strong>Selected Exam:</strong>
+        <div id="examDetails" style="font-size: 0.85em; color: #555; margin-top: 5px;"></div>
+    </div>
+</div>
 
         <div id="studentContainer"></div>
 
@@ -135,37 +153,91 @@
         }
 
         function submitBatchEvaluation() {
-            document.getElementById('loadingMessage').style.display = 'block';
-            const formData = new FormData();
+    document.getElementById('loadingMessage').style.display = 'block';
+    const formData = new FormData();
+    
+    // Send Global Details
+    formData.append('global_class', document.getElementById('globalClass').value);
+    formData.append('global_subject', document.getElementById('globalSubject').value);
+    
+    // 🆕 NEW: Include exam_id if selected
+    const examId = document.getElementById('examIdSelect').value;
+    if (examId) {
+        formData.append('exam_id', examId);
+        console.log(`📋 Submitting with Exam ID: ${examId}`);
+    } else {
+        console.log('⚠️ No exam selected - submissions will NOT be saved');
+    }
+
+    const activeStudents = studentData.filter(s => s.files.length > 0);
+    formData.append('student_count', activeStudents.length);
+
+    activeStudents.forEach((student, i) => {
+        formData.append(`roll_no_${i}`, student.roll_no);
+        
+        student.files.forEach(file => {
+            formData.append(`student_${i}`, file);
+        });
+    });
+
+    fetch('/seriesBundleEvaluate', { method: 'POST', body: formData })
+    .then(res => res.text())
+    .then(html => {
+        document.open();
+        document.write(html);
+        document.close();
+    })
+    .catch(err => {
+        alert('Evaluation Failed: ' + err.message);
+        document.getElementById('loadingMessage').style.display = 'none';
+    });
+}
+        // 🆕 NEW: Load available exams when page loads
+async function loadAvailableExams() {
+    try {
+        const response = await fetch('/api/list_answer_keys');
+        const data = await response.json();
+        
+        if (data.status === 'Success' && data.answer_keys.length > 0) {
+            const select = document.getElementById('examIdSelect');
             
-            // Send Global Details once
-            formData.append('global_class', document.getElementById('globalClass').value);
-            formData.append('global_subject', document.getElementById('globalSubject').value);
-
-            const activeStudents = studentData.filter(s => s.files.length > 0);
-            formData.append('student_count', activeStudents.length);
-
-            activeStudents.forEach((student, i) => {
-                // Send manual roll_no for this specific student
-                formData.append(`roll_no_${i}`, student.roll_no);
-                
-                student.files.forEach(file => {
-                    formData.append(`student_${i}`, file);
-                });
+            data.answer_keys.forEach(exam => {
+                const option = document.createElement('option');
+                option.value = exam.exam_id;
+                option.textContent = `${exam.exam_name} (${exam.class} - ${exam.subject})`;
+                select.appendChild(option);
             });
-
-            fetch('/seriesBundleEvaluate', { method: 'POST', body: formData })
-            .then(res => res.text())
-            .then(html => {
-                document.open();
-                document.write(html);
-                document.close();
-            })
-            .catch(err => {
-                alert('Evaluation Failed: ' + err.message);
-                document.getElementById('loadingMessage').style.display = 'none';
-            });
+            
+            console.log(`✅ Loaded ${data.answer_keys.length} available exams`);
+        } else {
+            console.log('⚠️ No answer keys found. Create one first in Answer Key Setup.');
         }
-    </script>
+    } catch (error) {
+        console.error('❌ Failed to load exams:', error);
+    }
+}
+
+    // 🆕 NEW: Show exam details when selected
+    document.getElementById('examIdSelect').addEventListener('change', function() {
+        const examId = this.value;
+        const preview = document.getElementById('examPreview');
+        const details = document.getElementById('examDetails');
+        
+        if (examId) {
+            // Show preview with selected exam
+            const selectedOption = this.options[this.selectedIndex];
+            details.innerHTML = `
+                <div>📋 <strong>Exam ID:</strong> ${examId}</div>
+                <div style="margin-top: 5px;">✅ Student submissions will be saved to this exam for valuation</div>
+            `;
+            preview.style.display = 'block';
+        } else {
+            preview.style.display = 'none';
+        }
+    });
+
+    // Load exams when page loads
+    window.addEventListener('DOMContentLoaded', loadAvailableExams);
+        </script>
 </body>
 </html>

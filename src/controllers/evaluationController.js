@@ -253,7 +253,25 @@ exports.postEvaluateSeriesBatch = async (req, res) => {
         const global_class = req.body.global_class;
         const global_subject = req.body.global_subject;
 
-        console.log(`📋 Exam ID: ${exam_id || 'Not provided'}`);
+        console.log(`📋 Exam ID: ${exam_id || 'Not provided (submissions will not be saved)'}`);
+
+        // 🆕 NEW: Validate exam_id exists before processing
+        if (exam_id) {
+            try {
+                const axios = require('axios');
+                const PYTHON_BASE_URL = process.env.PYTHON_API_URL || "http://localhost:5000";
+                const checkExam = await axios.get(`${PYTHON_BASE_URL}/api/get_answer_key/${exam_id}`);
+                
+                if (checkExam.data.status === 'Success') {
+                    console.log(`✅ Exam validated: ${checkExam.data.answer_key.exam_metadata?.exam_name || checkExam.data.answer_key.exam_name}`);
+                }
+            } catch (examError) {
+                console.error(`❌ Invalid exam_id: ${exam_id}`);
+                return res.status(400).render('error', { 
+                    message: `Invalid Exam ID: ${exam_id}. Please create the answer key first.` 
+                });
+            }
+        }
 
         for (let i = 0; i < studentCount; i++) {
             const studentKey = `student_${i}`;
@@ -301,9 +319,15 @@ exports.postEvaluateSeriesBatch = async (req, res) => {
                     { headers: { ...formData.getHeaders() } }
                 );
 
+                // 🆕 NEW: Log if submission was saved to exam
+                if (studentResult.saved_to_exam) {
+                    console.log(`✅ Student #${i + 1} saved to exam: ${studentResult.saved_to_exam}`);
+                } else {
+                    console.log(`⚠️ Student #${i + 1} processed but not saved to exam storage`);
+                }
+
                 finalBatchResults.push(studentResult);
                 console.log(`✅ Successfully processed Student #${i + 1}`);
-                console.log("📊 Student Result:", JSON.stringify(studentResult, null, 2));
             } catch (apiError) {
                 console.error(`❌ Error processing Student #${i + 1}:`, apiError.message);
                 finalBatchResults.push({ 
@@ -313,13 +337,23 @@ exports.postEvaluateSeriesBatch = async (req, res) => {
                 });
             }
         }
-        console.log(`my prining is ${finalBatchResults}`);
+
+        console.log(`📊 Batch Results Summary: ${finalBatchResults.length} students processed`);
         
+        // 🆕 NEW: Add exam info to results page
+        let examInfo = null;
+        if (exam_id && finalBatchResults.some(r => r.status === 'Success')) {
+            examInfo = {
+                exam_id: exam_id,
+                student_count: finalBatchResults.filter(r => r.status === 'Success').length
+            };
+        }
 
         res.render('results-batch', { 
             title: 'Batch Evaluation Results',
             result: finalBatchResults,
-            studentCount: finalBatchResults.length
+            studentCount: finalBatchResults.length,
+            examInfo: examInfo  // 🆕 NEW: Pass exam info to template
         });
 
     } catch (error) {
@@ -336,5 +370,85 @@ exports.postEvaluateSeriesBatch = async (req, res) => {
             });
             console.log("🧹 Uploaded temporary files cleaned up.");
         }
+    }
+};
+
+// ============================================
+// VALUATION PREPARATION ROUTE
+// ============================================
+
+exports.getValuationPrep = async (req, res) => {
+    const exam_id = req.params.exam_id;
+
+    try {
+        console.log(`📋 Fetching complete exam data for: ${exam_id}`);
+
+        const axios = require('axios');
+        const PYTHON_BASE_URL = process.env.PYTHON_API_URL || "http://localhost:5000";
+        
+        const response = await axios.get(`${PYTHON_BASE_URL}/api/get_exam_data/${exam_id}`);
+
+        if (response.data.status !== 'Success') {
+            return res.status(404).render('error', { 
+                message: `Exam not found: ${exam_id}` 
+            });
+        }
+
+        const examData = response.data.exam_data;
+
+        console.log(`✅ Retrieved exam: ${examData.exam_metadata.exam_name}`);
+        console.log(`   📊 ${examData.total_students} student submissions found`);
+
+        // Prepare valuation-ready format
+        const valuationPayload = {
+            exam_metadata: examData.exam_metadata,
+            question_types: examData.question_types,
+            question_marks: examData.question_marks,
+            teacher_answers: examData.teacher_answers,
+            students: []
+        };
+
+        // Convert student submissions to array for easier rendering
+        for (const [roll_no, submission] of Object.entries(examData.student_submissions)) {
+            valuationPayload.students.push({
+                roll_no: roll_no,
+                name: submission.student_info.name,
+                student_info: submission.student_info,
+                answers: submission.answers,
+                valuation_status: submission.valuation_status
+            });
+        }
+
+        res.render('valuation-prep', { 
+            title: `Valuation: ${examData.exam_metadata.exam_name}`,
+            examData: valuationPayload
+        });
+
+    } catch (error) {
+        console.error("Error fetching exam data:", error.message);
+        res.status(500).render('error', { 
+            message: `Failed to load exam data: ${error.message}` 
+        });
+    }
+};
+
+// ============================================
+// GET ANSWER KEYS LIST FOR DROPDOWN
+// ============================================
+
+exports.getAnswerKeysList = async (req, res) => {
+    try {
+        const axios = require('axios');
+        const PYTHON_BASE_URL = process.env.PYTHON_API_URL || "http://localhost:5000";
+        
+        const response = await axios.get(`${PYTHON_BASE_URL}/api/list_answer_keys`);
+        res.json(response.data);
+        
+    } catch (error) {
+        console.error('Error fetching answer keys list:', error.message);
+        res.status(500).json({ 
+            status: 'Failed', 
+            error: error.message 
+        });
     }
 };

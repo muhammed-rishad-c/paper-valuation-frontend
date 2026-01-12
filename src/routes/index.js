@@ -27,4 +27,9 @@ router.get('/upload-series', evaluationController.getSeriesBatch);
 
 router.post('/seriesBundleEvaluate', upload.any(), evaluationController.postEvaluateSeriesBatch);
 
+// Valuation preparation route
+router.get('/valuation-prep/:exam_id', evaluationController.getValuationPrep);
+
+// In index.js - just add this one line
+router.get('/api/list_answer_keys', evaluationController.getAnswerKeysList);
 module.exports = router;
