@@ -32,4 +32,7 @@ router.get('/valuation-prep/:exam_id', evaluationController.getValuationPrep);
 
 // In index.js - just add this one line
 router.get('/api/list_answer_keys', evaluationController.getAnswerKeysList);
+
+router.post('/api/evaluate_exam/:exam_id', evaluationController.postEvaluateExam);
+
 module.exports = router;

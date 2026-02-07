@@ -23,14 +23,14 @@ exports.postEvaluate = async (req, res) => {
         console.log(`  Page ${index + 1}: ${file.originalname}`);
     });
     console.log('=================================================');
- 
+
     const formData = new FormData();
 
     try {
         for (let i = 0; i < req.files.length; i++) {
             const file = req.files[i];
             console.log(`Appending Page ${i + 1}: ${file.originalname}`);
-            
+
             formData.append('paper_images', fs.createReadStream(file.path), {
                 filename: file.originalname,
                 contentType: file.mimetype
@@ -42,14 +42,14 @@ exports.postEvaluate = async (req, res) => {
         const resultData = await valuationService.sendToPythonAPI(formData,
             '/api/evaluate',
             {
-            headers: {
-                ...formData.getHeaders()
-            },
-            maxContentLength: Infinity,
-            maxBodyLength: Infinity
-        });
+                headers: {
+                    ...formData.getHeaders()
+                },
+                maxContentLength: Infinity,
+                maxBodyLength: Infinity
+            });
 
-        res.render('results', { 
+        res.render('results', {
             title: 'Evaluation Results',
             result: resultData,
         });
@@ -57,8 +57,8 @@ exports.postEvaluate = async (req, res) => {
     } catch (error) {
         console.error("Error in postEvaluate:", error.message);
         const errorMessage = error.response?.data?.error || "Failed to connect to the evaluation service.";
-        res.status(500).render('upload', { 
-            error: `System Error: ${errorMessage}` 
+        res.status(500).render('upload', {
+            error: `System Error: ${errorMessage}`
         });
     } finally {
         if (req.files) {
@@ -75,7 +75,7 @@ exports.postEvaluate = async (req, res) => {
 
 
 exports.getAnswerKeySetup = (req, res) => {
-    res.render('answerKeySetup', { 
+    res.render('answerKeySetup', {
         title: 'Answer Key Setup',
         sessionData: req.session?.answerKeyData || null
     });
@@ -84,14 +84,14 @@ exports.getAnswerKeySetup = (req, res) => {
 
 exports.postExtractAnswerKey = async (req, res) => {
     if (!req.file) {
-        return res.status(400).json({ 
-            status: 'Failed', 
-            error: 'No image file provided.' 
+        return res.status(400).json({
+            status: 'Failed',
+            error: 'No image file provided.'
         });
     }
 
     const answerType = req.body.answer_type || 'short'; // 'short' or 'long'
-    
+
     console.log(`📄 Extracting ${answerType} answer key from: ${req.file.originalname}`);
 
     const formData = new FormData();
@@ -125,9 +125,9 @@ exports.postExtractAnswerKey = async (req, res) => {
 
     } catch (error) {
         console.error("Error extracting answer key:", error.message);
-        res.status(500).json({ 
-            status: 'Failed', 
-            error: error.message 
+        res.status(500).json({
+            status: 'Failed',
+            error: error.message
         });
     } finally {
         if (fs.existsSync(req.file.path)) {
@@ -147,17 +147,17 @@ exports.postSaveAnswerKey = async (req, res) => {
             subject,
             short_questions,
             long_questions,
-            short_marks,      // ✅ NEW
-            long_marks,       // ✅ NEW
+            short_marks,
+            long_marks,
             short_answers,
-            long_answers
+            long_answers,
+            or_groups              // 🆕 ADD THIS
         } = req.body;
 
         console.log('💾 Saving complete answer key with marks...');
         console.log(`   Exam: ${exam_name}, Class: ${class_name}, Subject: ${subject}`);
         console.log(`   Short marks: ${short_marks}, Long marks: ${long_marks}`);
-        console.log(`   Short answers type: ${typeof short_answers}`);
-        console.log(`   Long answers type: ${typeof long_answers}`);
+        console.log(`   OR Groups: ${JSON.stringify(or_groups)}`);  // 🆕 ADD THIS
 
         // Validate data types
         if (typeof short_answers !== 'object' || typeof long_answers !== 'object') {
@@ -181,15 +181,15 @@ exports.postSaveAnswerKey = async (req, res) => {
             subject,
             short_questions,
             long_questions,
-            short_marks: short_marks || '',      // ✅ NEW
-            long_marks: long_marks || '',        // ✅ NEW
+            short_marks: short_marks || '',
+            long_marks: long_marks || '',
             short_answers: short_answers || {},
-            long_answers: long_answers || {}
+            long_answers: long_answers || {},
+            or_groups: or_groups || []   // 🆕 ADD THIS
         };
 
         console.log('Sending to Flask:', JSON.stringify(payload, null, 2));
 
-        // Use axios directly for JSON
         const axios = require('axios');
         const PYTHON_BASE_URL = process.env.PYTHON_API_URL || "http://localhost:5000";
         
@@ -204,11 +204,16 @@ exports.postSaveAnswerKey = async (req, res) => {
 
         console.log(`✅ Answer key saved with exam_id: ${resultData.exam_id}`);
         console.log(`📊 Total marks: ${resultData.total_marks}`);
-
+        if (resultData.or_groups_count > 0) {
+            console.log(`⚡ OR Groups saved: ${resultData.or_groups_count}`);
+        }
+ 
         res.json({
             status: 'Success',
             exam_id: resultData.exam_id,
-            total_marks: resultData.total_marks,  // ✅ NEW - return total marks
+            total_marks: resultData.total_marks,
+            question_count: resultData.question_count,
+            or_groups_count: resultData.or_groups_count || 0,  // 🆕 ADD THIS
             message: 'Answer key saved successfully!'
         });
 
@@ -223,12 +228,13 @@ exports.postSaveAnswerKey = async (req, res) => {
         });
     }
 };
+
 // ============================================
 // SERIES BATCH EVALUATION ROUTES
 // ============================================
 
 exports.getSeriesBatch = (req, res) => {
-    res.render('seriesBatch', { 
+    res.render('seriesBatch', {
         title: 'Series Batch Evaluation'
     });
 };
@@ -238,7 +244,7 @@ exports.getSeriesBatch = (req, res) => {
  * NOW INCLUDES: exam_id to link with saved answer key
  */
 exports.postEvaluateSeriesBatch = async (req, res) => {
-    
+
     if (!req.files || req.files.length === 0) {
         return res.status(400).render('error', { message: 'No images uploaded.' });
     }
@@ -248,7 +254,7 @@ exports.postEvaluateSeriesBatch = async (req, res) => {
 
     try {
         console.log(`🚀 Starting Batch Processing for ${studentCount} students...`);
-        
+
         const exam_id = req.body.exam_id || null;
         const global_class = req.body.global_class;
         const global_subject = req.body.global_subject;
@@ -261,24 +267,24 @@ exports.postEvaluateSeriesBatch = async (req, res) => {
                 const axios = require('axios');
                 const PYTHON_BASE_URL = process.env.PYTHON_API_URL || "http://localhost:5000";
                 const checkExam = await axios.get(`${PYTHON_BASE_URL}/api/get_answer_key/${exam_id}`);
-                
+
                 if (checkExam.data.status === 'Success') {
                     console.log(`✅ Exam validated: ${checkExam.data.answer_key.exam_metadata?.exam_name || checkExam.data.answer_key.exam_name}`);
                 }
             } catch (examError) {
                 console.error(`❌ Invalid exam_id: ${exam_id}`);
-                return res.status(400).render('error', { 
-                    message: `Invalid Exam ID: ${exam_id}. Please create the answer key first.` 
+                return res.status(400).render('error', {
+                    message: `Invalid Exam ID: ${exam_id}. Please create the answer key first.`
                 });
             }
         }
 
         for (let i = 0; i < studentCount; i++) {
             const studentKey = `student_${i}`;
-            
+
             const roll_no = req.body[`roll_no_${i}`] || "";
             console.log(`Processing Student #${i + 1}, Roll No: ${roll_no || 'Auto-extract'}`);
-            
+
             const studentFiles = req.files.filter(f => f.fieldname === studentKey);
 
             if (studentFiles.length === 0) {
@@ -291,7 +297,7 @@ exports.postEvaluateSeriesBatch = async (req, res) => {
             formData.append("manual_roll_no", roll_no);
             formData.append("manual_class", global_class);
             formData.append("manual_subject", global_subject);
-            
+
             if (exam_id) {
                 formData.append("exam_id", exam_id);
             }
@@ -314,7 +320,7 @@ exports.postEvaluateSeriesBatch = async (req, res) => {
 
             try {
                 const studentResult = await valuationService.sendToPythonAPI(
-                    formData, 
+                    formData,
                     '/api/seriesBundleEvaluate',
                     { headers: { ...formData.getHeaders() } }
                 );
@@ -330,16 +336,16 @@ exports.postEvaluateSeriesBatch = async (req, res) => {
                 console.log(`✅ Successfully processed Student #${i + 1}`);
             } catch (apiError) {
                 console.error(`❌ Error processing Student #${i + 1}:`, apiError.message);
-                finalBatchResults.push({ 
-                    status: "Failed", 
-                    student_index: i, 
-                    error: apiError.message 
+                finalBatchResults.push({
+                    status: "Failed",
+                    student_index: i,
+                    error: apiError.message
                 });
             }
         }
 
         console.log(`📊 Batch Results Summary: ${finalBatchResults.length} students processed`);
-        
+
         // 🆕 NEW: Add exam info to results page
         let examInfo = null;
         if (exam_id && finalBatchResults.some(r => r.status === 'Success')) {
@@ -349,7 +355,7 @@ exports.postEvaluateSeriesBatch = async (req, res) => {
             };
         }
 
-        res.render('results-batch', { 
+        res.render('results-batch', {
             title: 'Batch Evaluation Results',
             result: finalBatchResults,
             studentCount: finalBatchResults.length,
@@ -358,8 +364,8 @@ exports.postEvaluateSeriesBatch = async (req, res) => {
 
     } catch (error) {
         console.error("🔥 Critical Batch Error:", error.message);
-        res.status(500).render('error', { 
-            message: `Batch Processing Failed: ${error.message}` 
+        res.status(500).render('error', {
+            message: `Batch Processing Failed: ${error.message}`
         });
     } finally {
         if (req.files) {
@@ -385,12 +391,12 @@ exports.getValuationPrep = async (req, res) => {
 
         const axios = require('axios');
         const PYTHON_BASE_URL = process.env.PYTHON_API_URL || "http://localhost:5000";
-        
+
         const response = await axios.get(`${PYTHON_BASE_URL}/api/get_exam_data/${exam_id}`);
 
         if (response.data.status !== 'Success') {
-            return res.status(404).render('error', { 
-                message: `Exam not found: ${exam_id}` 
+            return res.status(404).render('error', {
+                message: `Exam not found: ${exam_id}`
             });
         }
 
@@ -419,15 +425,15 @@ exports.getValuationPrep = async (req, res) => {
             });
         }
 
-        res.render('valuation-prep', { 
+        res.render('valuation-prep', {
             title: `Valuation: ${examData.exam_metadata.exam_name}`,
             examData: valuationPayload
         });
 
     } catch (error) {
         console.error("Error fetching exam data:", error.message);
-        res.status(500).render('error', { 
-            message: `Failed to load exam data: ${error.message}` 
+        res.status(500).render('error', {
+            message: `Failed to load exam data: ${error.message}`
         });
     }
 };
@@ -440,15 +446,69 @@ exports.getAnswerKeysList = async (req, res) => {
     try {
         const axios = require('axios');
         const PYTHON_BASE_URL = process.env.PYTHON_API_URL || "http://localhost:5000";
-        
+
         const response = await axios.get(`${PYTHON_BASE_URL}/api/list_answer_keys`);
         res.json(response.data);
-        
+
     } catch (error) {
         console.error('Error fetching answer keys list:', error.message);
-        res.status(500).json({ 
-            status: 'Failed', 
-            error: error.message 
+        res.status(500).json({
+            status: 'Failed',
+            error: error.message
+        });
+    }
+};
+
+// ============================================
+// POST: Evaluate all students in an exam using AI
+// ============================================
+
+exports.postEvaluateExam = async (req, res) => {
+    const exam_id = req.params.exam_id;
+
+    try {
+        console.log(`${'='.repeat(50)}`);
+        console.log(`🎯 Starting AI Valuation for Exam: ${exam_id}`);
+        console.log(`${'='.repeat(50)}`);
+
+        const axios = require('axios');
+        const PYTHON_BASE_URL = process.env.PYTHON_API_URL || "http://localhost:5000";
+
+        // Call Flask evaluation endpoint
+        const response = await axios.post(
+            `${PYTHON_BASE_URL}/api/evaluate_exam/${exam_id}`,
+            {},
+            {
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                timeout: 300000 // 5 minutes timeout for large batches
+            }
+        );
+
+        if (response.data.status === 'Success') {
+            console.log(`✅ AI Valuation Completed Successfully`);
+            console.log(`   📊 Total Students: ${response.data.total_students}`);
+            console.log(`   ✅ Evaluated: ${response.data.evaluated_successfully}`);
+            console.log(`   ❌ Failed: ${response.data.evaluation_failed}`);
+            console.log(`${'='.repeat(50)}`);
+
+            res.json(response.data);
+        } else {
+            console.error(`❌ Valuation failed: ${response.data.error}`);
+            res.status(400).json(response.data);
+        }
+
+    } catch (error) {
+        console.error(`🔥 Critical Error during AI valuation:`, error.message);
+
+        if (error.response) {
+            console.error(`Flask Response Error:`, error.response.data);
+        }
+
+        res.status(500).json({
+            status: 'Failed',
+            error: error.response?.data?.error || error.message
         });
     }
 };

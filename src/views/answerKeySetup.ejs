@@ -341,6 +341,79 @@
             color: #721c24;
             border: 1px solid #f5c6cb;
         }
+
+        /* OR Groups Styles */
+        .or-group-item {
+            background: white;
+            padding: 15px;
+            margin: 12px 0;
+            border-radius: 8px;
+            border: 2px solid #e0e0e0;
+            position: relative;
+        }
+
+        .or-group-item:hover {
+            border-color: #ff9800;
+            box-shadow: 0 2px 8px rgba(255, 152, 0, 0.1);
+        }
+
+        .or-type-select {
+            width: 100%;
+            padding: 8px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.95em;
+            background: white;
+        }
+
+        .or-type-select:focus {
+            outline: none;
+            border-color: #ff9800;
+        }
+
+        .or-input-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 12px;
+        }
+
+        .or-input-field {
+            width: 100%;
+            padding: 8px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.95em;
+        }
+
+        .or-input-field:focus {
+            outline: none;
+            border-color: #ff9800;
+        }
+
+        .or-hint {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 4px;
+            font-size: 0.85em;
+            color: #666;
+        }
+
+        .remove-or-btn {
+            background: #f44336;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background 0.2s;
+        }
+
+        .remove-or-btn:hover {
+            background: #d32f2f;
+        }
     </style>
 </head>
 
@@ -404,9 +477,9 @@
 
                     <div class="form-group">
                         <label for="short-marks">Marks for Short Questions *</label>
-                        <input type="text" id="short-marks" name="short_marks"
-                            placeholder="e.g., 2 or 2,2,3" required>
-                        <small>Single number for uniform marks (e.g., "2") or comma-separated for individual marks (e.g., "2,2,3")</small>
+                        <input type="text" id="short-marks" name="short_marks" placeholder="e.g., 2 or 2,2,3" required>
+                        <small>Single number for uniform marks (e.g., "2") or comma-separated for individual marks
+                            (e.g., "2,2,3")</small>
                         <div class="marks-example">
                             <strong>Examples:</strong><br>
                             • Questions 1-3, Marks "2" → Q1=2, Q2=2, Q3=2<br>
@@ -424,14 +497,41 @@
 
                     <div class="form-group">
                         <label for="long-marks">Marks for Long Questions *</label>
-                        <input type="text" id="long-marks" name="long_marks"
-                            placeholder="e.g., 8 or 7,10,8" required>
-                        <small>Single number for uniform marks (e.g., "8") or comma-separated for individual marks (e.g., "7,10,8")</small>
+                        <input type="text" id="long-marks" name="long_marks" placeholder="e.g., 8 or 7,10,8" required>
+                        <small>Single number for uniform marks (e.g., "8") or comma-separated for individual marks
+                            (e.g., "7,10,8")</small>
                         <div class="marks-example">
                             <strong>Examples:</strong><br>
                             • Questions 4-5, Marks "8" → Q4=8, Q5=8<br>
                             • Questions 4-5, Marks "7,10" → Q4=7, Q5=10
                         </div>
+                    </div>
+                    <!-- 🆕 OR QUESTIONS SECTION -->
+                    <div class="form-group"
+                        style="background: #fff3e0; padding: 20px; border-radius: 8px; border: 2px solid #ff9800; margin-top: 30px;">
+                        <h3 style="margin-top: 0; color: #e65100; display: flex; align-items: center; gap: 10px;">
+                            <span>⚡</span>
+                            <span>OR Questions Configuration (Optional)</span>
+                        </h3>
+                        <div class="warning-box" style="background: #fff; margin-bottom: 15px;">
+                            <strong>📌 What are OR Questions?</strong><br>
+                            Questions where students choose between options. System evaluates all written answers and
+                            takes the best score.<br><br>
+                            <strong>Examples:</strong><br>
+                            • <strong>Single:</strong> Q5 OR Q6 (student writes one, both evaluated, best score
+                            counted)<br>
+                            • <strong>Pair:</strong> Q6,Q7 OR Q8,Q9 (student writes one pair, both pairs evaluated, best
+                            total counted)
+                        </div>
+
+                        <div id="orGroupsContainer">
+                            <!-- OR groups will be dynamically added here -->
+                        </div>
+
+                        <button type="button" class="btn btn-primary" onclick="addOrGroup()"
+                            style="margin-top: 10px; padding: 10px 20px; font-size: 0.95em;">
+                            ➕ Add OR Group
+                        </button>
                     </div>
 
                     <div class="button-group">
@@ -685,7 +785,7 @@
         }
 
         async function saveAnswerKey() {
-            // Collect all edited answers
+            // Collect all edited answers from textareas
             document.querySelectorAll('#short-answers-container textarea').forEach(textarea => {
                 const qLabel = textarea.id.replace('short-', '');
                 shortAnswers[qLabel] = textarea.value;
@@ -696,15 +796,31 @@
                 longAnswers[qLabel] = textarea.value;
             });
 
-            // Validate
+            // Validate that at least one answer exists
             if (Object.keys(shortAnswers).length === 0 && Object.keys(longAnswers).length === 0) {
                 showAlert('error', '❌ Please upload at least one answer key page!');
                 return;
             }
 
-            showLoading('Saving answer key...');
+            // Collect OR groups
+            const orGroups = collectOrGroups();
 
-            // Create the payload with marks included
+            if (orGroups.length > 0) {
+                console.log(`✅ Collected ${orGroups.length} OR groups:`, orGroups);
+
+                // Validate OR groups
+                const validationResult = validateOrGroups(orGroups);
+                if (!validationResult.valid) {
+                    showAlert('error', `❌ OR Group Error: ${validationResult.error}`);
+                    return;
+                }
+            } else {
+                console.log('ℹ️ No OR groups configured (optional feature)');
+            }
+
+            showLoading('Saving answer key with OR groups...');
+
+            // Create the complete payload
             const payload = {
                 exam_name: examMetadata.exam_name,
                 class_name: examMetadata.class_name,
@@ -714,10 +830,11 @@
                 short_marks: examMetadata.short_marks,
                 long_marks: examMetadata.long_marks,
                 short_answers: shortAnswers,
-                long_answers: longAnswers
+                long_answers: longAnswers,
+                or_groups: orGroups  // Include OR groups (empty array if none)
             };
 
-            console.log('Payload to send:', payload);
+            console.log('📦 Complete payload to send:', JSON.stringify(payload, null, 2));
 
             try {
                 const response = await fetch('/api/save-answer-key', {
@@ -732,23 +849,138 @@
                 hideLoading();
 
                 if (result.status === 'Success') {
-                    showAlert('success', `✅ Answer key saved! Exam ID: ${result.exam_id} | Total Marks: ${result.total_marks}`);
+                    let successMessage = `✅ Answer key saved successfully!\n\n`;
+                    successMessage += `📋 Exam ID: ${result.exam_id}\n`;
+                    successMessage += `💯 Total Marks: ${result.total_marks}\n`;
+                    successMessage += `📝 Questions: ${result.question_count}`;
 
+                    if (orGroups.length > 0) {
+                        successMessage += `\n⚡ OR Groups: ${orGroups.length}`;
+                    }
+
+                    showAlert('success', successMessage);
+
+                    // Store in session for next page
                     sessionStorage.setItem('latest_exam_id', result.exam_id);
                     sessionStorage.setItem('exam_class', examMetadata.class_name);
                     sessionStorage.setItem('exam_subject', examMetadata.subject);
 
+                    // Redirect to batch upload page
                     setTimeout(() => {
                         window.location.href = '/upload-series';
-                    }, 1500);
+                    }, 2000);
                 } else {
                     showAlert('error', `❌ Save failed: ${result.error}`);
                 }
             } catch (error) {
                 hideLoading();
-                console.error('Save error:', error);
-                showAlert('error', `❌ Save failed: ${error.message}`);
+                console.error('💥 Save error:', error);
+                showAlert('error', `❌ Network error: ${error.message}`);
             }
+        }
+
+        // Validation function for OR groups
+        function validateOrGroups(orGroups) {
+            for (let i = 0; i < orGroups.length; i++) {
+                const group = orGroups[i];
+
+                if (group.type === 'single') {
+                    // Validate single OR questions
+                    if (!group.options || group.options.length !== 2) {
+                        return {
+                            valid: false,
+                            error: `OR Group ${i + 1}: Must have exactly 2 options`
+                        };
+                    }
+
+                    // Check if question numbers are valid
+                    for (let opt of group.options) {
+                        if (!/^\d+$/.test(opt)) {
+                            return {
+                                valid: false,
+                                error: `OR Group ${i + 1}: "${opt}" is not a valid question number`
+                            };
+                        }
+                    }
+
+                    // Check for duplicates within group
+                    if (group.options[0] === group.options[1]) {
+                        return {
+                            valid: false,
+                            error: `OR Group ${i + 1}: Cannot have same question in both options (${group.options[0]})`
+                        };
+                    }
+
+                } else if (group.type === 'pair') {
+                    // Validate pair OR questions
+                    if (!group.option_a || !group.option_b) {
+                        return {
+                            valid: false,
+                            error: `OR Group ${i + 1}: Both pairs must be specified`
+                        };
+                    }
+
+                    if (group.option_a.length === 0 || group.option_b.length === 0) {
+                        return {
+                            valid: false,
+                            error: `OR Group ${i + 1}: Pairs cannot be empty`
+                        };
+                    }
+
+                    // Validate all question numbers in pairs
+                    const allQuestions = [...group.option_a, ...group.option_b];
+                    for (let qNum of allQuestions) {
+                        if (!/^\d+$/.test(qNum)) {
+                            return {
+                                valid: false,
+                                error: `OR Group ${i + 1}: "${qNum}" is not a valid question number`
+                            };
+                        }
+                    }
+
+                    // Check for duplicates within same pair
+                    const pairASet = new Set(group.option_a);
+                    const pairBSet = new Set(group.option_b);
+
+                    if (pairASet.size !== group.option_a.length) {
+                        return {
+                            valid: false,
+                            error: `OR Group ${i + 1}: Pair A has duplicate questions`
+                        };
+                    }
+
+                    if (pairBSet.size !== group.option_b.length) {
+                        return {
+                            valid: false,
+                            error: `OR Group ${i + 1}: Pair B has duplicate questions`
+                        };
+                    }
+                }
+            }
+
+            // Check for overlapping OR groups
+            const allOrQuestions = new Set();
+            for (let group of orGroups) {
+                let questions = [];
+
+                if (group.type === 'single') {
+                    questions = group.options;
+                } else {
+                    questions = [...group.option_a, ...group.option_b];
+                }
+
+                for (let q of questions) {
+                    if (allOrQuestions.has(q)) {
+                        return {
+                            valid: false,
+                            error: `Question ${q} appears in multiple OR groups`
+                        };
+                    }
+                    allOrQuestions.add(q);
+                }
+            }
+
+            return { valid: true };
         }
 
         function showLoading(message) {
@@ -769,6 +1001,166 @@
             content.insertBefore(alertDiv, content.firstChild);
 
             setTimeout(() => alertDiv.remove(), 5000);
+        }
+        // =====================================
+        // OR QUESTIONS FUNCTIONALITY
+        // =====================================
+
+        let orGroupCounter = 0;
+
+        function addOrGroup() {
+            orGroupCounter++;
+            const container = document.getElementById('orGroupsContainer');
+
+            const groupDiv = document.createElement('div');
+            groupDiv.id = `orGroup_${orGroupCounter}`;
+            groupDiv.className = 'or-group-item';
+
+            groupDiv.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
+            <div style="flex: 1; margin-right: 15px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">
+                    OR Group Type:
+                </label>
+                <select id="orType_${orGroupCounter}" class="or-type-select" onchange="updateOrGroupFields(${orGroupCounter})">
+                    <option value="single">Single Question (e.g., Q5 OR Q6)</option>
+                    <option value="pair">Question Pair (e.g., Q6,Q7 OR Q8,Q9)</option>
+                </select>
+            </div>
+            <button type="button" class="remove-or-btn" onclick="removeOrGroup(${orGroupCounter})">
+                ✖ Remove
+            </button>
+        </div>
+        
+        <div id="orGroupFields_${orGroupCounter}">
+            <!-- Dynamic fields will be inserted here -->
+        </div>
+    `;
+
+            container.appendChild(groupDiv);
+            updateOrGroupFields(orGroupCounter);
+
+            showAlert('success', '✅ OR group added! Configure the options below.');
+        }
+
+        function updateOrGroupFields(groupId) {
+            const type = document.getElementById(`orType_${groupId}`).value;
+            const fieldsDiv = document.getElementById(`orGroupFields_${groupId}`);
+
+            if (type === 'single') {
+                fieldsDiv.innerHTML = `
+            <div class="or-input-grid">
+                <div>
+                    <label style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 0.9em; color: #555;">
+                        Option A (Question Number):
+                    </label>
+                    <input type="text" 
+                           id="orSingleA_${groupId}" 
+                           class="or-input-field" 
+                           placeholder="5"
+                           pattern="[0-9]+"
+                           title="Enter question number (e.g., 5)">
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 0.9em; color: #555;">
+                        Option B (Question Number):
+                    </label>
+                    <input type="text" 
+                           id="orSingleB_${groupId}" 
+                           class="or-input-field" 
+                           placeholder="6"
+                           pattern="[0-9]+"
+                           title="Enter question number (e.g., 6)">
+                </div>
+            </div>
+            <div class="or-hint">
+                💡 <strong>Example:</strong> Student can answer Q5 OR Q6. System evaluates both (if written) and takes the best score.
+            </div>
+        `;
+            } else {
+                fieldsDiv.innerHTML = `
+            <div class="or-input-grid">
+                <div>
+                    <label style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 0.9em; color: #555;">
+                        Pair A (comma-separated):
+                    </label>
+                    <input type="text" 
+                           id="orPairA_${groupId}" 
+                           class="or-input-field" 
+                           placeholder="6,7"
+                           pattern="[0-9,\\s]+"
+                           title="Enter question numbers separated by comma (e.g., 6,7)">
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 0.9em; color: #555;">
+                        Pair B (comma-separated):
+                    </label>
+                    <input type="text" 
+                           id="orPairB_${groupId}" 
+                           class="or-input-field" 
+                           placeholder="8,9"
+                           pattern="[0-9,\\s]+"
+                           title="Enter question numbers separated by comma (e.g., 8,9)">
+                </div>
+            </div>
+            <div class="or-hint">
+                💡 <strong>Example:</strong> Student can answer Q6,Q7 OR Q8,Q9. System evaluates all written questions and takes the best pair total.
+            </div>
+        `;
+            }
+        }
+
+        function removeOrGroup(groupId) {
+            const groupDiv = document.getElementById(`orGroup_${groupId}`);
+            if (groupDiv && confirm('Remove this OR group configuration?')) {
+                groupDiv.remove();
+                showAlert('success', '✅ OR group removed.');
+            }
+        }
+
+        function collectOrGroups() {
+            const orGroups = [];
+            const container = document.getElementById('orGroupsContainer');
+
+            if (!container) return orGroups;
+
+            const groups = container.querySelectorAll('.or-group-item');
+
+            groups.forEach(groupDiv => {
+                const groupId = groupDiv.id.split('_')[1];
+                const typeSelect = document.getElementById(`orType_${groupId}`);
+
+                if (!typeSelect) return;
+
+                const type = typeSelect.value;
+
+                if (type === 'single') {
+                    const optionA = document.getElementById(`orSingleA_${groupId}`)?.value.trim();
+                    const optionB = document.getElementById(`orSingleB_${groupId}`)?.value.trim();
+
+                    if (optionA && optionB) {
+                        orGroups.push({
+                            type: 'single',
+                            options: [optionA, optionB]
+                        });
+                        console.log(`Added single OR group: ${optionA} or ${optionB}`);
+                    }
+                } else {
+                    const pairA = document.getElementById(`orPairA_${groupId}`)?.value.trim();
+                    const pairB = document.getElementById(`orPairB_${groupId}`)?.value.trim();
+
+                    if (pairA && pairB) {
+                        orGroups.push({
+                            type: 'pair',
+                            option_a: pairA.split(',').map(q => q.trim()),
+                            option_b: pairB.split(',').map(q => q.trim())
+                        });
+                        console.log(`Added pair OR group: [${pairA}] or [${pairB}]`);
+                    }
+                }
+            });
+
+            return orGroups;
         }
     </script>
 </body>
