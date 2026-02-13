@@ -1,11 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Teacher Bundle Valuation - Series Exam</title>
     <style>
-        .container { font-family: sans-serif; max-width: 800px; margin: auto; padding: 20px; }
+        .container {
+            font-family: sans-serif;
+            max-width: 800px;
+            margin: auto;
+            padding: 20px;
+        }
+
         .global-header {
             background: #e3f2fd;
             padding: 20px;
@@ -13,13 +20,20 @@
             margin-bottom: 25px;
             border: 1px solid #90caf9;
         }
-        .flex-row { display: flex; gap: 15px; margin-top: 10px; }
+
+        .flex-row {
+            display: flex;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
         .input-box {
             padding: 8px;
             border: 1px solid #ccc;
             border-radius: 4px;
             width: 100%;
         }
+
         .student-card {
             border: 1px solid #ddd;
             padding: 15px;
@@ -27,9 +41,16 @@
             border-radius: 6px;
             background: #fff;
         }
-        label { font-weight: bold; font-size: 0.9em; display: block; margin-bottom: 5px; }
+
+        label {
+            font-weight: bold;
+            font-size: 0.9em;
+            display: block;
+            margin-bottom: 5px;
+        }
     </style>
 </head>
+
 <body>
     <div class="container">
         <h1>👨‍🏫 Series Exam Bundle Valuation</h1>
@@ -48,29 +69,93 @@
             </div>
         </div>
         <!-- 🆕 ADD THIS SECTION -->
-<div class="global-header" style="background: #f3e5f5; border-color: #ba68c8;">
-    <h3>🎯 Link to Existing Answer Key (Optional)</h3>
-    <p style="font-size: 0.9em; color: #666; margin-bottom: 10px;">
-        Select an exam to save student submissions for future valuation. 
-        Leave blank if you just want to extract answers without saving.
-    </p>
-    <div>
-        <label>Select Exam:</label>
-        <select id="examIdSelect" class="input-box" style="cursor: pointer;">
-            <option value="">-- No Exam (Just Extract Answers) --</option>
-        </select>
-    </div>
-    <div id="examPreview" style="margin-top: 10px; padding: 10px; background: #fff; border-radius: 4px; display: none;">
-        <strong>Selected Exam:</strong>
-        <div id="examDetails" style="font-size: 0.85em; color: #555; margin-top: 5px;"></div>
-    </div>
-</div>
+        <!-- 🆕 ENHANCED: CHECK IF ANSWER KEYS EXIST -->
+        <div class="global-header"
+            style="background: #e8f5e9; border: 2px solid #4caf50; padding: 20px; border-radius: 8px; margin-bottom: 25px;">
+            <h3 style="margin-top: 0; color: #2e7d32;">🎯 Select Answer Key</h3>
+            <p style="font-size: 0.9em; color: #666; margin-bottom: 15px;">
+                Choose which exam's answer key to use. Student submissions will be saved for future valuation.
+            </p>
+
+            <!-- Exam Selector Container -->
+            <div id="examSelectorContainer">
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <div style="flex: 1;">
+                        <label style="font-weight: bold; margin-bottom: 8px; display: block;">Select Exam:</label>
+                        <select id="examIdSelect" class="input-box"
+                            style="width: 100%; padding: 10px; border: 2px solid #4caf50; border-radius: 4px; cursor: pointer; font-size: 1em;">
+                            <option value="">-- Select an exam --</option>
+                        </select>
+                    </div>
+                    <div style="padding-top: 28px;">
+                        <button type="button" onclick="goToCreateAnswerKey()"
+                            style="padding: 10px 20px; background: #ff9800; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; white-space: nowrap; transition: all 0.2s;">
+                            ➕ Create New
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Selected Exam Preview -->
+            <div id="examPreview"
+                style="margin-top: 15px; padding: 12px; background: white; border-radius: 4px; display: none; border-left: 4px solid #4caf50;">
+                <strong style="color: #2e7d32;">Selected Exam:</strong>
+                <div id="examDetails" style="font-size: 0.9em; color: #555; margin-top: 8px;"></div>
+            </div>
+
+            <!-- No Exams Warning (shown if empty) -->
+            <div id="noExamsWarning"
+                style="display: none; margin-top: 15px; padding: 20px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;">
+                <div style="display: flex; align-items: start; gap: 15px;">
+                    <div style="font-size: 2em;">⚠️</div>
+                    <div style="flex: 1;">
+                        <strong style="font-size: 1.1em; display: block; margin-bottom: 8px;">No Answer Keys
+                            Found!</strong>
+                        <p style="margin: 10px 0; color: #666;">
+                            Before uploading student papers, you need to create an answer key first.
+                            This contains the correct answers and marking scheme for the exam.
+                        </p>
+                        <div style="margin-top: 15px;">
+                            <button onclick="goToCreateAnswerKey()"
+                                style="padding: 12px 25px; background: #ff9800; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 1em;">
+                                🔑 Create Answer Key Now →
+                            </button>
+                            <button onclick="window.location.reload()"
+                                style="padding: 12px 25px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 1em; margin-left: 10px;">
+                                🔄 Refresh
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <style>
+            .input-box {
+                padding: 10px;
+                border: 2px solid #ddd;
+                border-radius: 4px;
+                font-size: 1em;
+            }
+
+            .input-box:focus {
+                outline: none;
+                border-color: #4caf50;
+            }
+
+            .input-box:disabled {
+                background: #f5f5f5;
+                cursor: not-allowed;
+            }
+        </style>
 
         <div id="studentContainer"></div>
 
         <div style="margin-top: 20px;">
             <button type="button" onclick="addStudentBlock()">➕ Add Student</button>
-            <button type="button" id="submitBatchButton" onclick="submitBatchEvaluation()" style="display: none; background-color: #2e7d32; color: white; padding: 10px 20px; border: none; cursor: pointer; border-radius: 4px;">🚀 Start Batch Valuation</button>
+            <button type="button" id="submitBatchButton" onclick="submitBatchEvaluation()"
+                style="display: none; background-color: #2e7d32; color: white; padding: 10px 20px; border: none; cursor: pointer; border-radius: 4px;">🚀
+                Start Batch Valuation</button>
         </div>
 
         <input type="file" id="globalFileInput" accept="image/*" multiple style="display: none;">
@@ -81,7 +166,7 @@
     </div>
 
     <script>
-        let studentData = []; 
+        let studentData = [];
         let currentTargetStudentId = null;
         const globalFileInput = document.getElementById('globalFileInput');
 
@@ -122,20 +207,20 @@
             globalFileInput.click();
         }
 
-        globalFileInput.addEventListener('change', function(e) {
+        globalFileInput.addEventListener('change', function (e) {
             const newFiles = Array.from(e.target.files);
             if (newFiles.length > 0 && currentTargetStudentId) {
                 const student = studentData.find(s => s.id === currentTargetStudentId);
                 student.files = student.files.concat(newFiles);
                 renderFileList(currentTargetStudentId);
             }
-            globalFileInput.value = ''; 
+            globalFileInput.value = '';
         });
 
         function renderFileList(id) {
             const student = studentData.find(s => s.id === id);
             const listDiv = document.getElementById(`list-${id}`);
-            listDiv.innerHTML = student.files.map((f, i) => 
+            listDiv.innerHTML = student.files.map((f, i) =>
                 `<div>${i === 0 ? '<b>[ID]</b>' : '[Pg ' + i + ']'} ${f.name}</div>`
             ).join('');
             updateSubmitBtn();
@@ -153,91 +238,215 @@
         }
 
         function submitBatchEvaluation() {
-    document.getElementById('loadingMessage').style.display = 'block';
-    const formData = new FormData();
-    
-    // Send Global Details
-    formData.append('global_class', document.getElementById('globalClass').value);
-    formData.append('global_subject', document.getElementById('globalSubject').value);
-    
-    // 🆕 NEW: Include exam_id if selected
-    const examId = document.getElementById('examIdSelect').value;
-    if (examId) {
-        formData.append('exam_id', examId);
-        console.log(`📋 Submitting with Exam ID: ${examId}`);
-    } else {
-        console.log('⚠️ No exam selected - submissions will NOT be saved');
-    }
+            document.getElementById('loadingMessage').style.display = 'block';
+            const formData = new FormData();
 
-    const activeStudents = studentData.filter(s => s.files.length > 0);
-    formData.append('student_count', activeStudents.length);
+            // Send Global Details
+            formData.append('global_class', document.getElementById('globalClass').value);
+            formData.append('global_subject', document.getElementById('globalSubject').value);
 
-    activeStudents.forEach((student, i) => {
-        formData.append(`roll_no_${i}`, student.roll_no);
-        
-        student.files.forEach(file => {
-            formData.append(`student_${i}`, file);
-        });
-    });
+            // 🆕 NEW: Include exam_id if selected
+            const examId = document.getElementById('examIdSelect').value;
+            if (examId) {
+                formData.append('exam_id', examId);
+                console.log(`📋 Submitting with Exam ID: ${examId}`);
+            } else {
+                console.log('⚠️ No exam selected - submissions will NOT be saved');
+            }
 
-    fetch('/seriesBundleEvaluate', { method: 'POST', body: formData })
-    .then(res => res.text())
-    .then(html => {
-        document.open();
-        document.write(html);
-        document.close();
-    })
-    .catch(err => {
-        alert('Evaluation Failed: ' + err.message);
-        document.getElementById('loadingMessage').style.display = 'none';
-    });
-}
-        // 🆕 NEW: Load available exams when page loads
-async function loadAvailableExams() {
-    try {
-        const response = await fetch('/api/list_answer_keys');
-        const data = await response.json();
-        
-        if (data.status === 'Success' && data.answer_keys.length > 0) {
-            const select = document.getElementById('examIdSelect');
-            
-            data.answer_keys.forEach(exam => {
-                const option = document.createElement('option');
-                option.value = exam.exam_id;
-                option.textContent = `${exam.exam_name} (${exam.class} - ${exam.subject})`;
-                select.appendChild(option);
+            const activeStudents = studentData.filter(s => s.files.length > 0);
+            formData.append('student_count', activeStudents.length);
+
+            activeStudents.forEach((student, i) => {
+                formData.append(`roll_no_${i}`, student.roll_no);
+
+                student.files.forEach(file => {
+                    formData.append(`student_${i}`, file);
+                });
             });
-            
-            console.log(`✅ Loaded ${data.answer_keys.length} available exams`);
-        } else {
-            console.log('⚠️ No answer keys found. Create one first in Answer Key Setup.');
-        }
-    } catch (error) {
-        console.error('❌ Failed to load exams:', error);
-    }
-}
 
-    // 🆕 NEW: Show exam details when selected
-    document.getElementById('examIdSelect').addEventListener('change', function() {
-        const examId = this.value;
-        const preview = document.getElementById('examPreview');
-        const details = document.getElementById('examDetails');
-        
-        if (examId) {
-            // Show preview with selected exam
-            const selectedOption = this.options[this.selectedIndex];
-            details.innerHTML = `
+            fetch('/seriesBundleEvaluate', { method: 'POST', body: formData })
+                .then(res => res.text())
+                .then(html => {
+                    document.open();
+                    document.write(html);
+                    document.close();
+                })
+                .catch(err => {
+                    alert('Evaluation Failed: ' + err.message);
+                    document.getElementById('loadingMessage').style.display = 'none';
+                });
+        }
+        // 🆕 NEW: Load available exams when page loads
+        // ==========================================
+        // LOAD AVAILABLE EXAMS (ENHANCED)
+        // ==========================================
+        async function loadAvailableExams() {
+            try {
+                const response = await fetch('/api/list_answer_keys');
+                const data = await response.json();
+
+                const select = document.getElementById('examIdSelect');
+                const noExamsWarning = document.getElementById('noExamsWarning');
+                const examSelectorContainer = document.getElementById('examSelectorContainer');
+                const studentContainer = document.getElementById('studentContainer');
+                const submitBtn = document.getElementById('submitBatchButton');
+
+                if (data.status === 'Success' && data.answer_keys.length > 0) {
+                    // ✅ Answer keys exist
+                    data.answer_keys.forEach(exam => {
+                        const option = document.createElement('option');
+                        option.value = exam.exam_id;
+                        option.textContent = `${exam.exam_name} (${exam.class} - ${exam.subject})`;
+                        option.dataset.examName = exam.exam_name;
+                        option.dataset.class = exam.class;
+                        option.dataset.subject = exam.subject;
+                        select.appendChild(option);
+                    });
+
+                    // Auto-fill class and subject from first exam
+                    select.addEventListener('change', function () {
+                        if (this.value) {
+                            const selectedOption = this.options[this.selectedIndex];
+                            document.getElementById('globalClass').value = selectedOption.dataset.class;
+                            document.getElementById('globalSubject').value = selectedOption.dataset.subject;
+
+                            // Show preview
+                            const preview = document.getElementById('examPreview');
+                            const details = document.getElementById('examDetails');
+                            details.innerHTML = `
+                        <div><strong>Exam:</strong> ${selectedOption.dataset.examName}</div>
+                        <div style="margin-top: 5px;"><strong>Class:</strong> ${selectedOption.dataset.class} | <strong>Subject:</strong> ${selectedOption.dataset.subject}</div>
+                    `;
+                            preview.style.display = 'block';
+                        } else {
+                            document.getElementById('examPreview').style.display = 'none';
+                        }
+                    });
+
+                    // Hide warning, show selector
+                    noExamsWarning.style.display = 'none';
+                    examSelectorContainer.style.display = 'block';
+
+                    console.log(`✅ Loaded ${data.answer_keys.length} available exams`);
+
+                    // Check if user just created an answer key
+                    const latestExamId = sessionStorage.getItem('latest_exam_id');
+                    if (latestExamId && sessionStorage.getItem('return_to_series') === 'true') {
+                        select.value = latestExamId;
+                        select.dispatchEvent(new Event('change'));
+                        sessionStorage.removeItem('return_to_series');
+                        showSuccessNotification('✅ Answer key loaded! You can now upload student papers.');
+                    }
+
+                } else {
+                    // ❌ No answer keys found
+                    noExamsWarning.style.display = 'block';
+                    examSelectorContainer.style.display = 'none';
+
+                    // Disable everything
+                    select.disabled = true;
+                    studentContainer.style.display = 'none';
+                    if (submitBtn) submitBtn.style.display = 'none';
+
+                    console.log('⚠️ No answer keys found - must create one first');
+                }
+            } catch (error) {
+                console.error('❌ Failed to load exams:', error);
+                alert('Failed to load answer keys. Please refresh the page.');
+            }
+        }
+
+        // ==========================================
+        // NAVIGATION TO ANSWER KEY CREATION
+        // ==========================================
+        function goToCreateAnswerKey() {
+            // Store flag to return to series page
+            sessionStorage.setItem('return_to_series', 'true');
+
+            // Check if any students are added
+            const hasStudents = studentData && studentData.some(s => s.files && s.files.length > 0);
+
+            if (hasStudents) {
+                const confirmed = confirm(
+                    '⚠️ You have students with files ready to upload.\n\n' +
+                    'If you leave now, this data will be lost.\n\n' +
+                    'Do you want to proceed to create an answer key?'
+                );
+
+                if (!confirmed) return;
+            }
+
+            window.location.href = '/answer-key-setup';
+        }
+
+        // ==========================================
+        // SUCCESS NOTIFICATION
+        // ==========================================
+        function showSuccessNotification(message) {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #4caf50;
+        color: white;
+        padding: 15px 25px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        z-index: 10000;
+        font-weight: 600;
+        animation: slideIn 0.3s ease;
+    `;
+            notification.textContent = message;
+
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => notification.remove(), 300);
+            }, 4000);
+        }
+
+        // Add CSS animation
+        const style = document.createElement('style');
+        style.textContent = `
+    @keyframes slideIn {
+        from { transform: translateX(400px); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes slideOut {
+        from { transform: translateX(0); opacity: 1; }
+        to { transform: translateX(400px); opacity: 0; }
+    }
+`;
+        document.head.appendChild(style);
+
+        // Load exams when page loads
+        window.addEventListener('DOMContentLoaded', loadAvailableExams);
+
+        // 🆕 NEW: Show exam details when selected
+        document.getElementById('examIdSelect').addEventListener('change', function () {
+            const examId = this.value;
+            const preview = document.getElementById('examPreview');
+            const details = document.getElementById('examDetails');
+
+            if (examId) {
+                // Show preview with selected exam
+                const selectedOption = this.options[this.selectedIndex];
+                details.innerHTML = `
                 <div>📋 <strong>Exam ID:</strong> ${examId}</div>
                 <div style="margin-top: 5px;">✅ Student submissions will be saved to this exam for valuation</div>
             `;
-            preview.style.display = 'block';
-        } else {
-            preview.style.display = 'none';
-        }
-    });
+                preview.style.display = 'block';
+            } else {
+                preview.style.display = 'none';
+            }
+        });
 
-    // Load exams when page loads
-    window.addEventListener('DOMContentLoaded', loadAvailableExams);
-        </script>
+        // Load exams when page loads
+        window.addEventListener('DOMContentLoaded', loadAvailableExams);
+    </script>
 </body>
+
 </html>

@@ -867,16 +867,19 @@
 
                     // Redirect to batch upload page
                     // Store exam ID for potential return flow
-                    
 
-                    // Check if user came from individual evaluation
+
                     const returnToIndividual = sessionStorage.getItem('return_to_individual');
+                    const returnToSeries = sessionStorage.getItem('return_to_series');
 
                     // Redirect based on where user came from
                     setTimeout(() => {
                         if (returnToIndividual === 'true') {
                             window.location.href = '/upload-individual';
+                        } else if (returnToSeries === 'true') {
+                            window.location.href = '/upload-series';
                         } else {
+                            // Default: go to series (original behavior)
                             window.location.href = '/upload-series';
                         }
                     }, 2000);
