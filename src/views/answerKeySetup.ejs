@@ -866,9 +866,21 @@
                     sessionStorage.setItem('exam_subject', examMetadata.subject);
 
                     // Redirect to batch upload page
+                    // Store exam ID for potential return flow
+                    
+
+                    // Check if user came from individual evaluation
+                    const returnToIndividual = sessionStorage.getItem('return_to_individual');
+
+                    // Redirect based on where user came from
                     setTimeout(() => {
-                        window.location.href = '/upload-series';
+                        if (returnToIndividual === 'true') {
+                            window.location.href = '/upload-individual';
+                        } else {
+                            window.location.href = '/upload-series';
+                        }
                     }, 2000);
+
                 } else {
                     showAlert('error', `❌ Save failed: ${result.error}`);
                 }

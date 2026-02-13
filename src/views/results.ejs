@@ -2,20 +2,476 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><%= title %></title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 50px; }
-        .container { max-width: 700px; margin: auto; padding: 20px; border: 1px solid #ccc; border-radius: 8px; }
-        h1 { text-align: center; color: #28a745; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .header h1 {
+            margin-bottom: 15px;
+            font-size: 2.5em;
+        }
+
+        .header p {
+            opacity: 0.95;
+            font-size: 1.1em;
+            margin: 5px 0;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        /* Score Summary Card */
+        .score-summary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .score-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .score-item {
+            background: rgba(255,255,255,0.2);
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .score-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+            margin-bottom: 10px;
+        }
+
+        .score-value {
+            font-size: 2.5em;
+            font-weight: bold;
+        }
+
+        .result-badge {
+            display: inline-block;
+            padding: 10px 25px;
+            border-radius: 25px;
+            font-weight: bold;
+            font-size: 1.2em;
+            margin-top: 15px;
+        }
+
+        .result-pass {
+            background: #4CAF50;
+        }
+
+        .result-fail {
+            background: #f44336;
+        }
+
+        /* Question Breakdown */
+        .section-title {
+            font-size: 1.8em;
+            color: #333;
+            margin: 30px 0 20px 0;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .question-card {
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            background: white;
+            transition: all 0.3s;
+        }
+
+        .question-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border-color: #667eea;
+        }
+
+        .question-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .question-label {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .question-type {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .marks-display {
+            font-size: 1.4em;
+            font-weight: bold;
+        }
+
+        .marks-obtained {
+            color: #4CAF50;
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            background: #e0e0e0;
+            border-radius: 10px;
+            height: 12px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .progress-bar {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.5s ease;
+        }
+
+        .progress-excellent {
+            background: linear-gradient(90deg, #4CAF50, #8BC34A);
+        }
+
+        .progress-good {
+            background: linear-gradient(90deg, #FF9800, #FFC107);
+        }
+
+        .progress-poor {
+            background: linear-gradient(90deg, #f44336, #ef5350);
+        }
+
+        /* OR Group Styling */
+        .or-group-card {
+            border: 2px solid #ff9800;
+            background: #fff3e0;
+        }
+
+        .or-badge {
+            background: #ff9800;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.85em;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .or-details {
+            background: white;
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 10px;
+            font-size: 0.9em;
+            color: #e65100;
+            font-weight: 600;
+        }
+
+        /* Answer Text Display */
+        .answer-text {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 10px;
+            border-left: 4px solid #667eea;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .answer-text pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: inherit;
+            margin: 0;
+            color: #555;
+            line-height: 1.6;
+        }
+
+        .expand-btn {
+            background: none;
+            border: none;
+            color: #667eea;
+            cursor: pointer;
+            font-weight: 600;
+            margin-top: 8px;
+            text-decoration: underline;
+        }
+
+        .expand-btn:hover {
+            color: #5568d3;
+        }
+
+        /* Action Buttons */
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 2px solid #e0e0e0;
+        }
+
+        .btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        /* Recognition Result (collapsed by default) */
+        .recognition-section {
+            margin-top: 40px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+        }
+
+        details {
+            cursor: pointer;
+        }
+
+        summary {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #667eea;
+            padding: 10px;
+            background: white;
+            border-radius: 6px;
+            margin-bottom: 15px;
+        }
+
+        summary:hover {
+            background: #f8f9ff;
+        }
+
+        .extracted-answers {
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 15px;
+            background: white;
+            border-radius: 6px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Valuation Test Success!</h1>
-        <p>The Python backend confirmed file receipt.</p>
-        <h2>Test Output from Flask:</h2>
-        <pre><%= JSON.stringify(result, null, 2) %></pre> 
-        <a href="/">Evaluate Another Paper</a>
+        <div class="header">
+            <h1>✅ Evaluation Complete!</h1>
+            <% if (result.exam_info) { %>
+                <p>📋 <%= result.exam_info.exam_name %></p>
+                <p>📚 Class: <%= result.exam_info.class %> | Subject: <%= result.exam_info.subject %></p>
+            <% } %>
+        </div>
+
+        <div class="content">
+            <% if (result.status === 'Success' && result.evaluation_result) { %>
+                <!-- Score Summary -->
+                <div class="score-summary">
+                    <h2 style="margin-bottom: 10px;">📊 Score Summary</h2>
+                    <div class="score-grid">
+                        <div class="score-item">
+                            <div class="score-label">Marks Obtained</div>
+                            <div class="score-value"><%= result.evaluation_result.total_marks_obtained %></div>
+                        </div>
+                        <div class="score-item">
+                            <div class="score-label">Total Marks</div>
+                            <div class="score-value"><%= result.evaluation_result.total_marks_possible %></div>
+                        </div>
+                        <div class="score-item">
+                            <div class="score-label">Percentage</div>
+                            <div class="score-value"><%= result.evaluation_result.percentage %>%</div>
+                        </div>
+                    </div>
+                    <div style="text-align: center;">
+                        <span class="result-badge <%= result.evaluation_result.result === 'Pass' ? 'result-pass' : 'result-fail' %>">
+                            <%= result.evaluation_result.result %>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Question-wise Breakdown -->
+                <h2 class="section-title">📝 Question-wise Breakdown</h2>
+
+                <% 
+                const marksBreakdown = result.evaluation_result.marks_breakdown;
+                const questionLabels = Object.keys(marksBreakdown).sort((a, b) => {
+                    const numA = parseInt(a.replace(/\D/g, ''));
+                    const numB = parseInt(b.replace(/\D/g, ''));
+                    return numA - numB;
+                });
+                %>
+
+                <% questionLabels.forEach(qLabel => { 
+                    const q = marksBreakdown[qLabel];
+                    const scorePercentage = (q.marks_obtained / q.max_marks) * 100;
+                    let progressClass = 'progress-poor';
+                    if (scorePercentage >= 70) progressClass = 'progress-excellent';
+                    else if (scorePercentage >= 40) progressClass = 'progress-good';
+                    
+                    const isOrGroup = q.or_group;
+                    const cardClass = isOrGroup ? 'question-card or-group-card' : 'question-card';
+                %>
+                    <div class="<%= cardClass %>">
+                        <div class="question-header">
+                            <div>
+                                <span class="question-label"><%= qLabel %></span>
+                                <span class="question-type"><%= q.question_type %></span>
+                                <% if (isOrGroup) { %>
+                                    <span class="or-badge">⚡ OR Question</span>
+                                <% } %>
+                            </div>
+                            <div class="marks-display">
+                                <span class="marks-obtained"><%= q.marks_obtained %></span> / <%= q.max_marks %>
+                            </div>
+                        </div>
+
+                        <% if (isOrGroup) { %>
+                            <div class="or-details">
+                                <% if (q.or_type === 'single') { %>
+                                    Options: Q<%= q.or_options[0] %> OR Q<%= q.or_options[1] %> 
+                                    → <strong>Best score from Q<%= q.chosen_option %></strong>
+                                <% } else if (q.or_type === 'pair') { %>
+                                    Options: Q<%= q.or_pair_a.join(',') %> OR Q<%= q.or_pair_b.join(',') %> 
+                                    → <strong>Best score from Pair <%= q.chosen_pair.toUpperCase() %></strong>
+                                <% } %>
+                            </div>
+                        <% } %>
+
+                        <div class="progress-bar-container">
+                            <div class="progress-bar <%= progressClass %>" style="width: <%= scorePercentage %>%;"></div>
+                        </div>
+
+                        <% if (result.recognition_result && result.recognition_result.answers[qLabel]) { %>
+                            <details style="margin-top: 15px;">
+                                <summary style="font-size: 0.95em; color: #666; background: #f8f9fa; padding: 8px 12px; border-radius: 4px;">
+                                    View Answer Text
+                                </summary>
+                                <div class="answer-text">
+                                    <pre><%= result.recognition_result.answers[qLabel] %></pre>
+                                </div>
+                            </details>
+                        <% } %>
+                    </div>
+                <% }); %>
+
+            <% } else { %>
+                <!-- Fallback for old format (recognition only, no evaluation) -->
+                <div class="recognition-section">
+                    <h2 class="section-title">📄 Extracted Text (Recognition Only)</h2>
+                    <p style="color: #666; margin-bottom: 20px;">
+                        ℹ️ This paper was processed for text extraction only. For full evaluation with marks, please select an exam.
+                    </p>
+                    
+                    <% if (result.recognition_result && result.recognition_result.answers) { %>
+                        <div class="extracted-answers">
+                            <% Object.entries(result.recognition_result.answers).forEach(([qLabel, text]) => { %>
+                                <div style="margin-bottom: 20px; padding: 15px; background: white; border-radius: 6px; border-left: 4px solid #667eea;">
+                                    <strong style="color: #667eea; font-size: 1.1em;"><%= qLabel %>:</strong>
+                                    <pre style="margin-top: 10px; white-space: pre-wrap; color: #555;"><%= text %></pre>
+                                </div>
+                            <% }); %>
+                        </div>
+                    <% } %>
+                </div>
+            <% } %>
+
+            <!-- Raw Recognition Result (Collapsed) -->
+            <% if (result.recognition_result) { %>
+                <div class="recognition-section">
+                    <details>
+                        <summary>🔍 View Raw Extraction Details</summary>
+                        <div style="margin-top: 15px;">
+                            <pre style="background: white; padding: 15px; border-radius: 6px; overflow-x: auto; font-size: 0.85em;"><%= JSON.stringify(result.recognition_result, null, 2) %></pre>
+                        </div>
+                    </details>
+                </div>
+            <% } %>
+
+            <!-- Action Buttons -->
+            <div class="action-buttons">
+                <a href="/upload-individual" class="btn btn-primary">📄 Evaluate Another Paper</a>
+                <a href="/" class="btn btn-secondary">🏠 Back to Home</a>
+            </div>
+        </div>
     </div>
+
+    <script>
+        // Animate progress bars on load
+        window.addEventListener('DOMContentLoaded', () => {
+            const progressBars = document.querySelectorAll('.progress-bar');
+            progressBars.forEach(bar => {
+                const width = bar.style.width;
+                bar.style.width = '0%';
+                setTimeout(() => {
+                    bar.style.width = width;
+                }, 100);
+            });
+        });
+    </script>
 </body>
 </html>

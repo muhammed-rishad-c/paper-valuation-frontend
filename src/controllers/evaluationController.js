@@ -17,7 +17,17 @@ exports.postEvaluate = async (req, res) => {
         return res.status(400).render('error', { message: 'Please upload at least one image file (JPEG/PNG).' });
     }
 
+    // 🆕 NEW: Get exam_id from request
+    const exam_id = req.body.exam_id;
+
+    if (!exam_id) {
+        return res.status(400).render('error', { 
+            message: 'Please select an exam before uploading papers.' 
+        });
+    }
+
     console.log('=================================================');
+    console.log(`📋 INDIVIDUAL EVALUATION - Exam ID: ${exam_id}`);
     console.log('FILES RECEIVED BY NODE.JS (in order):');
     req.files.forEach((file, index) => {
         console.log(`  Page ${index + 1}: ${file.originalname}`);
@@ -27,6 +37,10 @@ exports.postEvaluate = async (req, res) => {
     const formData = new FormData();
 
     try {
+        // Append exam_id
+        formData.append('exam_id', exam_id);
+
+        // Append files
         for (let i = 0; i < req.files.length; i++) {
             const file = req.files[i];
             console.log(`Appending Page ${i + 1}: ${file.originalname}`);
@@ -37,10 +51,11 @@ exports.postEvaluate = async (req, res) => {
             });
         }
 
-        console.log(`Sending ${req.files.length} pages to Flask in order...`);
+        console.log(`Sending ${req.files.length} pages to Flask for evaluation...`);
 
+        // 🆕 NEW: Call new Flask endpoint for individual evaluation
         const resultData = await valuationService.sendToPythonAPI(formData,
-            '/api/evaluate',
+            '/api/evaluate_individual',  // 🆕 NEW ENDPOINT
             {
                 headers: {
                     ...formData.getHeaders()
@@ -49,16 +64,18 @@ exports.postEvaluate = async (req, res) => {
                 maxBodyLength: Infinity
             });
 
+        // 🆕 NEW: Render upgraded results page
         res.render('results', {
             title: 'Evaluation Results',
             result: resultData,
+            isIndividual: true  // Flag to distinguish from series results
         });
 
     } catch (error) {
         console.error("Error in postEvaluate:", error.message);
         const errorMessage = error.response?.data?.error || "Failed to connect to the evaluation service.";
-        res.status(500).render('upload', {
-            error: `System Error: ${errorMessage}`
+        res.status(500).render('error', {
+            message: `System Error: ${errorMessage}`
         });
     } finally {
         if (req.files) {

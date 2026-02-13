@@ -21,7 +21,7 @@ app.use((err, req, res, next) => {
     console.error(err.stack); 
     res.status(500).render('error', { title: 'Error', message: 'Something broke!' });
 });   
- 
+  
 app.listen(PORT, () => { 
     console.log(`Node.js API Gateway running on http://localhost:${PORT}`);
     console.log(`Proxying to Python at ${process.env.PYTHON_API_URL}`);
