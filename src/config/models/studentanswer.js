@@ -1,28 +1,57 @@
 'use strict';
-const {
-  Model
-} = require('sequelize');
+const { Model } = require('sequelize');
+
 module.exports = (sequelize, DataTypes) => {
   class StudentAnswer extends Model {
-    /**
-     * Helper method for defining associations.
-     * This method is not a part of Sequelize lifecycle.
-     * The `models/index` file will call this method automatically.
-     */
     static associate(models) {
-      // define association here
+      StudentAnswer.belongsTo(models.Submission, {
+        foreignKey: 'submission_id',
+        as: 'submission'
+      });
     }
   }
+
   StudentAnswer.init({
-    submission_id: DataTypes.INTEGER,
-    question_number: DataTypes.INTEGER,
-    answer_text: DataTypes.TEXT,
-    marks_obtained: DataTypes.DECIMAL,
-    is_or_question: DataTypes.BOOLEAN,
-    or_option_chosen: DataTypes.STRING
+    answer_id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true
+    },
+    submission_id: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: {
+        model: 'submissions',
+        key: 'submission_id'
+      }
+    },
+    question_number: {
+      type: DataTypes.INTEGER,
+      allowNull: false
+    },
+    answer_text: {
+      type: DataTypes.TEXT,
+      allowNull: false
+    },
+    marks_obtained: {
+      type: DataTypes.DECIMAL(5, 2),
+      allowNull: true
+    },
+    is_or_question: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false
+    },
+    or_option_chosen: {
+      type: DataTypes.STRING(10),
+      allowNull: true
+    }
   }, {
     sequelize,
     modelName: 'StudentAnswer',
+    tableName: 'student_answers',
+    timestamps: true,
+    underscored: true
   });
+
   return StudentAnswer;
 };

@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - Paper Valuation System</title>
+    <style>
+        /* Same base styles as login */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .auth-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            overflow: hidden;
+            width: 100%;
+            max-width: 450px;  /* Slightly wider for more fields */
+        }
+
+        .auth-header {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            padding: 35px 30px;
+            text-align: center;
+            color: white;
+        }
+
+        .auth-header .icon {
+            font-size: 3em;
+            margin-bottom: 10px;
+        }
+
+        .auth-header h1 {
+            font-size: 1.8em;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .auth-header p {
+            opacity: 0.85;
+            font-size: 0.95em;
+        }
+
+        .auth-body {
+            padding: 35px;
+        }
+
+        /* Error box */
+        .error-box {
+            background: #fff5f5;
+            border: 1px solid #fed7d7;
+            border-left: 4px solid #e53e3e;
+            color: #c53030;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 0.9em;
+        }
+
+        /* Success box (shown after registration) */
+        .success-box {
+            background: #f0fff4;
+            border: 1px solid #9ae6b4;
+            border-left: 4px solid #38a169;
+            color: #276749;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 0.9em;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 6px;
+            font-size: 0.9em;
+        }
+
+        /* Optional label tag */
+        .optional-tag {
+            font-weight: 400;
+            color: #a0aec0;
+            font-size: 0.85em;
+            margin-left: 5px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 1em;
+            color: #2d3748;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            outline: none;
+        }
+
+        .form-group input:focus {
+            border-color: #11998e;
+            box-shadow: 0 0 0 3px rgba(17, 153, 142, 0.15);
+        }
+
+        /* Small helper text under inputs */
+        .form-hint {
+            font-size: 0.8em;
+            color: #a0aec0;
+            margin-top: 5px;
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.05em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 5px;
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(17, 153, 142, 0.4);
+        }
+
+        .auth-footer {
+            text-align: center;
+            margin-top: 20px;
+            color: #718096;
+            font-size: 0.9em;
+        }
+
+        .auth-footer a {
+            color: #11998e;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .auth-footer a:hover {
+            text-decoration: underline;
+        }
+
+        .divider {
+            border: none;
+            border-top: 1px solid #e2e8f0;
+            margin: 20px 0;
+        }
+
+        /* Two column layout for name fields */
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 18px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="auth-card">
+
+        <!-- Header - Green theme to differentiate from login -->
+        <div class="auth-header">
+            <div class="icon">🎓</div>
+            <h1>Create Account</h1>
+            <p>Join the Paper Valuation System</p>
+        </div>
+
+        <!-- Form Body -->
+        <div class="auth-body">
+
+            <!--
+                ERROR MESSAGE
+                Shown when registration fails
+                e.g. username taken, email already exists
+                "error" variable set in auth route POST /register
+            -->
+            <% if (typeof error !== 'undefined' && error) { %>
+                <div class="error-box">
+                    ⚠️ <%= error %>
+                </div>
+            <% } %>
+
+            <!--
+                REGISTER FORM
+                action="/register" → sends to POST /register route
+            -->
+            <form action="/register" method="POST">
+
+                <!-- Username -->
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input
+                        type="text"
+                        id="username"
+                        name="username"
+                        placeholder="e.g. john_teacher"
+                        required
+                        autofocus
+                        pattern="[a-zA-Z0-9]{3,50}"
+                        title="3-50 characters, letters and numbers only"
+                    >
+                    <div class="form-hint">
+                        3-50 characters, letters and numbers only
+                    </div>
+                </div>
+
+                <!-- Email -->
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        placeholder="e.g. john@school.com"
+                        required
+                    >
+                </div>
+
+                <!-- Full Name (Optional) -->
+                <div class="form-group">
+                    <label for="full_name">
+                        Full Name
+                        <span class="optional-tag">(optional)</span>
+                    </label>
+                    <input
+                        type="text"
+                        id="full_name"
+                        name="full_name"
+                        placeholder="e.g. John Smith"
+                    >
+                </div>
+
+                <!-- Password -->
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input
+                        type="password"
+                        id="password"
+                        name="password"
+                        placeholder="Minimum 8 characters"
+                        required
+                        minlength="8"
+                    >
+                    <div class="form-hint">
+                        At least 8 characters
+                    </div>
+                </div>
+
+                <!-- Confirm Password -->
+                <div class="form-group">
+                    <label for="confirm_password">Confirm Password</label>
+                    <input
+                        type="password"
+                        id="confirm_password"
+                        name="confirm_password"
+                        placeholder="Repeat your password"
+                        required
+                        minlength="8"
+                    >
+                </div>
+
+                <button type="submit" class="btn-submit">
+                    Create Account →
+                </button>
+
+            </form>
+
+            <hr class="divider">
+
+            <!-- Link back to login -->
+            <div class="auth-footer">
+                Already have an account?
+                <a href="/login">Login here</a>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // Client-side password match validation
+        // Checks BEFORE form submits to give instant feedback
+        // Server also validates, this is just for better UX
+        document.querySelector('form').addEventListener('submit', function(e) {
+            const password = document.getElementById('password').value;
+            const confirm = document.getElementById('confirm_password').value;
+
+            if (password !== confirm) {
+                e.preventDefault();  // Stop form submission
+
+                // Show error to user
+                alert('Passwords do not match! Please try again.');
+                document.getElementById('confirm_password').focus();
+            }
+        });
+    </script>
+
+</body>
+</html>
