@@ -2,6 +2,12 @@ const fs = require('fs');
 const FormData = require('form-data');
 const valuationService = require('../services/valuationService');
 
+// Add database models
+const { Exam, Question, OrGroup, Submission, StudentAnswer } = require('../config/models');
+
+// Add helper functions
+const { generateExamId, parseQuestionRange, parseMarksString } = require('../utils/examHelpers');
+
 
 exports.getIndexPage = (req, res) => {
     res.render('index');
@@ -21,8 +27,8 @@ exports.postEvaluate = async (req, res) => {
     const exam_id = req.body.exam_id;
 
     if (!exam_id) {
-        return res.status(400).render('error', { 
-            message: 'Please select an exam before uploading papers.' 
+        return res.status(400).render('error', {
+            message: 'Please select an exam before uploading papers.'
         });
     }
 
@@ -156,8 +162,6 @@ exports.postExtractAnswerKey = async (req, res) => {
 
 exports.postSaveAnswerKey = async (req, res) => {
     try {
-        console.log('Received body:', req.body);
-
         const {
             exam_name,
             class_name,
@@ -168,80 +172,143 @@ exports.postSaveAnswerKey = async (req, res) => {
             long_marks,
             short_answers,
             long_answers,
-            or_groups              // 🆕 ADD THIS
+            or_groups
         } = req.body;
 
-        console.log('💾 Saving complete answer key with marks...');
-        console.log(`   Exam: ${exam_name}, Class: ${class_name}, Subject: ${subject}`);
-        console.log(`   Short marks: ${short_marks}, Long marks: ${long_marks}`);
-        console.log(`   OR Groups: ${JSON.stringify(or_groups)}`);  // 🆕 ADD THIS
+        console.log(`💾 Saving answer key: ${exam_name} for user ${req.user.username}`);
 
-        // Validate data types
-        if (typeof short_answers !== 'object' || typeof long_answers !== 'object') {
+        // Validate required fields
+        if (!exam_name || !class_name || !subject) {
             return res.status(400).json({
                 status: 'Failed',
-                error: 'Invalid data format. Answers must be objects.'
+                error: 'Missing required fields: exam_name, class_name, or subject'
             });
         }
 
-        // Validate marks are provided
-        if (!short_marks && !long_marks) {
+        // Parse question ranges
+        const shortQuestions = short_questions ? parseQuestionRange(short_questions) : [];
+        const longQuestions = long_questions ? parseQuestionRange(long_questions) : [];
+
+        if (shortQuestions.length === 0 && longQuestions.length === 0) {
             return res.status(400).json({
                 status: 'Failed',
-                error: 'Please provide marks for at least one question type.'
+                error: 'Please specify at least one question range'
             });
         }
 
-        const payload = {
-            exam_name,
-            class_name,
-            subject,
-            short_questions,
-            long_questions,
-            short_marks: short_marks || '',
-            long_marks: long_marks || '',
-            short_answers: short_answers || {},
-            long_answers: long_answers || {},
-            or_groups: or_groups || []   // 🆕 ADD THIS
-        };
+        // Parse marks
+        let shortMarksList = [];
+        let longMarksList = [];
+        let totalMarks = 0;
 
-        console.log('Sending to Flask:', JSON.stringify(payload, null, 2));
+        if (shortQuestions.length > 0) {
+            if (!short_marks) {
+                return res.status(400).json({
+                    status: 'Failed',
+                    error: 'Short questions specified but no marks provided'
+                });
+            }
+            shortMarksList = parseMarksString(short_marks, shortQuestions.length);
+            totalMarks += shortMarksList.reduce((a, b) => a + b, 0);
+        }
 
-        const axios = require('axios');
-        const PYTHON_BASE_URL = process.env.PYTHON_API_URL || "http://localhost:5000";
-        
-        const response = await axios.post(`${PYTHON_BASE_URL}/api/save_answer_key`, payload, {
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            timeout: 300000
+        if (longQuestions.length > 0) {
+            if (!long_marks) {
+                return res.status(400).json({
+                    status: 'Failed',
+                    error: 'Long questions specified but no marks provided'
+                });
+            }
+            longMarksList = parseMarksString(long_marks, longQuestions.length);
+            totalMarks += longMarksList.reduce((a, b) => a + b, 0);
+        }
+
+        // Generate exam ID
+        const exam_id = generateExamId(exam_name, class_name, subject);
+
+        console.log(`   📊 ${shortQuestions.length} short + ${longQuestions.length} long questions`);
+        console.log(`   💯 Total marks: ${totalMarks}`);
+
+        // Use transaction for data integrity
+        const { sequelize } = require('../config/models');
+
+        await sequelize.transaction(async (transaction) => {
+
+            // 1. Create Exam
+            await Exam.create({
+                exam_id: exam_id,
+                user_id: req.user.user_id,  // Link to current user
+                exam_name: exam_name,
+                class: class_name,
+                subject: subject,
+                total_marks: totalMarks
+            }, { transaction });
+
+            // 2. Create Questions
+            const questionsToCreate = [];
+
+            // Short questions
+            for (let i = 0; i < shortQuestions.length; i++) {
+                const qNum = shortQuestions[i];
+                const qLabel = `Q${qNum}`;
+                questionsToCreate.push({
+                    exam_id: exam_id,
+                    question_number: qNum,
+                    question_type: 'short',
+                    max_marks: shortMarksList[i],
+                    teacher_answer: short_answers[qLabel] || ''
+                });
+            }
+
+            // Long questions
+            for (let i = 0; i < longQuestions.length; i++) {
+                const qNum = longQuestions[i];
+                const qLabel = `Q${qNum}`;
+                questionsToCreate.push({
+                    exam_id: exam_id,
+                    question_number: qNum,
+                    question_type: 'long',
+                    max_marks: longMarksList[i],
+                    teacher_answer: long_answers[qLabel] || ''
+                });
+            }
+
+            await Question.bulkCreate(questionsToCreate, { transaction });
+
+            // 3. Create OR Groups
+            if (or_groups && or_groups.length > 0) {
+                const orGroupsToCreate = [];
+
+                for (const group of or_groups) {
+                    orGroupsToCreate.push({
+                        exam_id: exam_id,
+                        group_type: group.type,
+                        option_a: JSON.stringify(group.options || group.option_a || []),
+                        option_b: JSON.stringify(group.option_b || [])
+                    });
+                }
+
+                await OrGroup.bulkCreate(orGroupsToCreate, { transaction });
+                console.log(`   ⚡ ${or_groups.length} OR groups saved`);
+            }
         });
 
-        const resultData = response.data;
+        console.log(`✅ Answer key saved: ${exam_id}`);
 
-        console.log(`✅ Answer key saved with exam_id: ${resultData.exam_id}`);
-        console.log(`📊 Total marks: ${resultData.total_marks}`);
-        if (resultData.or_groups_count > 0) {
-            console.log(`⚡ OR Groups saved: ${resultData.or_groups_count}`);
-        }
- 
         res.json({
             status: 'Success',
-            exam_id: resultData.exam_id,
-            total_marks: resultData.total_marks,
-            question_count: resultData.question_count,
-            or_groups_count: resultData.or_groups_count || 0,  // 🆕 ADD THIS
+            exam_id: exam_id,
+            total_marks: totalMarks,
+            question_count: shortQuestions.length + longQuestions.length,
+            or_groups_count: or_groups ? or_groups.length : 0,
             message: 'Answer key saved successfully!'
         });
 
     } catch (error) {
-        console.error("Error saving answer key:", error.message);
-        if (error.response) {
-            console.error("Flask response:", error.response.data);
-        }
-        res.status(500).json({ 
-            status: 'Failed', 
-            error: error.response?.data?.error || error.message 
+        console.error('Error saving answer key:', error.message);
+        res.status(500).json({
+            status: 'Failed',
+            error: error.message
         });
     }
 };
@@ -279,19 +346,59 @@ exports.postEvaluateSeriesBatch = async (req, res) => {
         console.log(`📋 Exam ID: ${exam_id || 'Not provided (submissions will not be saved)'}`);
 
         // 🆕 NEW: Validate exam_id exists before processing
+        // Load exam from database (not Python!)
+        let examData = null;
         if (exam_id) {
             try {
-                const axios = require('axios');
-                const PYTHON_BASE_URL = process.env.PYTHON_API_URL || "http://localhost:5000";
-                const checkExam = await axios.get(`${PYTHON_BASE_URL}/api/get_answer_key/${exam_id}`);
+                const exam = await Exam.findOne({
+                    where: {
+                        exam_id: exam_id,
+                        user_id: req.user.user_id  // Ownership check
+                    },
+                    include: [
+                        { model: Question, as: 'questions' },
+                        { model: OrGroup, as: 'or_groups' }
+                    ]
+                });
 
-                if (checkExam.data.status === 'Success') {
-                    console.log(`✅ Exam validated: ${checkExam.data.answer_key.exam_metadata?.exam_name || checkExam.data.answer_key.exam_name}`);
+                if (!exam) {
+                    return res.status(400).render('error', {
+                        message: `Invalid Exam ID: ${exam_id}. You do not own this exam or it does not exist.`
+                    });
                 }
+
+                console.log(`✅ Exam validated: ${exam.exam_name}`);
+
+                // Format exam data for Python
+                examData = {
+                    exam_id: exam.exam_id,
+                    exam_name: exam.exam_name,
+                    question_types: {},
+                    question_marks: {},
+                    teacher_answers: {},
+                    or_groups: []
+                };
+
+                // Add questions
+                exam.questions.forEach(q => {
+                    examData.question_types[q.question_number.toString()] = q.question_type;
+                    examData.question_marks[q.question_number.toString()] = q.max_marks;
+                    examData.teacher_answers[`Q${q.question_number}`] = q.teacher_answer;
+                });
+
+                // Add OR groups
+                exam.or_groups.forEach(g => {
+                    examData.or_groups.push({
+                        type: g.group_type,
+                        options: JSON.parse(g.option_a),
+                        option_b: g.option_b ? JSON.parse(g.option_b) : []
+                    });
+                });
+
             } catch (examError) {
-                console.error(`❌ Invalid exam_id: ${exam_id}`);
+                console.error(`❌ Error loading exam: ${examError.message}`);
                 return res.status(400).render('error', {
-                    message: `Invalid Exam ID: ${exam_id}. Please create the answer key first.`
+                    message: `Failed to load exam: ${examError.message}`
                 });
             }
         }
@@ -315,8 +422,9 @@ exports.postEvaluateSeriesBatch = async (req, res) => {
             formData.append("manual_class", global_class);
             formData.append("manual_subject", global_subject);
 
-            if (exam_id) {
-                formData.append("exam_id", exam_id);
+            // Send complete exam data to Python (not just ID)
+            if (examData) {
+                formData.append("exam_data", JSON.stringify(examData));
             }
 
             const idPage = studentFiles[0];
@@ -341,6 +449,45 @@ exports.postEvaluateSeriesBatch = async (req, res) => {
                     '/api/seriesBundleEvaluate',
                     { headers: { ...formData.getHeaders() } }
                 );
+                if (studentResult.status === 'Success' && exam_id) {
+                    try {
+                        // Save student submission to PostgreSQL
+                        const submission = await Submission.create({
+                            exam_id: exam_id,
+                            roll_no: studentResult.student_info.roll_no,
+                            student_name: studentResult.student_info.name || 'Unknown',
+                            valuation_status: 'pending',
+                            total_marks_obtained: null,
+                            percentage: null
+                        });
+
+                        // Save student answers
+                        const answers = studentResult.recognition_result.answers;
+                        const answersToCreate = [];
+
+                        for (const [qLabel, answerText] of Object.entries(answers)) {
+                            const qNum = parseInt(qLabel.replace('Q', ''));
+                            answersToCreate.push({
+                                submission_id: submission.submission_id,
+                                question_number: qNum,
+                                answer_text: answerText,
+                                marks_obtained: null,
+                                is_or_question: false,
+                                or_option_chosen: null
+                            });
+                        }
+
+                        await StudentAnswer.bulkCreate(answersToCreate);
+
+                        console.log(`✅ Saved student ${studentResult.student_info.roll_no} to PostgreSQL`);
+
+                    } catch (dbError) {
+                        console.error(`⚠️ Failed to save to database: ${dbError.message}`);
+                        // Don't fail the whole request - student data is in the response
+                    }
+                }
+
+                finalBatchResults.push(studentResult);
 
                 // 🆕 NEW: Log if submission was saved to exam
                 if (studentResult.saved_to_exam) {
@@ -404,68 +551,127 @@ exports.getValuationPrep = async (req, res) => {
     const exam_id = req.params.exam_id;
 
     try {
-        console.log(`📋 Fetching complete exam data for: ${exam_id}`);
+        console.log(`📋 Loading exam data for: ${exam_id}`);
 
-        const axios = require('axios');
-        const PYTHON_BASE_URL = process.env.PYTHON_API_URL || "http://localhost:5000";
+        // Load exam with all related data
+        // req.exam is already set by requireExamOwner middleware
+        const exam = await Exam.findOne({
+            where: {
+                exam_id: exam_id,
+                user_id: req.user.user_id
+            },
+            include: [
+                {
+                    model: Question,
+                    as: 'questions',
+                    attributes: ['question_number', 'question_type', 'max_marks', 'teacher_answer']
+                },
+                {
+                    model: OrGroup,
+                    as: 'or_groups'
+                },
+                {
+                    model: Submission,
+                    as: 'submissions',
+                    include: [
+                        {
+                            model: StudentAnswer,
+                            as: 'answers'
+                        }
+                    ]
+                }
+            ]
+        });
 
-        const response = await axios.get(`${PYTHON_BASE_URL}/api/get_exam_data/${exam_id}`);
-
-        if (response.data.status !== 'Success') {
+        if (!exam) {
             return res.status(404).render('error', {
-                message: `Exam not found: ${exam_id}`
+                message: `Exam not found or access denied`
             });
         }
 
-        const examData = response.data.exam_data;
-
-        console.log(`✅ Retrieved exam: ${examData.exam_metadata.exam_name}`);
-        console.log(`   📊 ${examData.total_students} student submissions found`);
-
-        // Prepare valuation-ready format
-        const valuationPayload = {
-            exam_metadata: examData.exam_metadata,
-            question_types: examData.question_types,
-            question_marks: examData.question_marks,
-            teacher_answers: examData.teacher_answers,
+        // Format data for template (match old format)
+        const examData = {
+            exam_metadata: {
+                exam_id: exam.exam_id,
+                exam_name: exam.exam_name,
+                class: exam.class,
+                subject: exam.subject,
+                total_marks: exam.total_marks
+            },
+            question_types: {},
+            question_marks: {},
+            teacher_answers: {},
             students: []
         };
 
-        // Convert student submissions to array for easier rendering
-        for (const [roll_no, submission] of Object.entries(examData.student_submissions)) {
-            valuationPayload.students.push({
-                roll_no: roll_no,
-                name: submission.student_info.name,
-                student_info: submission.student_info,
-                answers: submission.answers,
-                valuation_status: submission.valuation_status
+        // Process questions
+        exam.questions.forEach(q => {
+            examData.question_types[q.question_number] = q.question_type;
+            examData.question_marks[q.question_number] = q.max_marks;
+            examData.teacher_answers[`Q${q.question_number}`] = q.teacher_answer;
+        });
+
+        // Process students
+        exam.submissions.forEach(submission => {
+            const studentAnswers = {};
+            submission.answers.forEach(ans => {
+                studentAnswers[`Q${ans.question_number}`] = ans.answer_text;
             });
-        }
+
+            examData.students.push({
+                roll_no: submission.roll_no,
+                name: submission.student_name,
+                valuation_status: submission.valuation_status,
+                answers: studentAnswers
+            });
+        });
+
+        console.log(`✅ Retrieved exam: ${exam.exam_name}`);
+        console.log(`   📊 ${exam.submissions.length} student submissions`);
 
         res.render('valuation-prep', {
-            title: `Valuation: ${examData.exam_metadata.exam_name}`,
-            examData: valuationPayload
+            title: `Valuation: ${exam.exam_name}`,
+            examData: examData
         });
 
     } catch (error) {
-        console.error("Error fetching exam data:", error.message);
+        console.error('Error fetching exam data:', error.message);
         res.status(500).render('error', {
             message: `Failed to load exam data: ${error.message}`
         });
     }
 };
 
+
 // ============================================
 // GET ANSWER KEYS LIST FOR DROPDOWN
-// ============================================
+// ============================================ 
 
 exports.getAnswerKeysList = async (req, res) => {
     try {
-        const axios = require('axios');
-        const PYTHON_BASE_URL = process.env.PYTHON_API_URL || "http://localhost:5000";
+        // Query database - only current user's exams
+        const exams = await Exam.findAll({
+            where: {
+                user_id: req.user.user_id  // Filter by logged-in user
+            },
+            attributes: ['exam_id', 'exam_name', 'class', 'subject', 'total_marks'],
+            order: [['created_at', 'DESC']]
+        });
 
-        const response = await axios.get(`${PYTHON_BASE_URL}/api/list_answer_keys`);
-        res.json(response.data);
+        // Format for frontend
+        const answer_key_list = exams.map(exam => ({
+            exam_id: exam.exam_id,
+            exam_name: exam.exam_name,
+            class: exam.class,
+            subject: exam.subject
+        }));
+
+        console.log(`📋 Returning ${answer_key_list.length} answer keys for user ${req.user.username}`);
+
+        res.json({
+            status: 'Success',
+            answer_keys: answer_key_list
+        });
 
     } catch (error) {
         console.error('Error fetching answer keys list:', error.message);
@@ -488,18 +694,97 @@ exports.postEvaluateExam = async (req, res) => {
         console.log(`🎯 Starting AI Valuation for Exam: ${exam_id}`);
         console.log(`${'='.repeat(50)}`);
 
+        // Load exam from PostgreSQL
+        const exam = await Exam.findOne({
+            where: {
+                exam_id: exam_id,
+                user_id: req.user.user_id
+            },
+            include: [
+                { model: Question, as: 'questions' },
+                { model: OrGroup, as: 'or_groups' },
+                {
+                    model: Submission,
+                    as: 'submissions',
+                    include: [{ model: StudentAnswer, as: 'answers' }]
+                }
+            ]
+        });
+
+        if (!exam) {
+            return res.status(404).json({
+                status: 'Failed',
+                error: `Exam ${exam_id} not found or access denied`
+            });
+        }
+
+        console.log(`✅ Loaded exam: ${exam.exam_name}`);
+        console.log(`   📊 ${exam.submissions.length} students to evaluate`);
+
+        // Format exam data for Python
+        const examDataForPython = {
+            exam_id: exam.exam_id,
+            exam_name: exam.exam_name,
+            exam_metadata: {
+                exam_id: exam.exam_id,
+                exam_name: exam.exam_name,
+                class: exam.class,
+                subject: exam.subject,
+                total_marks: exam.total_marks
+            },
+            question_types: {},
+            question_marks: {},
+            teacher_answers: {},
+            or_groups: [],
+            student_submissions: {}
+        };
+
+        // Add questions
+        exam.questions.forEach(q => {
+            examDataForPython.question_types[q.question_number.toString()] = q.question_type;
+            examDataForPython.question_marks[q.question_number.toString()] = q.max_marks;
+            examDataForPython.teacher_answers[`Q${q.question_number}`] = q.teacher_answer;
+        });
+
+        // Add OR groups
+        exam.or_groups.forEach(g => {
+            examDataForPython.or_groups.push({
+                type: g.group_type,
+                options: JSON.parse(g.option_a),
+                option_b: g.option_b ? JSON.parse(g.option_b) : []
+            });
+        });
+
+        // Add student submissions
+        exam.submissions.forEach(submission => {
+            const answers = {};
+            submission.answers.forEach(ans => {
+                answers[`Q${ans.question_number}`] = ans.answer_text;
+            });
+
+            examDataForPython.student_submissions[submission.roll_no] = {
+                student_info: {
+                    name: submission.student_name,
+                    roll_no: submission.roll_no
+                },
+                answers: answers
+            };
+        });
+
+        console.log('📤 Sending complete exam data to Python for evaluation...');
+
+        // Send to Python with complete exam data in request body
         const axios = require('axios');
         const PYTHON_BASE_URL = process.env.PYTHON_API_URL || "http://localhost:5000";
 
-        // Call Flask evaluation endpoint
         const response = await axios.post(
-            `${PYTHON_BASE_URL}/api/evaluate_exam/${exam_id}`,
-            {},
+            `${PYTHON_BASE_URL}/api/evaluate_exam_with_data`,  // ← NEW ENDPOINT
+            examDataForPython,  // ← Send complete data
             {
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                timeout: 300000 // 5 minutes timeout for large batches
+                timeout: 300000
             }
         );
 
@@ -509,6 +794,47 @@ exports.postEvaluateExam = async (req, res) => {
             console.log(`   ✅ Evaluated: ${response.data.evaluated_successfully}`);
             console.log(`   ❌ Failed: ${response.data.evaluation_failed}`);
             console.log(`${'='.repeat(50)}`);
+
+            // Update database with results
+            for (const result of response.data.results) {
+                if (result.status === 'Success') {
+                    await Submission.update(
+                        {
+                            valuation_status: 'completed',
+                            total_marks_obtained: result.total_marks_obtained,
+                            percentage: result.percentage
+                        },
+                        {
+                            where: {
+                                exam_id: exam_id,
+                                roll_no: result.roll_no
+                            }
+                        }
+                    );
+
+                    // Update student answers with marks
+                    for (const [qLabel, marks] of Object.entries(result.marks_breakdown)) {
+                        const qNum = parseInt(qLabel.replace('Q', ''));
+                        await StudentAnswer.update(
+                            {
+                                marks_obtained: marks.marks_obtained,
+                                is_or_question: marks.or_group || false,
+                                or_option_chosen: marks.chosen_option || null
+                            },
+                            {
+                                where: {
+                                    submission_id: (await Submission.findOne({
+                                        where: { exam_id, roll_no: result.roll_no }
+                                    })).submission_id,
+                                    question_number: qNum
+                                }
+                            }
+                        );
+                    }
+                }
+            }
+
+            console.log('✅ Database updated with evaluation results');
 
             res.json(response.data);
         } else {
@@ -520,7 +846,7 @@ exports.postEvaluateExam = async (req, res) => {
         console.error(`🔥 Critical Error during AI valuation:`, error.message);
 
         if (error.response) {
-            console.error(`Flask Response Error:`, error.response.data);
+            console.error(`Python Response Error:`, error.response.data);
         }
 
         res.status(500).json({

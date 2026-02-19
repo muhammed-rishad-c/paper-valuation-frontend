@@ -1,84 +1,70 @@
 const express = require('express');
 const path = require('path');
 require('dotenv').config();
-const flash = require('connect-flash');
+
+// Import auth packages in correct order
 const session = require('express-session');
+const flash = require('connect-flash');
 const passport = require('./src/config/passport');
 const sessionConfig = require('./src/config/sessionConfig');
 
 const app = express();
-const PORT = process.env.PORT || 3000;  // ← Fallback to 3000 if not set
+const PORT = process.env.PORT || 3000;
 
 // ==========================================
-// VIEW ENGINE SETUP
+// VIEW ENGINE
 // ==========================================
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'src/views'));
 
 // ==========================================
-// BODY PARSERS
-// Must be FIRST - parses incoming request data
+// BODY PARSERS (FIRST)
 // ==========================================
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // ==========================================
 // STATIC FILES
-// Serve CSS, JS, images from public folder
 // ==========================================
 app.use(express.static(path.join(__dirname, 'src/public')));
 
 // ==========================================
-// SESSION MIDDLEWARE
-// Must come BEFORE passport
-// Reads session cookie → loads session data
+// SESSION + AUTH MIDDLEWARE (CORRECT ORDER!)
 // ==========================================
+
+// 1. Session ONCE ONLY
 app.use(session(sessionConfig));
 
-app.use(session(sessionConfig));
-app.use(flash());              // ← ADD THIS LINE
+// 2. Flash messages
+app.use(flash());
+
+// 3. Initialize Passport ONCE ONLY
 app.use(passport.initialize());
+
+// 4. Passport sessions ONCE ONLY
 app.use(passport.session());
 
-// ==========================================
-// PASSPORT MIDDLEWARE
-// Must come AFTER session
-// ==========================================
-app.use(passport.initialize());
-app.use(passport.session());
-
-// ==========================================
-// MAKE USER AVAILABLE IN ALL EJS TEMPLATES
-// Must come AFTER passport.session()
-// Must come BEFORE routes
-// ← THIS IS THE KEY FIX!
-// ==========================================
+// 5. Make user available in all templates (BEFORE routes!)
 app.use((req, res, next) => {
   res.locals.user = req.user || null;
-  res.locals.messages = {           // ← ADD THIS
-    error: req.flash('error'),      // ← Makes flash errors available in EJS
+  res.locals.messages = {
+    error: req.flash('error'),
     success: req.flash('success')
   };
   next();
 });
 
-
 // ==========================================
-// ROUTES
-// Must come AFTER all middleware above
+// ROUTES (AFTER MIDDLEWARE)
 // ==========================================
-
-// Auth routes (login, register, logout) - PUBLIC
 const authRoutes = require('./src/routes/auth');
 app.use('/', authRoutes);
 
-// Main app routes - PROTECTED
 const indexRoutes = require('./src/routes/index');
 app.use('/', indexRoutes);
 
 // ==========================================
-// ERROR HANDLER
-// Must be LAST
+// ERROR HANDLER (LAST)
 // ==========================================
 app.use((err, req, res, next) => {
   console.error(err.stack);
