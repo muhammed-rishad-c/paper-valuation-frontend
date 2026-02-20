@@ -13,17 +13,167 @@ exports.getIndexPage = (req, res) => {
     res.render('index');
 }
 
+exports.getDashboardStats = async (req, res) => {
+    try {
+        const userId = req.user.user_id;
+
+        // Get total exams
+        const totalExams = await Exam.count({
+            where: { user_id: userId }
+        });
+
+        // Get total students (unique submissions)
+        const totalStudents = await Submission.count({
+            include: [{
+                model: Exam,
+                as: 'exam',
+                where: { user_id: userId },
+                attributes: []
+            }]
+        });
+
+        // Get completed evaluations
+        const completedEvaluations = await Submission.count({
+            where: { valuation_status: 'completed' },
+            include: [{
+                model: Exam,
+                as: 'exam',
+                where: { user_id: userId },
+                attributes: []
+            }]
+        });
+
+        // Calculate average percentage
+        const avgResult = await Submission.findOne({
+            attributes: [
+                [sequelize.fn('AVG', sequelize.col('percentage')), 'avg_percentage']
+            ],
+            where: {
+                valuation_status: 'completed',
+                percentage: { [sequelize.Op.ne]: null }
+            },
+            include: [{
+                model: Exam,
+                as: 'exam',
+                where: { user_id: userId },
+                attributes: []
+            }],
+            raw: true
+        });
+
+        const avgPercentage = parseFloat(avgResult?.avg_percentage || 0);
+
+        // Get recent activity (last 10 submissions)
+        const recentSubmissions = await Submission.findAll({
+            include: [{
+                model: Exam,
+                as: 'exam',
+                where: { user_id: userId },
+                attributes: ['exam_name', 'class', 'subject']
+            }],
+            order: [['created_at', 'DESC']],
+            limit: 10
+        });
+
+        const recentActivity = recentSubmissions.map(sub => ({
+            title: `${sub.exam.exam_name} - ${sub.student_name || 'Roll ' + sub.roll_no}`,
+            details: `${sub.exam.class} ${sub.exam.subject} | Status: ${sub.valuation_status}${sub.percentage ? ` | Score: ${sub.percentage}%` : ''}`,
+            date: new Date(sub.created_at).toLocaleDateString()
+        }));
+
+        res.json({
+            status: 'Success',
+            stats: {
+                total_exams: totalExams,
+                total_students: totalStudents,
+                completed_evaluations: completedEvaluations,
+                avg_percentage: avgPercentage
+            },
+            recent_activity: recentActivity
+        });
+
+    } catch (error) {
+        console.error('Error fetching dashboard stats:', error);
+        res.status(500).json({
+            status: 'Failed',
+            error: error.message
+        });
+    }
+};
 
 exports.getUploadPage = (req, res) => {
     res.render('individual', { title: 'Upload Paper' });
 };
 
+exports.getProfile = (req, res) => {
+    res.render('profile', {
+        title: 'Profile',
+        user: req.user
+    });
+};
+
+exports.getHistory = (req, res) => {
+    res.render('history', {
+        title: 'History',
+        user: req.user
+    });
+};
+
+exports.getHistoryData = async (req, res) => {
+    try {
+        const userId = req.user.user_id;
+
+        const exams = await Exam.findAll({
+            where: { user_id: userId },
+            include: [{
+                model: Submission,
+                as: 'submissions',
+                attributes: ['submission_id', 'valuation_status', 'percentage']
+            }],
+            order: [['created_at', 'DESC']]
+        });
+
+        const examsWithStats = exams.map(exam => {
+            const submissions = exam.submissions || [];
+            const completed = submissions.filter(s => s.valuation_status === 'completed');
+            const avgPercentage = completed.length > 0
+                ? completed.reduce((sum, s) => sum + (parseFloat(s.percentage) || 0), 0) / completed.length
+                : 0;
+
+            return {
+                exam_id: exam.exam_id,
+                exam_name: exam.exam_name,
+                class: exam.class,
+                subject: exam.subject,
+                total_marks: exam.total_marks,
+                created_at: exam.created_at,
+                submissions_count: submissions.length,
+                completed_count: completed.length,
+                avg_percentage: avgPercentage
+            };
+        });
+
+        res.json({
+            status: 'Success',
+            exams: examsWithStats
+        });
+
+    } catch (error) {
+        console.error('Error fetching history:', error);
+        res.status(500).json({
+            status: 'Failed',
+            error: error.message
+        });
+    }
+};
+
 exports.postEvaluate = async (req, res) => {
     if (!req.files || req.files.length === 0) {
-        return res.status(400).render('error', { message: 'Please upload at least one image file (JPEG/PNG).' });
+        return res.status(400).render('error', {
+            message: 'Please upload at least one image file (JPEG/PNG).'
+        });
     }
 
-    // 🆕 NEW: Get exam_id from request
     const exam_id = req.body.exam_id;
 
     if (!exam_id) {
@@ -40,41 +190,93 @@ exports.postEvaluate = async (req, res) => {
     });
     console.log('=================================================');
 
-    const formData = new FormData();
-
     try {
-        // Append exam_id
-        formData.append('exam_id', exam_id);
+        // Load exam from PostgreSQL
+        const exam = await Exam.findOne({
+            where: {
+                exam_id: exam_id,
+                user_id: req.user.user_id  // Ownership check
+            },
+            include: [
+                { model: Question, as: 'questions' },
+                { model: OrGroup, as: 'or_groups' }
+            ]
+        });
 
-        // Append files
+        if (!exam) {
+            return res.status(400).render('error', {
+                message: `Invalid Exam ID: ${exam_id}. You do not own this exam or it does not exist.`
+            });
+        }
+
+        console.log(`✅ Exam validated: ${exam.exam_name}`);
+
+        // Format exam data for Python
+        const examData = {
+            exam_id: exam.exam_id,
+            exam_name: exam.exam_name,
+            class: exam.class,
+            subject: exam.subject,
+            total_marks: exam.total_marks,
+            question_types: {},
+            question_marks: {},
+            teacher_answers: {},
+            or_groups: []
+        };
+
+        // Add questions
+        exam.questions.forEach(q => {
+            examData.question_types[q.question_number.toString()] = q.question_type;
+            examData.question_marks[q.question_number.toString()] = q.max_marks;
+            examData.teacher_answers[`Q${q.question_number}`] = q.teacher_answer;
+        });
+
+        // Add OR groups
+        exam.or_groups.forEach(g => {
+            examData.or_groups.push({
+                type: g.group_type,
+                options: JSON.parse(g.option_a),
+                option_b: g.option_b ? JSON.parse(g.option_b) : []
+            });
+        });
+
+        console.log(`📤 Sending ${req.files.length} pages + exam data to Python...`);
+
+        // Create FormData for Python
+        const formData = new FormData();
+
+        // Send complete exam data as JSON string
+        formData.append('exam_data', JSON.stringify(examData));
+
+        // Append image files
         for (let i = 0; i < req.files.length; i++) {
             const file = req.files[i];
-            console.log(`Appending Page ${i + 1}: ${file.originalname}`);
-
             formData.append('paper_images', fs.createReadStream(file.path), {
                 filename: file.originalname,
                 contentType: file.mimetype
             });
         }
 
-        console.log(`Sending ${req.files.length} pages to Flask for evaluation...`);
-
-        // 🆕 NEW: Call new Flask endpoint for individual evaluation
-        const resultData = await valuationService.sendToPythonAPI(formData,
-            '/api/evaluate_individual',  // 🆕 NEW ENDPOINT
+        // Send to Python
+        const resultData = await valuationService.sendToPythonAPI(
+            formData,
+            '/api/evaluate_individual_with_data',  // New endpoint
             {
                 headers: {
                     ...formData.getHeaders()
                 },
                 maxContentLength: Infinity,
                 maxBodyLength: Infinity
-            });
+            }
+        );
 
-        // 🆕 NEW: Render upgraded results page
+        console.log('✅ Evaluation completed successfully');
+
+        // Render results
         res.render('results', {
             title: 'Evaluation Results',
             result: resultData,
-            isIndividual: true  // Flag to distinguish from series results
+            isIndividual: true
         });
 
     } catch (error) {
@@ -84,6 +286,7 @@ exports.postEvaluate = async (req, res) => {
             message: `System Error: ${errorMessage}`
         });
     } finally {
+        // Cleanup uploaded files
         if (req.files) {
             req.files.forEach(file => {
                 if (fs.existsSync(file.path)) {
@@ -337,7 +540,9 @@ exports.postEvaluateSeriesBatch = async (req, res) => {
     const studentCount = parseInt(req.body.student_count) || 0;
 
     try {
+        console.log(`\n${'='.repeat(70)}`);
         console.log(`🚀 Starting Batch Processing for ${studentCount} students...`);
+        console.log('='.repeat(70));
 
         const exam_id = req.body.exam_id || null;
         const global_class = req.body.global_class;
@@ -345,15 +550,16 @@ exports.postEvaluateSeriesBatch = async (req, res) => {
 
         console.log(`📋 Exam ID: ${exam_id || 'Not provided (submissions will not be saved)'}`);
 
-        // 🆕 NEW: Validate exam_id exists before processing
-        // Load exam from database (not Python!)
+        // ============================================
+        // VALIDATE AND LOAD EXAM FROM DATABASE
+        // ============================================
         let examData = null;
         if (exam_id) {
             try {
                 const exam = await Exam.findOne({
                     where: {
                         exam_id: exam_id,
-                        user_id: req.user.user_id  // Ownership check
+                        user_id: req.user.user_id
                     },
                     include: [
                         { model: Question, as: 'questions' },
@@ -368,6 +574,8 @@ exports.postEvaluateSeriesBatch = async (req, res) => {
                 }
 
                 console.log(`✅ Exam validated: ${exam.exam_name}`);
+                console.log(`   Questions: ${exam.questions.length}`);
+                console.log(`   OR Groups: ${exam.or_groups.length}`);
 
                 // Format exam data for Python
                 examData = {
@@ -403,11 +611,17 @@ exports.postEvaluateSeriesBatch = async (req, res) => {
             }
         }
 
+        // ============================================
+        // PROCESS EACH STUDENT
+        // ============================================
         for (let i = 0; i < studentCount; i++) {
             const studentKey = `student_${i}`;
-
             const roll_no = req.body[`roll_no_${i}`] || "";
-            console.log(`Processing Student #${i + 1}, Roll No: ${roll_no || 'Auto-extract'}`);
+
+            console.log(`\n${'='.repeat(60)}`);
+            console.log(`Processing Student #${i + 1} of ${studentCount}`);
+            console.log(`Roll No: ${roll_no || 'Auto-extract'}`);
+            console.log('='.repeat(60));
 
             const studentFiles = req.files.filter(f => f.fieldname === studentKey);
 
@@ -416,23 +630,28 @@ exports.postEvaluateSeriesBatch = async (req, res) => {
                 continue;
             }
 
+            // ============================================
+            // PREPARE FORMDATA FOR PYTHON
+            // ============================================
             const formData = new FormData();
 
             formData.append("manual_roll_no", roll_no);
             formData.append("manual_class", global_class);
             formData.append("manual_subject", global_subject);
 
-            // Send complete exam data to Python (not just ID)
+            // Send complete exam data to Python
             if (examData) {
                 formData.append("exam_data", JSON.stringify(examData));
             }
 
+            // Identity page (first file)
             const idPage = studentFiles[0];
             formData.append('identity_page', fs.createReadStream(idPage.path), {
                 filename: idPage.originalname,
                 contentType: idPage.mimetype
             });
 
+            // Answer pages (remaining files)
             const answerPages = studentFiles.slice(1);
             answerPages.forEach((file) => {
                 formData.append('paper_images', fs.createReadStream(file.path), {
@@ -441,27 +660,87 @@ exports.postEvaluateSeriesBatch = async (req, res) => {
                 });
             });
 
-            console.log(`📦 Student #${i + 1}: 1 identity page + ${answerPages.length} answer pages`);
+            console.log(`📦 Files: 1 identity page + ${answerPages.length} answer pages`);
+
+            // ============================================
+            // STEP 1: CALL PYTHON API FOR OCR
+            // ============================================
+            let studentResult = null;
 
             try {
-                const studentResult = await valuationService.sendToPythonAPI(
+                console.log(`📤 Sending to Python for OCR processing...`);
+
+                studentResult = await valuationService.sendToPythonAPI(
                     formData,
                     '/api/seriesBundleEvaluate',
-                    { headers: { ...formData.getHeaders() } }
+                    {
+                        headers: { ...formData.getHeaders() },
+                        timeout: 120000
+                    }
                 );
-                if (studentResult.status === 'Success' && exam_id) {
-                    try {
-                        // Save student submission to PostgreSQL
+
+                console.log(`✅ Python processing completed`);
+                console.log(`   Status: ${studentResult.status}`);
+
+                if (studentResult.status === 'Success') {
+                    console.log(`   Extracted Roll No: ${studentResult.student_info.roll_no}`);
+                    console.log(`   Student Name: ${studentResult.student_info.name || 'Unknown'}`);
+                    console.log(`   Answers extracted: ${Object.keys(studentResult.recognition_result.answers).length}`);
+                }
+
+            } catch (apiError) {
+                console.error(`❌ Python API Error for Student #${i + 1}:`);
+                console.error(`   Message: ${apiError.message}`);
+
+                finalBatchResults.push({
+                    status: "Failed",
+                    student_index: i + 1,
+                    roll_no: roll_no || 'Unknown',
+                    error: `OCR Processing Failed: ${apiError.message}`
+                });
+
+                console.log(`⏭️  Skipping to next student...`);
+                continue;
+            }
+
+            // ============================================
+            // STEP 2: SAVE TO DATABASE
+            // ============================================
+            if (studentResult && studentResult.status === 'Success' && exam_id) {
+                try {
+                    console.log(`💾 Saving to PostgreSQL database...`);
+
+                    const extractedRollNo = studentResult.student_info.roll_no;
+                    const extractedName = studentResult.student_info.name || 'Unknown';
+
+                    console.log(`   Roll No: ${extractedRollNo}`);
+                    console.log(`   Name: ${extractedName}`);
+
+                    // Check if student already exists
+                    const existingSubmission = await Submission.findOne({
+                        where: {
+                            exam_id: exam_id,
+                            roll_no: extractedRollNo
+                        }
+                    });
+
+                    if (existingSubmission) {
+                        console.log(`   ⚠️  Student ${extractedRollNo} already exists in this exam`);
+                        console.log(`   ⚠️  Skipping database save (duplicate entry)`);
+                    } else {
+                        // Create submission
                         const submission = await Submission.create({
                             exam_id: exam_id,
-                            roll_no: studentResult.student_info.roll_no,
-                            student_name: studentResult.student_info.name || 'Unknown',
+                            roll_no: extractedRollNo,
+                            student_name: extractedName,
                             valuation_status: 'pending',
                             total_marks_obtained: null,
                             percentage: null
                         });
 
-                        // Save student answers
+                        console.log(`   ✅ Created submission ID: ${submission.submission_id}`);
+
+                        // Prepare student answers
                         const answers = studentResult.recognition_result.answers;
                         const answersToCreate = [];
 
@@ -479,59 +758,106 @@ exports.postEvaluateSeriesBatch = async (req, res) => {
 
                         await StudentAnswer.bulkCreate(answersToCreate);
 
-                        console.log(`✅ Saved student ${studentResult.student_info.roll_no} to PostgreSQL`);
-
-                    } catch (dbError) {
-                        console.error(`⚠️ Failed to save to database: ${dbError.message}`);
-                        // Don't fail the whole request - student data is in the response
+                        console.log(`   ✅ Saved ${answersToCreate.length} answers to database`);
+                        console.log(`✅ Database save complete for Student #${i + 1}`);
                     }
+
+                } catch (dbError) {
+                    console.error(`❌ Database Error for Student #${i + 1}:`);
+                    console.error(`   Type: ${dbError.name}`);
+                    console.error(`   Message: ${dbError.message}`);
+
+                    if (dbError.name === 'SequelizeUniqueConstraintError') {
+                        console.error(`   ⚠️  Duplicate entry: Roll number ${studentResult.student_info.roll_no} already exists`);
+                    } else if (dbError.name === 'SequelizeForeignKeyConstraintError') {
+                        console.error(`   ⚠️  Foreign key error: Exam or submission ID invalid`);
+                    }
+
+                    console.log(`   ⚠️  Student data available in results but not saved to database`);
                 }
-
-                finalBatchResults.push(studentResult);
-
-                // 🆕 NEW: Log if submission was saved to exam
-                if (studentResult.saved_to_exam) {
-                    console.log(`✅ Student #${i + 1} saved to exam: ${studentResult.saved_to_exam}`);
-                } else {
-                    console.log(`⚠️ Student #${i + 1} processed but not saved to exam storage`);
+            } else {
+                if (!exam_id) {
+                    console.log(`⚠️  No exam_id provided - skipping database save`);
+                } else if (!studentResult || studentResult.status !== 'Success') {
+                    console.log(`⚠️  Processing failed - skipping database save`);
                 }
+            }
 
+            // ============================================
+            // STEP 3: ADD TO RESULTS
+            // ============================================
+            if (studentResult) {
                 finalBatchResults.push(studentResult);
-                console.log(`✅ Successfully processed Student #${i + 1}`);
-            } catch (apiError) {
-                console.error(`❌ Error processing Student #${i + 1}:`, apiError.message);
-                finalBatchResults.push({
-                    status: "Failed",
-                    student_index: i,
-                    error: apiError.message
-                });
+                console.log(`✅ Student #${i + 1} added to batch results`);
             }
         }
 
-        console.log(`📊 Batch Results Summary: ${finalBatchResults.length} students processed`);
+        // ============================================
+        // BATCH PROCESSING COMPLETE
+        // ============================================
+        console.log(`\n${'='.repeat(70)}`);
+        console.log(`📊 Batch Processing Complete`);
+        console.log(`   Total students: ${studentCount}`);
+        console.log(`   Successfully processed: ${finalBatchResults.filter(r => r.status === 'Success').length}`);
+        console.log(`   Failed: ${finalBatchResults.filter(r => r.status === 'Failed').length}`);
+        console.log('='.repeat(70) + '\n');
 
-        // 🆕 NEW: Add exam info to results page
+        // 🔍 DEBUG: Check for duplicates
+        console.log('🔍 FINAL RESULTS ARRAY:');
+        finalBatchResults.forEach((result, idx) => {
+            if (result.status === 'Success') {
+                console.log(`  [${idx}] Roll: ${result.student_info.roll_no} | Name: ${result.student_info.name}`);
+            } else {
+                console.log(`  [${idx}] FAILED | Roll: ${result.roll_no} | Error: ${result.error}`);
+            }
+        });
+
+        // Check if there are actual duplicates in the array
+        const rollNumbers = finalBatchResults
+            .filter(r => r.status === 'Success')
+            .map(r => r.student_info.roll_no);
+        const uniqueRolls = [...new Set(rollNumbers)];
+
+        if (rollNumbers.length !== uniqueRolls.length) {
+            console.log('\n⚠️ WARNING: DUPLICATE ROLL NUMBERS DETECTED!');
+            console.log(`   Total results: ${rollNumbers.length}`);
+            console.log(`   Unique rolls: ${uniqueRolls.length}`);
+            console.log(`   Duplicates: ${rollNumbers.filter((v, i, a) => a.indexOf(v) !== i)}`);
+        } else {
+            console.log('\n✅ No duplicates in finalBatchResults array');
+        }
+        console.log('='.repeat(70) + '\n');
+
+        // Prepare exam info for results page
         let examInfo = null;
         if (exam_id && finalBatchResults.some(r => r.status === 'Success')) {
             examInfo = {
                 exam_id: exam_id,
+                exam_name: examData ? examData.exam_name : 'Unknown',
                 student_count: finalBatchResults.filter(r => r.status === 'Success').length
             };
         }
 
+        // Render results page (ONLY ONCE)
         res.render('results-batch', {
             title: 'Batch Evaluation Results',
             result: finalBatchResults,
             studentCount: finalBatchResults.length,
-            examInfo: examInfo  // 🆕 NEW: Pass exam info to template
+            examInfo: examInfo
         });
 
     } catch (error) {
-        console.error("🔥 Critical Batch Error:", error.message);
+        console.error("\n🔥 Critical Batch Error:", error.message);
+        console.error("Stack trace:", error.stack);
+
         res.status(500).render('error', {
             message: `Batch Processing Failed: ${error.message}`
         });
+
     } finally {
+        // ============================================
+        // CLEANUP UPLOADED FILES
+        // ============================================
         if (req.files) {
             req.files.forEach(file => {
                 if (fs.existsSync(file.path)) {
@@ -542,6 +868,8 @@ exports.postEvaluateSeriesBatch = async (req, res) => {
         }
     }
 };
+
+
 
 // ============================================
 // VALUATION PREPARATION ROUTE

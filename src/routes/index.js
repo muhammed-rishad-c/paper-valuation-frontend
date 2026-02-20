@@ -22,12 +22,21 @@ router.get('/', requireAuth, evaluationController.getIndexPage);
 // If not logged in → redirected to /login automatically
 // If logged in → controller runs normally
 // ==========================================
+// Dashboard stats API
+router.get('/api/dashboard/stats', requireAuth, evaluationController.getDashboardStats);
 
 // Individual valuation pages
 router.get('/upload-individual',
   requireAuth,                        // ← Check login first
   evaluationController.getUploadPage
 );
+
+// Profile & History pages
+router.get('/profile', requireAuth, evaluationController.getProfile);
+router.get('/history', requireAuth, evaluationController.getHistory);
+
+// History API
+router.get('/api/history', requireAuth, evaluationController.getHistoryData);
 
 router.post('/individualEvaluate',
   requireAuth,                        // ← Check login first

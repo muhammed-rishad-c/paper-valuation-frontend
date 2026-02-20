@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>History - Paper Valuation System</title>
+    <style>
+        /* Same base styles */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .back-btn {
+            background: white;
+            color: #667eea;
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            display: inline-block;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .history-header {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .history-header h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .filters {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .filter-select {
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+            min-width: 200px;
+        }
+
+        .exam-list {
+            display: grid;
+            gap: 20px;
+        }
+
+        .exam-card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+
+        .exam-card:hover {
+            transform: translateY(-3px);
+        }
+
+        .exam-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #eee;
+        }
+
+        .exam-title {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .exam-meta {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .exam-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .stat-box {
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 0.85em;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .view-btn {
+            background: #667eea;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s;
+        }
+
+        .view-btn:hover {
+            background: #5568d3;
+        }
+
+        .no-data {
+            background: white;
+            border-radius: 12px;
+            padding: 60px;
+            text-align: center;
+            color: #999;
+            font-size: 1.2em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-btn">← Back to Dashboard</a>
+
+        <div class="history-header">
+            <h1>📊 Evaluation History</h1>
+            <p>View all your past exams and evaluations</p>
+
+            <div class="filters">
+                <select class="filter-select" id="examFilter">
+                    <option value="">All Exams</option>
+                </select>
+                <select class="filter-select" id="statusFilter">
+                    <option value="">All Status</option>
+                    <option value="completed">Completed</option>
+                    <option value="pending">Pending</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="exam-list" id="examList">
+            <div class="no-data">Loading history...</div>
+        </div>
+    </div>
+
+    <script>
+        async function loadHistory() {
+            try {
+                const response = await fetch('/api/history');
+                const data = await response.json();
+
+                if (data.status === 'Success') {
+                    displayExams(data.exams);
+                    populateFilters(data.exams);
+                }
+            } catch (error) {
+                console.error('Failed to load history:', error);
+                document.getElementById('examList').innerHTML = 
+                    '<div class="no-data">Failed to load history</div>';
+            }
+        }
+
+        function displayExams(exams) {
+            const list = document.getElementById('examList');
+            
+            if (!exams || exams.length === 0) {
+                list.innerHTML = '<div class="no-data">No exams found. Create your first exam!</div>';
+                return;
+            }
+
+            list.innerHTML = exams.map(exam => `
+                <div class="exam-card">
+                    <div class="exam-card-header">
+                        <div>
+                            <div class="exam-title">${exam.exam_name}</div>
+                            <div class="exam-meta">
+                                ${exam.class} • ${exam.subject} • Total Marks: ${exam.total_marks}
+                            </div>
+                            <div class="exam-meta">
+                                Created: ${new Date(exam.created_at).toLocaleDateString()}
+                            </div>
+                        </div>
+                        ${exam.submissions_count > 0 ? `
+                            <a href="/valuation-prep/${exam.exam_id}" class="view-btn">
+                                View Details →
+                            </a>
+                        ` : ''}
+                    </div>
+
+                    <div class="exam-stats">
+                        <div class="stat-box">
+                            <div class="stat-value">${exam.submissions_count}</div>
+                            <div class="stat-label">Students</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-value">${exam.completed_count}</div>
+                            <div class="stat-label">Evaluated</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-value">${exam.avg_percentage ? exam.avg_percentage.toFixed(1) + '%' : 'N/A'}</div>
+                            <div class="stat-label">Avg Score</div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function populateFilters(exams) {
+            const examFilter = document.getElementById('examFilter');
+            exams.forEach(exam => {
+                const option = document.createElement('option');
+                option.value = exam.exam_id;
+                option.textContent = exam.exam_name;
+                examFilter.appendChild(option);
+            });
+        }
+
+        loadHistory();
+    </script>
+</body>
+</html>
