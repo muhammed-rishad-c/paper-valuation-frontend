@@ -72,7 +72,7 @@ app.use((err, req, res, next) => {
     title: 'Error',
     message: 'Something broke!'
   });
-});
+}); 
 
 // ==========================================
 // START SERVER
@@ -80,4 +80,4 @@ app.use((err, req, res, next) => {
 app.listen(PORT, () => {
   console.log(`✅ Server running on http://localhost:${PORT}`);
   console.log(`✅ Python API at ${process.env.PYTHON_API_URL}`);
-});
+});    

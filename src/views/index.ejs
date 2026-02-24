@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -19,11 +18,16 @@
             padding: 20px;
         }
 
-        /* Header with Profile */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Header */
         .header {
             background: white;
             border-radius: 12px;
-            padding: 20px 30px;
+            padding: 25px 30px;
             margin-bottom: 30px;
             display: flex;
             justify-content: space-between;
@@ -31,24 +35,24 @@
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
 
-        .header-left h1 {
+        .header h1 {
             color: #333;
             margin-bottom: 5px;
+            font-size: 1.8em;
         }
 
-        .header-left p {
+        .header p {
             color: #666;
-            font-size: 0.9em;
+            font-size: 0.95em;
         }
 
-        .header-right {
+        .header-actions {
             display: flex;
-            gap: 15px;
+            gap: 12px;
             align-items: center;
         }
 
-        .profile-btn,
-        .logout-btn {
+        .btn {
             padding: 10px 20px;
             border-radius: 8px;
             border: none;
@@ -60,29 +64,39 @@
             display: inline-block;
         }
 
-        .profile-btn {
+        .btn-primary {
             background: #667eea;
             color: white;
         }
 
-        .profile-btn:hover {
+        .btn-primary:hover {
             background: #5568d3;
             transform: translateY(-2px);
         }
 
-        .logout-btn {
+        .btn-secondary {
+            background: #ff9800;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #f57c00;
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
             background: #f44336;
             color: white;
         }
 
-        .logout-btn:hover {
+        .btn-danger:hover {
             background: #da190b;
         }
 
-        /* Statistics Cards */
-        .stats-container {
+        /* Statistics */
+        .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
             gap: 20px;
             margin-bottom: 30px;
         }
@@ -90,34 +104,36 @@
         .stat-card {
             background: white;
             border-radius: 12px;
-            padding: 25px;
+            padding: 30px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
             transition: transform 0.3s;
+            text-align: center;
         }
 
         .stat-card:hover {
             transform: translateY(-5px);
         }
 
-        .stat-card-icon {
+        .stat-icon {
             font-size: 3em;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
         }
 
-        .stat-card-value {
-            font-size: 2.5em;
+        .stat-value {
+            font-size: 3em;
             font-weight: bold;
             color: #667eea;
-            margin-bottom: 5px;
+            margin-bottom: 8px;
         }
 
-        .stat-card-label {
+        .stat-label {
             color: #666;
-            font-size: 0.95em;
+            font-size: 1em;
+            font-weight: 500;
         }
 
         /* Quick Actions */
-        .quick-actions {
+        .section {
             background: white;
             border-radius: 12px;
             padding: 30px;
@@ -125,22 +141,23 @@
             margin-bottom: 30px;
         }
 
-        .quick-actions h2 {
+        .section h2 {
             color: #333;
             margin-bottom: 20px;
+            font-size: 1.5em;
         }
 
-        .action-buttons {
+        .actions-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
         }
 
-        .action-btn {
+        .action-card {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 20px;
-            border-radius: 10px;
+            padding: 30px 20px;
+            border-radius: 12px;
             text-align: center;
             text-decoration: none;
             font-weight: 600;
@@ -148,41 +165,34 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
         }
 
-        .action-btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        .action-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
         }
 
-        .action-btn-icon {
-            font-size: 2.5em;
+        .action-icon {
+            font-size: 3em;
         }
 
-        /* Recent Activity */
-        .recent-activity {
-            background: white;
-            border-radius: 12px;
-            padding: 30px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        .action-label {
+            font-size: 1.1em;
         }
 
-        .recent-activity h2 {
-            color: #333;
-            margin-bottom: 20px;
-        }
-
+        /* Activity List */
         .activity-list {
             list-style: none;
         }
 
         .activity-item {
-            padding: 15px;
+            padding: 18px;
             border-bottom: 1px solid #eee;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            transition: background 0.2s;
         }
 
         .activity-item:last-child {
@@ -190,7 +200,7 @@
         }
 
         .activity-item:hover {
-            background: #f5f5f5;
+            background: #f8f9fa;
         }
 
         .activity-content {
@@ -201,125 +211,224 @@
             font-weight: 600;
             color: #333;
             margin-bottom: 5px;
+            font-size: 1.05em;
         }
 
         .activity-details {
-            font-size: 0.85em;
+            font-size: 0.9em;
             color: #666;
         }
 
         .activity-date {
             color: #999;
             font-size: 0.85em;
+            white-space: nowrap;
+            margin-left: 20px;
         }
 
-        .no-data {
+        .empty-state {
             text-align: center;
+            padding: 60px 20px;
             color: #999;
+        }
+
+        .empty-icon {
+            font-size: 4em;
+            margin-bottom: 15px;
+        }
+
+        .empty-text {
+            font-size: 1.1em;
+            margin-bottom: 5px;
+        }
+
+        .empty-subtext {
+            font-size: 0.9em;
+        }
+
+        /* Loading State */
+        .loading {
+            text-align: center;
             padding: 40px;
+            color: #999;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+
+            .header-actions {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            .stats-grid,
+            .actions-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
-
 <body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div>
+                <h1>Welcome, <%= user.full_name || user.username %>! 👋</h1>
+                <p>Paper Valuation System Dashboard</p>
+            </div>
+            <div class="header-actions">
+                <a href="/profile" class="btn btn-primary">👤 Profile</a>
+                <a href="/history" class="btn btn-secondary">📊 History</a>
+                <form action="/logout" method="POST" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">🚪 Logout</button>
+                </form>
+            </div>
+        </header>
 
-    <!-- Header -->
-    <div class="header">
-        <div class="header-left">
-            <h1>Welcome, <%= user.full_name || user.username %>! 👋</h1>
-            <p>Paper Valuation System Dashboard</p>
-        </div>
-        <div class="header-right">
-            <a href="/profile" class="profile-btn">👤 Profile</a>
-            <a href="/history" class="profile-btn" style="background: #ff9800;">📊 History</a>
-            <form action="/logout" method="POST" style="display: inline;">
-                <button type="submit" class="logout-btn">🚪 Logout</button>
-            </form>
-        </div>
-    </div>
+        <!-- Statistics -->
+        <section class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">📝</div>
+                <div class="stat-value" id="totalExams">-</div>
+                <div class="stat-label">Total Exams Created</div>
+            </div>
+        </section>
 
-    <!-- Statistics Cards -->
-    <!-- Statistics Cards -->
-    <div class="stats-container">
-        <div class="stat-card">
-            <div class="stat-card-icon">📝</div>
-            <div class="stat-card-value" id="totalExams">0</div>
-            <div class="stat-card-label">Total Exams Created</div>
-        </div>
-    </div>
+        <!-- Quick Actions -->
+        <section class="section">
+            <h2>Quick Actions</h2>
+            <div class="actions-grid">
+                <a href="/answer-key-setup" class="action-card">
+                    <span class="action-icon">🔑</span>
+                    <span class="action-label">Create Answer Key</span>
+                </a>
+                <a href="/upload-individual" class="action-card">
+                    <span class="action-icon">📄</span>
+                    <span class="action-label">Individual Evaluation</span>
+                </a>
+                <a href="/upload-series" class="action-card">
+                    <span class="action-icon">📦</span>
+                    <span class="action-label">Batch Evaluation</span>
+                </a>
+                <a href="/history" class="action-card">
+                    <span class="action-icon">📊</span>
+                    <span class="action-label">View History</span>
+                </a>
+            </div>
+        </section>
 
-    <!-- Quick Actions -->
-    <div class="quick-actions">
-        <h2>Quick Actions</h2>
-        <div class="action-buttons">
-            <a href="/answer-key-setup" class="action-btn">
-                <span class="action-btn-icon">🔑</span>
-                Create Answer Key
-            </a>
-            <a href="/upload-individual" class="action-btn">
-                <span class="action-btn-icon">📄</span>
-                Individual Evaluation
-            </a>
-            <a href="/upload-series" class="action-btn">
-                <span class="action-btn-icon">📦</span>
-                Batch Evaluation
-            </a>
-            <a href="/history" class="action-btn">
-                <span class="action-btn-icon">📊</span>
-                View History
-            </a>
-        </div>
-    </div>
-
-    <!-- Recent Activity -->
-    <div class="recent-activity">
-        <h2>Recent Activity</h2>
-        <ul class="activity-list" id="activityList">
-            <li class="no-data">Loading recent activity...</li>
-        </ul>
+        <!-- Recent Activity -->
+        <section class="section">
+            <h2>Recent Activity</h2>
+            <ul class="activity-list" id="activityList">
+                <li class="loading">Loading recent activity...</li>
+            </ul>
+        </section>
     </div>
 
     <script>
+        console.log('📄 Dashboard loaded');
+
         // Load dashboard statistics
         async function loadDashboardStats() {
             try {
+                console.log('🔄 Fetching dashboard stats...');
+                
                 const response = await fetch('/api/dashboard/stats');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
                 const data = await response.json();
+                console.log('📊 Stats received:', data);
 
                 if (data.status === 'Success') {
-                    document.getElementById('totalExams').textContent = data.stats.total_exams;
-
+                    // Update statistics
+                    updateStats(data.stats);
+                    
                     // Load recent activity
-                    loadRecentActivity(data.recent_activity);
+                    displayRecentActivity(data.recent_activity);
+                    
+                    console.log('✅ Dashboard loaded successfully');
+                } else {
+                    throw new Error(data.error || 'Failed to load stats');
                 }
             } catch (error) {
-                console.error('Failed to load dashboard stats:', error);
+                console.error('❌ Error loading dashboard:', error);
+                showError();
             }
         }
 
-        function loadRecentActivity(activities) {
+        // Update statistics display
+        function updateStats(stats) {
+            const elements = {
+                totalExams: document.getElementById('totalExams')
+            };
+
+            if (elements.totalExams) {
+                elements.totalExams.textContent = stats.total_exams || 0;
+            }
+        }
+
+        // Display recent activity
+        function displayRecentActivity(activities) {
             const list = document.getElementById('activityList');
 
             if (!activities || activities.length === 0) {
-                list.innerHTML = '<li class="no-data">No recent activity</li>';
+                list.innerHTML = `
+                    <li class="empty-state">
+                        <div class="empty-icon">📭</div>
+                        <div class="empty-text">No recent activity</div>
+                        <div class="empty-subtext">Start by creating an answer key or uploading papers!</div>
+                    </li>
+                `;
                 return;
             }
 
             list.innerHTML = activities.map(activity => `
                 <li class="activity-item">
                     <div class="activity-content">
-                        <div class="activity-title">${activity.title}</div>
-                        <div class="activity-details">${activity.details}</div>
+                        <div class="activity-title">${escapeHtml(activity.title)}</div>
+                        <div class="activity-details">${escapeHtml(activity.details)}</div>
                     </div>
-                    <div class="activity-date">${activity.date}</div>
+                    <div class="activity-date">${escapeHtml(activity.date)}</div>
                 </li>
             `).join('');
         }
 
-        // Load stats on page load
-        loadDashboardStats();
+        // Show error state
+        function showError() {
+            const list = document.getElementById('activityList');
+            list.innerHTML = `
+                <li class="empty-state">
+                    <div class="empty-icon">⚠️</div>
+                    <div class="empty-text">Failed to load dashboard</div>
+                    <div class="empty-subtext">Please refresh the page to try again</div>
+                </li>
+            `;
+
+            document.getElementById('totalExams').textContent = '?';
+        }
+
+        // Escape HTML to prevent XSS
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Load stats when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', loadDashboardStats);
+        } else {
+            loadDashboardStats();
+        }
     </script>
-
 </body>
-
 </html>

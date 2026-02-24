@@ -226,432 +226,457 @@
             <% }) %>
         </div>
     <% }) %>
+<script>
+    // ============================================
+    // DATA INITIALIZATION
+    // ============================================
+    const valuationData = <%- JSON.stringify(examData) %>;
+    const examId = valuationData.exam_metadata.exam_id;
+    
+    console.log('📊 Initialized valuation page for exam:', examId);
+    console.log('👥 Total students:', valuationData.students.length);
+    
+    // 🔍 DEBUG: Check for duplicates in student data
+    console.log('🔍 Student list:');
+    valuationData.students.forEach((student, idx) => {
+        console.log(`   ${idx + 1}. Roll: ${student.roll_no} | Name: ${student.name}`);
+    });
+    
+    // Check for duplicate roll numbers
+    const rollNumbers = valuationData.students.map(s => s.roll_no);
+    const uniqueRolls = [...new Set(rollNumbers)];
+    
+    if (rollNumbers.length !== uniqueRolls.length) {
+        console.warn('⚠️ WARNING: Duplicate roll numbers found in data!');
+        console.warn('   Total students:', rollNumbers.length);
+        console.warn('   Unique rolls:', uniqueRolls.length);
+        const duplicates = rollNumbers.filter((roll, idx) => rollNumbers.indexOf(roll) !== idx);
+        console.warn('   Duplicates:', duplicates);
+    } else {
+        console.log('✅ No duplicate students in data');
+    }
 
-    <script>
-        // ============================================
-        // DATA INITIALIZATION
-        // ============================================
-        const valuationData = <%- JSON.stringify(examData) %>;
-        const examId = valuationData.exam_metadata.exam_id;
-        
-        console.log('📊 Initialized valuation page for exam:', examId);
-        console.log('👥 Total students:', valuationData.students.length);
+    // ============================================
+    // EXPORT FUNCTIONALITY
+    // ============================================
+    function exportValuationJSON() {
+        try {
+            const dataStr = JSON.stringify(valuationData, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
 
-        // ============================================
-        // EXPORT FUNCTIONALITY
-        // ============================================
-        function exportValuationJSON() {
-            try {
-                const dataStr = JSON.stringify(valuationData, null, 2);
-                const blob = new Blob([dataStr], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `valuation_${examId}_${Date.now()}.json`;
+            link.click();
 
-                const link = document.createElement('a');
-                link.href = url;
-                link.download = `valuation_${examId}_${Date.now()}.json`;
-                link.click();
+            URL.revokeObjectURL(url);
+            showAlert('success', '✅ Valuation data exported successfully!');
+        } catch (error) {
+            console.error('Export error:', error);
+            showAlert('error', '❌ Failed to export data: ' + error.message);
+        }
+    }
 
-                URL.revokeObjectURL(url);
-                showAlert('success', '✅ Valuation data exported successfully!');
-            } catch (error) {
-                console.error('Export error:', error);
-                showAlert('error', '❌ Failed to export data: ' + error.message);
-            }
+    // ============================================
+    // VALUATION PROCESS
+    // ============================================
+    async function startValuation() {
+        console.log('🎯 Starting valuation for exam:', examId);
+
+        const progressDiv = document.getElementById('valuationProgress');
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
+        const resultsDiv = document.getElementById('valuationResults');
+        const startBtn = document.getElementById('startValuationBtn');
+
+        if (!progressDiv || !progressBar || !progressText) {
+            showAlert('error', '❌ Error: Required elements not found on page!');
+            return;
         }
 
-        // ============================================
-        // VALUATION PROCESS
-        // ============================================
-        async function startValuation() {
-            console.log('🎯 Starting valuation for exam:', examId);
+        // Disable button and show progress
+        startBtn.disabled = true;
+        startBtn.textContent = '⏳ Processing...';
+        progressDiv.style.display = 'block';
+        resultsDiv.style.display = 'none';
+        clearErrors();
 
-            const progressDiv = document.getElementById('valuationProgress');
-            const progressBar = document.getElementById('progressBar');
-            const progressText = document.getElementById('progressText');
-            const resultsDiv = document.getElementById('valuationResults');
-            const startBtn = document.getElementById('startValuationBtn');
+        try {
+            // Update progress
+            updateProgress(20, 'Sending request to AI evaluation system...');
 
-            if (!progressDiv || !progressBar || !progressText) {
-                showAlert('error', '❌ Error: Required elements not found on page!');
-                return;
+            console.log('📡 Calling API: /api/evaluate_exam/' + examId);
+
+            const response = await fetch(`/api/evaluate_exam/${examId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            console.log('📨 Response status:', response.status);
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Server error (${response.status}): ${errorText}`);
             }
 
-            // Disable button and show progress
-            startBtn.disabled = true;
-            startBtn.textContent = '⏳ Processing...';
-            progressDiv.style.display = 'block';
-            resultsDiv.style.display = 'none';
-            clearErrors();
+            updateProgress(60, 'AI is analyzing student answers...');
 
-            try {
-                // Update progress
-                updateProgress(20, 'Sending request to AI evaluation system...');
+            const result = await response.json();
+            console.log('✅ Received result:', result);
+            
+            // 🔍 DEBUG: Check result data
+            console.log('🔍 API returned students:', result.total_students);
+            if (result.results) {
+                console.log('   Results:', result.results.map(r => `Roll ${r.roll_no}`).join(', '));
+            }
 
-                console.log('📡 Calling API: /api/evaluate_exam/' + examId);
-
-                const response = await fetch(`/api/evaluate_exam/${examId}`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
-
-                console.log('📨 Response status:', response.status);
-
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`Server error (${response.status}): ${errorText}`);
-                }
-
-                updateProgress(60, 'AI is analyzing student answers...');
-
-                const result = await response.json();
-                console.log('✅ Received result:', result);
-
-                if (result.status === 'Success') {
-                    updateProgress(100, 'Valuation completed! Preparing results...');
-                    
-                    setTimeout(() => {
-                        displayValuationResults(result);
-                        progressDiv.style.display = 'none';
-                        startBtn.disabled = false;
-                        startBtn.textContent = '🎯 Start AI Valuation for All Students';
-                    }, 500);
-                } else {
-                    throw new Error(result.error || 'Valuation failed');
-                }
-
-            } catch (error) {
-                console.error('💥 Valuation error:', error);
-                progressDiv.style.display = 'none';
-                startBtn.disabled = false;
-                startBtn.textContent = '🎯 Start AI Valuation for All Students';
+            if (result.status === 'Success') {
+                updateProgress(100, 'Valuation completed! Preparing results...');
                 
-                showAlert('error', `❌ Valuation Failed: ${error.message}`);
+                setTimeout(() => {
+                    displayValuationResults(result);
+                    progressDiv.style.display = 'none';
+                    startBtn.disabled = false;
+                    startBtn.textContent = '🎯 Start AI Valuation for All Students';
+                }, 500);
+            } else {
+                throw new Error(result.error || 'Valuation failed');
             }
-        }
 
-        function updateProgress(percentage, message) {
-            const progressBar = document.getElementById('progressBar');
-            const progressText = document.getElementById('progressText');
+        } catch (error) {
+            console.error('💥 Valuation error:', error);
+            progressDiv.style.display = 'none';
+            startBtn.disabled = false;
+            startBtn.textContent = '🎯 Start AI Valuation for All Students';
             
-            if (progressBar) {
-                progressBar.style.width = percentage + '%';
-                progressBar.textContent = percentage + '%';
-            }
-            
-            if (progressText) {
-                progressText.textContent = message;
-            }
+            showAlert('error', `❌ Valuation Failed: ${error.message}`);
         }
+    }
 
-        // ============================================
-        // RESULTS DISPLAY
-        // ============================================
-        function displayValuationResults(data) {
-            console.log('📊 Displaying results for', data.total_students, 'students');
-
-            const resultsDiv = document.getElementById('valuationResults');
-            resultsDiv.style.display = 'block';
-            resultsDiv.innerHTML = buildResultsHTML(data);
-            
-            resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            showAlert('success', '✅ AI Valuation completed successfully!');
+    function updateProgress(percentage, message) {
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
+        
+        if (progressBar) {
+            progressBar.style.width = percentage + '%';
+            progressBar.textContent = percentage + '%';
         }
+        
+        if (progressText) {
+            progressText.textContent = message;
+        }
+    }
 
-        function buildResultsHTML(data) {
-            const html = [];
+    // ============================================
+    // RESULTS DISPLAY
+    // ============================================
+    function displayValuationResults(data) {
+        console.log('📊 Displaying results for', data.total_students, 'students');
 
-            // Summary header
-            html.push(`
-                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 25px; border-radius: 12px; margin-bottom: 30px; box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);">
-                    <h2 style="margin: 0 0 15px 0;">✅ AI Valuation Complete!</h2>
-                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 15px;">
-                        <div style="background: rgba(255,255,255,0.2); padding: 15px; border-radius: 8px;">
-                            <div style="font-size: 0.9em; opacity: 0.9;">Total Students</div>
-                            <div style="font-size: 2em; font-weight: bold;">${data.total_students}</div>
-                        </div>
-                        <div style="background: rgba(255,255,255,0.2); padding: 15px; border-radius: 8px;">
-                            <div style="font-size: 0.9em; opacity: 0.9;">Successfully Evaluated</div>
-                            <div style="font-size: 2em; font-weight: bold; color: #c8e6c9;">${data.evaluated_successfully}</div>
-                        </div>
-                        <div style="background: rgba(255,255,255,0.2); padding: 15px; border-radius: 8px;">
-                            <div style="font-size: 0.9em; opacity: 0.9;">Failed</div>
-                            <div style="font-size: 2em; font-weight: bold; color: #ffcdd2;">${data.evaluation_failed}</div>
-                        </div>
+        const resultsDiv = document.getElementById('valuationResults');
+        resultsDiv.style.display = 'block';
+        resultsDiv.innerHTML = buildResultsHTML(data);
+        
+        resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        showAlert('success', '✅ AI Valuation completed successfully!');
+    }
+
+    function buildResultsHTML(data) {
+        const html = [];
+
+        // Summary header
+        html.push(`
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 25px; border-radius: 12px; margin-bottom: 30px; box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);">
+                <h2 style="margin: 0 0 15px 0;">✅ AI Valuation Complete!</h2>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 15px;">
+                    <div style="background: rgba(255,255,255,0.2); padding: 15px; border-radius: 8px;">
+                        <div style="font-size: 0.9em; opacity: 0.9;">Total Students</div>
+                        <div style="font-size: 2em; font-weight: bold;">${data.total_students}</div>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.2); padding: 15px; border-radius: 8px;">
+                        <div style="font-size: 0.9em; opacity: 0.9;">Successfully Evaluated</div>
+                        <div style="font-size: 2em; font-weight: bold; color: #c8e6c9;">${data.evaluated_successfully}</div>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.2); padding: 15px; border-radius: 8px;">
+                        <div style="font-size: 0.9em; opacity: 0.9;">Failed</div>
+                        <div style="font-size: 2em; font-weight: bold; color: #ffcdd2;">${data.evaluation_failed}</div>
                     </div>
                 </div>
-            `);
+            </div>
+        `);
 
-            html.push('<h2 style="margin-bottom: 20px;">📊 Individual Student Results</h2>');
+        html.push('<h2 style="margin-bottom: 20px;">📊 Individual Student Results</h2>');
 
-            // Sort by marks
-            const sortedResults = [...data.results].sort((a, b) => {
-                if (a.status === 'Success' && b.status === 'Success') {
-                    return b.total_marks_obtained - a.total_marks_obtained;
-                }
-                return 0;
-            });
+        // Sort by marks
+        const sortedResults = [...data.results].sort((a, b) => {
+            if (a.status === 'Success' && b.status === 'Success') {
+                return b.total_marks_obtained - a.total_marks_obtained;
+            }
+            return 0;
+        });
 
-            // Build student cards
-            sortedResults.forEach((student, idx) => {
-                if (student.status === 'Success') {
-                    html.push(buildStudentSuccessCard(student, idx));
-                } else {
-                    html.push(buildStudentErrorCard(student));
-                }
-            });
+        // Build student cards
+        sortedResults.forEach((student, idx) => {
+            if (student.status === 'Success') {
+                html.push(buildStudentSuccessCard(student, idx));
+            } else {
+                html.push(buildStudentErrorCard(student));
+            }
+        });
 
-            return html.join('');
-        }
+        return html.join('');
+    }
 
-        function buildStudentSuccessCard(student, idx) {
-            const percentage = student.percentage;
-            const resultColor = student.result === 'Pass' ? '#4CAF50' : '#f44336';
-            const rankBadges = ['🥇', '🥈', '🥉'];
-            const rankBadge = idx < 3 ? rankBadges[idx] : '#' + (idx + 1);
+    function buildStudentSuccessCard(student, idx) {
+        const percentage = student.percentage;
+        const resultColor = student.result === 'Pass' ? '#4CAF50' : '#f44336';
+        const rankBadges = ['🥇', '🥈', '🥉'];
+        const rankBadge = idx < 3 ? rankBadges[idx] : '#' + (idx + 1);
 
-            return `
-                <div style="border: 2px solid #e0e0e0; padding: 20px; margin: 15px 0; border-radius: 12px; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                        <h3 style="margin: 0;">
-                            <span style="font-size: 1.5em; margin-right: 10px;">${rankBadge}</span>
-                            ${student.student_name}
-                            <span style="color: #666; font-size: 0.8em;">(Roll: ${student.roll_no})</span>
-                        </h3>
-                        <div style="background: ${resultColor}; color: white; padding: 8px 20px; border-radius: 20px; font-weight: bold; font-size: 1.1em;">
-                            ${student.result}
-                        </div>
-                    </div>
-
-                    ${buildStatsGrid(student)}
-                    ${buildQuestionBreakdown(student)}
-                </div>
-            `;
-        }
-
-        function buildStatsGrid(student) {
-            return `
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin: 15px 0;">
-                    <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; text-align: center;">
-                        <div style="color: #1976d2; font-size: 0.9em; margin-bottom: 5px;">Marks Obtained</div>
-                        <div style="font-size: 2em; font-weight: bold; color: #1565c0;">${student.total_marks_obtained}</div>
-                    </div>
-                    <div style="background: #f3e5f5; padding: 15px; border-radius: 8px; text-align: center;">
-                        <div style="color: #7b1fa2; font-size: 0.9em; margin-bottom: 5px;">Total Marks</div>
-                        <div style="font-size: 2em; font-weight: bold;">${student.total_marks_possible}</div>
-                    </div>
-                    <div style="background: #fff3e0; padding: 15px; border-radius: 8px; text-align: center;">
-                        <div style="color: #f57c00; font-size: 0.9em; margin-bottom: 5px;">Percentage</div>
-                        <div style="font-size: 2em; font-weight: bold; color: #ef6c00;">${student.percentage}%</div>
+        return `
+            <div style="border: 2px solid #e0e0e0; padding: 20px; margin: 15px 0; border-radius: 12px; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3 style="margin: 0;">
+                        <span style="font-size: 1.5em; margin-right: 10px;">${rankBadge}</span>
+                        ${student.student_name}
+                        <span style="color: #666; font-size: 0.8em;">(Roll: ${student.roll_no})</span>
+                    </h3>
+                    <div style="background: ${resultColor}; color: white; padding: 8px 20px; border-radius: 20px; font-weight: bold; font-size: 1.1em;">
+                        ${student.result}
                     </div>
                 </div>
-            `;
-        }
 
-        function buildQuestionBreakdown(student) {
-            const questionsHTML = [];
-            
-            // Group questions by OR groups
-            const { orGroupQuestions, regularQuestions } = groupQuestions(student.marks_breakdown);
+                ${buildStatsGrid(student)}
+                ${buildQuestionBreakdown(student)}
+            </div>
+        `;
+    }
 
-            // Regular questions
-            Object.entries(regularQuestions).forEach(([qLabel, q]) => {
-                questionsHTML.push(buildRegularQuestion(qLabel, q));
-            });
+    function buildStatsGrid(student) {
+        return `
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin: 15px 0;">
+                <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; text-align: center;">
+                    <div style="color: #1976d2; font-size: 0.9em; margin-bottom: 5px;">Marks Obtained</div>
+                    <div style="font-size: 2em; font-weight: bold; color: #1565c0;">${student.total_marks_obtained}</div>
+                </div>
+                <div style="background: #f3e5f5; padding: 15px; border-radius: 8px; text-align: center;">
+                    <div style="color: #7b1fa2; font-size: 0.9em; margin-bottom: 5px;">Total Marks</div>
+                    <div style="font-size: 2em; font-weight: bold;">${student.total_marks_possible}</div>
+                </div>
+                <div style="background: #fff3e0; padding: 15px; border-radius: 8px; text-align: center;">
+                    <div style="color: #f57c00; font-size: 0.9em; margin-bottom: 5px;">Percentage</div>
+                    <div style="font-size: 2em; font-weight: bold; color: #ef6c00;">${student.percentage}%</div>
+                </div>
+            </div>
+        `;
+    }
 
-            // OR group questions
-            Object.entries(orGroupQuestions).forEach(([groupKey, group]) => {
-                questionsHTML.push(buildOrGroupQuestion(group));
-            });
+    function buildQuestionBreakdown(student) {
+        const questionsHTML = [];
+        
+        // Group questions by OR groups
+        const { orGroupQuestions, regularQuestions } = groupQuestions(student.marks_breakdown);
 
-            return `
-                <details style="margin-top: 15px;">
-                    <summary style="cursor: pointer; color: #1976d2; font-weight: bold; padding: 10px; background: #f5f5f5; border-radius: 5px;">
-                        📋 View Question-wise Breakdown
-                    </summary>
-                    <div style="margin-top: 15px; padding: 15px; background: #fafafa; border-radius: 8px;">
-                        ${questionsHTML.join('')}
-                    </div>
-                </details>
-            `;
-        }
+        // Regular questions
+        Object.entries(regularQuestions).forEach(([qLabel, q]) => {
+            questionsHTML.push(buildRegularQuestion(qLabel, q));
+        });
 
-        function groupQuestions(marksBreakdown) {
-            const orGroupQuestions = {};
-            const regularQuestions = {};
+        // OR group questions
+        Object.entries(orGroupQuestions).forEach(([groupKey, group]) => {
+            questionsHTML.push(buildOrGroupQuestion(group));
+        });
 
-            Object.entries(marksBreakdown).forEach(([qLabel, q]) => {
-                if (q.or_group) {
-                    const groupKey = q.or_type === 'single' 
-                        ? `single_${q.or_options.join('_')}`
-                        : `pair_${q.or_pair_a.join('')}_${q.or_pair_b.join('')}`;
+        return `
+            <details style="margin-top: 15px;">
+                <summary style="cursor: pointer; color: #1976d2; font-weight: bold; padding: 10px; background: #f5f5f5; border-radius: 5px;">
+                    📋 View Question-wise Breakdown
+                </summary>
+                <div style="margin-top: 15px; padding: 15px; background: #fafafa; border-radius: 8px;">
+                    ${questionsHTML.join('')}
+                </div>
+            </details>
+        `;
+    }
 
-                    if (!orGroupQuestions[groupKey]) {
-                        orGroupQuestions[groupKey] = {
-                            type: q.or_type,
-                            questions: [],
-                            ...q
-                        };
-                    }
-                    orGroupQuestions[groupKey].questions.push({ label: qLabel, data: q });
-                } else {
-                    regularQuestions[qLabel] = q;
+    function groupQuestions(marksBreakdown) {
+        const orGroupQuestions = {};
+        const regularQuestions = {};
+
+        Object.entries(marksBreakdown).forEach(([qLabel, q]) => {
+            if (q.or_group) {
+                const groupKey = q.or_type === 'single' 
+                    ? `single_${q.or_options.join('_')}`
+                    : `pair_${q.or_pair_a.join('')}_${q.or_pair_b.join('')}`;
+
+                if (!orGroupQuestions[groupKey]) {
+                    orGroupQuestions[groupKey] = {
+                        type: q.or_type,
+                        questions: [],
+                        ...q
+                    };
                 }
-            });
+                orGroupQuestions[groupKey].questions.push({ label: qLabel, data: q });
+            } else {
+                regularQuestions[qLabel] = q;
+            }
+        });
 
-            return { orGroupQuestions, regularQuestions };
-        }
+        return { orGroupQuestions, regularQuestions };
+    }
 
-        function buildRegularQuestion(qLabel, q) {
-            const scorePercentage = (q.marks_obtained / q.max_marks) * 100;
+    function buildRegularQuestion(qLabel, q) {
+        const scorePercentage = (q.marks_obtained / q.max_marks) * 100;
+        const barColor = scorePercentage >= 70 ? '#4CAF50' : scorePercentage >= 40 ? '#FF9800' : '#f44336';
+
+        return `
+            <div style="padding: 12px; margin: 8px 0; background: white; border-radius: 6px; border-left: 4px solid ${barColor};">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <strong style="font-size: 1.1em;">${qLabel}</strong>
+                        <span style="color: #666; margin-left: 10px;">(${q.question_type} answer)</span>
+                    </div>
+                    <div style="font-size: 1.2em; font-weight: bold;">
+                        <span style="color: ${barColor};">${q.marks_obtained}</span> / ${q.max_marks}
+                    </div>
+                </div>
+                <div style="width: 100%; background: #e0e0e0; height: 8px; border-radius: 4px; margin-top: 8px; overflow: hidden;">
+                    <div style="width: ${scorePercentage}%; background: ${barColor}; height: 100%;"></div>
+                </div>
+            </div>
+        `;
+    }
+
+    function buildOrGroupQuestion(group) {
+        if (group.type === 'single') {
+            const q = group.questions[0];
+            const scorePercentage = (q.data.marks_obtained / q.data.max_marks) * 100;
             const barColor = scorePercentage >= 70 ? '#4CAF50' : scorePercentage >= 40 ? '#FF9800' : '#f44336';
 
             return `
-                <div style="padding: 12px; margin: 8px 0; background: white; border-radius: 6px; border-left: 4px solid ${barColor};">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="padding: 12px; margin: 8px 0; background: #fff3e0; border-radius: 6px; border: 2px solid #ff9800;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                         <div>
-                            <strong style="font-size: 1.1em;">${qLabel}</strong>
-                            <span style="color: #666; margin-left: 10px;">(${q.question_type} answer)</span>
+                            <strong style="font-size: 1.1em; color: #e65100;">⚡ ${q.label}</strong>
+                            <span style="color: #666; margin-left: 10px;">(${q.data.question_type} answer)</span>
+                            <div style="font-size: 0.85em; color: #e65100; margin-top: 4px;">
+                                OR Question: Q${group.or_options[0]} OR Q${group.or_options[1]} → <strong>Chose Q${group.chosen_option}</strong>
+                            </div>
                         </div>
                         <div style="font-size: 1.2em; font-weight: bold;">
-                            <span style="color: ${barColor};">${q.marks_obtained}</span> / ${q.max_marks}
+                            <span style="color: ${barColor};">${q.data.marks_obtained}</span> / ${q.data.max_marks}
                         </div>
                     </div>
-                    <div style="width: 100%; background: #e0e0e0; height: 8px; border-radius: 4px; margin-top: 8px; overflow: hidden;">
+                    <div style="width: 100%; background: #e0e0e0; height: 8px; border-radius: 4px; overflow: hidden;">
                         <div style="width: ${scorePercentage}%; background: ${barColor}; height: 100%;"></div>
                     </div>
                 </div>
             `;
+        } else {
+            return buildOrGroupPair(group);
         }
+    }
 
-        function buildOrGroupQuestion(group) {
-            if (group.type === 'single') {
-                const q = group.questions[0];
-                const scorePercentage = (q.data.marks_obtained / q.data.max_marks) * 100;
-                const barColor = scorePercentage >= 70 ? '#4CAF50' : scorePercentage >= 40 ? '#FF9800' : '#f44336';
+    function buildOrGroupPair(group) {
+        let totalScore = 0;
+        let totalMax = 0;
 
-                return `
-                    <div style="padding: 12px; margin: 8px 0; background: #fff3e0; border-radius: 6px; border: 2px solid #ff9800;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                            <div>
-                                <strong style="font-size: 1.1em; color: #e65100;">⚡ ${q.label}</strong>
-                                <span style="color: #666; margin-left: 10px;">(${q.data.question_type} answer)</span>
-                                <div style="font-size: 0.85em; color: #e65100; margin-top: 4px;">
-                                    OR Question: Q${group.or_options[0]} OR Q${group.or_options[1]} → <strong>Chose Q${group.chosen_option}</strong>
-                                </div>
-                            </div>
-                            <div style="font-size: 1.2em; font-weight: bold;">
-                                <span style="color: ${barColor};">${q.data.marks_obtained}</span> / ${q.data.max_marks}
-                            </div>
-                        </div>
-                        <div style="width: 100%; background: #e0e0e0; height: 8px; border-radius: 4px; overflow: hidden;">
-                            <div style="width: ${scorePercentage}%; background: ${barColor}; height: 100%;"></div>
-                        </div>
-                    </div>
-                `;
-            } else {
-                // Pair OR question (similar structure)
-                return buildOrGroupPair(group);
-            }
-        }
+        group.questions.forEach(q => {
+            totalScore += q.data.marks_obtained;
+            totalMax += q.data.max_marks;
+        });
 
-        function buildOrGroupPair(group) {
-            let totalScore = 0;
-            let totalMax = 0;
+        const scorePercentage = (totalScore / totalMax) * 100;
+        const barColor = scorePercentage >= 70 ? '#4CAF50' : scorePercentage >= 40 ? '#FF9800' : '#f44336';
+        const chosenPair = group.chosen_pair === 'a' ? group.or_pair_a : group.or_pair_b;
 
-            group.questions.forEach(q => {
-                totalScore += q.data.marks_obtained;
-                totalMax += q.data.max_marks;
-            });
-
-            const scorePercentage = (totalScore / totalMax) * 100;
-            const barColor = scorePercentage >= 70 ? '#4CAF50' : scorePercentage >= 40 ? '#FF9800' : '#f44336';
-            const chosenPair = group.chosen_pair === 'a' ? group.or_pair_a : group.or_pair_b;
-
-            const pairQuestionsHTML = group.questions.map(q => {
-                const qScorePercentage = (q.data.marks_obtained / q.data.max_marks) * 100;
-                const qBarColor = qScorePercentage >= 70 ? '#4CAF50' : qScorePercentage >= 40 ? '#FF9800' : '#f44336';
-
-                return `
-                    <div style="padding: 8px; margin: 6px 0; background: white; border-radius: 4px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <strong>${q.label}</strong>
-                            <span style="font-weight: bold;">
-                                <span style="color: ${qBarColor};">${q.data.marks_obtained}</span> / ${q.data.max_marks}
-                            </span>
-                        </div>
-                        <div style="width: 100%; background: #e0e0e0; height: 6px; border-radius: 3px; margin-top: 6px; overflow: hidden;">
-                            <div style="width: ${qScorePercentage}%; background: ${qBarColor}; height: 100%;"></div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
+        const pairQuestionsHTML = group.questions.map(q => {
+            const qScorePercentage = (q.data.marks_obtained / q.data.max_marks) * 100;
+            const qBarColor = qScorePercentage >= 70 ? '#4CAF50' : qScorePercentage >= 40 ? '#FF9800' : '#f44336';
 
             return `
-                <div style="padding: 12px; margin: 8px 0; background: #e8f5e9; border-radius: 6px; border: 2px solid #4caf50;">
-                    <div style="margin-bottom: 8px;">
-                        <strong style="font-size: 1.1em; color: #2e7d32;">⚡ OR Question Pair</strong>
-                        <div style="font-size: 0.85em; color: #2e7d32; margin-top: 4px;">
-                            Q${group.or_pair_a.join(',')} OR Q${group.or_pair_b.join(',')} → <strong>Chose Q${chosenPair.join(',')}</strong>
-                        </div>
+                <div style="padding: 8px; margin: 6px 0; background: white; border-radius: 4px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <strong>${q.label}</strong>
+                        <span style="font-weight: bold;">
+                            <span style="color: ${qBarColor};">${q.data.marks_obtained}</span> / ${q.data.max_marks}
+                        </span>
                     </div>
-                    <div style="border-top: 1px solid #c8e6c9; padding-top: 10px; margin-top: 10px;">
-                        ${pairQuestionsHTML}
-                    </div>
-                    <div style="border-top: 1px solid #c8e6c9; padding-top: 10px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
-                        <strong>Pair Total:</strong>
-                        <div style="font-size: 1.3em; font-weight: bold;">
-                            <span style="color: ${barColor};">${totalScore}</span> / ${totalMax}
-                        </div>
-                    </div>
-                    <div style="width: 100%; background: #e0e0e0; height: 10px; border-radius: 5px; margin-top: 8px; overflow: hidden;">
-                        <div style="width: ${scorePercentage}%; background: ${barColor}; height: 100%;"></div>
+                    <div style="width: 100%; background: #e0e0e0; height: 6px; border-radius: 3px; margin-top: 6px; overflow: hidden;">
+                        <div style="width: ${qScorePercentage}%; background: ${qBarColor}; height: 100%;"></div>
                     </div>
                 </div>
             `;
-        }
+        }).join('');
 
-        function buildStudentErrorCard(student) {
-            return `
-                <div style="border: 2px solid #ffcdd2; padding: 20px; margin: 15px 0; border-radius: 12px; background: #ffebee;">
-                    <h4 style="color: #c62828; margin: 0;">❌ Roll No: ${student.roll_no} - Evaluation Failed</h4>
-                    <p style="color: #666; margin: 10px 0 0 0;">Error: ${student.error}</p>
+        return `
+            <div style="padding: 12px; margin: 8px 0; background: #e8f5e9; border-radius: 6px; border: 2px solid #4caf50;">
+                <div style="margin-bottom: 8px;">
+                    <strong style="font-size: 1.1em; color: #2e7d32;">⚡ OR Question Pair</strong>
+                    <div style="font-size: 0.85em; color: #2e7d32; margin-top: 4px;">
+                        Q${group.or_pair_a.join(',')} OR Q${group.or_pair_b.join(',')} → <strong>Chose Q${chosenPair.join(',')}</strong>
+                    </div>
                 </div>
-            `;
-        }
+                <div style="border-top: 1px solid #c8e6c9; padding-top: 10px; margin-top: 10px;">
+                    ${pairQuestionsHTML}
+                </div>
+                <div style="border-top: 1px solid #c8e6c9; padding-top: 10px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
+                    <strong>Pair Total:</strong>
+                    <div style="font-size: 1.3em; font-weight: bold;">
+                        <span style="color: ${barColor};">${totalScore}</span> / ${totalMax}
+                    </div>
+                </div>
+                <div style="width: 100%; background: #e0e0e0; height: 10px; border-radius: 5px; margin-top: 8px; overflow: hidden;">
+                    <div style="width: ${scorePercentage}%; background: ${barColor}; height: 100%;"></div>
+                </div>
+            </div>
+        `;
+    }
 
-        // ============================================
-        // UTILITY FUNCTIONS
-        // ============================================
-        function showAlert(type, message) {
-            const container = document.getElementById('errorContainer');
-            const alertClass = type === 'success' ? 'success-alert' : 'error-alert';
-            
-            const alertDiv = document.createElement('div');
-            alertDiv.className = alertClass;
-            alertDiv.textContent = message;
-            
+    function buildStudentErrorCard(student) {
+        return `
+            <div style="border: 2px solid #ffcdd2; padding: 20px; margin: 15px 0; border-radius: 12px; background: #ffebee;">
+                <h4 style="color: #c62828; margin: 0;">❌ Roll No: ${student.roll_no} - Evaluation Failed</h4>
+                <p style="color: #666; margin: 10px 0 0 0;">Error: ${student.error}</p>
+            </div>
+        `;
+    }
+
+    // ============================================
+    // UTILITY FUNCTIONS
+    // ============================================
+    function showAlert(type, message) {
+        const container = document.getElementById('errorContainer');
+        const alertClass = type === 'success' ? 'success-alert' : 'error-alert';
+        
+        const alertDiv = document.createElement('div');
+        alertDiv.className = alertClass;
+        alertDiv.textContent = message;
+        
+        container.innerHTML = '';
+        container.appendChild(alertDiv);
+        
+        setTimeout(() => {
+            alertDiv.remove();
+        }, 5000);
+    }
+
+    function clearErrors() {
+        const container = document.getElementById('errorContainer');
+        if (container) {
             container.innerHTML = '';
-            container.appendChild(alertDiv);
-            
-            setTimeout(() => {
-                alertDiv.remove();
-            }, 5000);
         }
+    }
 
-        function clearErrors() {
-            const container = document.getElementById('errorContainer');
-            if (container) {
-                container.innerHTML = '';
-            }
-        }
+    // ============================================
+    // INITIALIZATION
+    // ============================================
+    console.log('✅ Valuation prep page loaded successfully');
+</script>
 
-        // ============================================
-        // INITIALIZATION
-        // ============================================
-        console.log('✅ Valuation prep page loaded successfully');
-    </script>
 </body>
 
 </html>

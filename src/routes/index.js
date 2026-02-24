@@ -44,11 +44,20 @@ router.post('/individualEvaluate',
   evaluationController.postEvaluate
 );
 
+// Change password
+router.post('/api/change-password', requireAuth, evaluationController.postChangePassword);
 // Answer key setup
 router.get('/answer-key-setup',
   requireAuth,                          // ← Check login first
   evaluationController.getAnswerKeySetup
 );
+
+// Update profile
+router.post('/api/update-profile', requireAuth, evaluationController.postUpdateProfile);
+
+// Export routes
+router.get('/api/export/pdf/:exam_id', requireAuth, requireExamOwner, evaluationController.exportPDF);
+router.get('/api/export/excel/:exam_id', requireAuth, requireExamOwner, evaluationController.exportExcel);
 
 router.post('/api/extract-answer-key',
   requireAuth,                              // ← Check login first
@@ -108,5 +117,5 @@ router.get('/api/list_answer_keys',
   requireAuth,                          // ← Check login first
   evaluationController.getAnswerKeysList
 );
-
+ 
 module.exports = router;

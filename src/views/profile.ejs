@@ -1,13 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Profile - Paper Valuation System</title>
     <style>
         /* Copy same base styles from index.ejs */
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -39,7 +44,7 @@
             background: white;
             border-radius: 12px;
             padding: 40px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
             margin-bottom: 20px;
         }
 
@@ -101,7 +106,7 @@
             background: white;
             border-radius: 12px;
             padding: 30px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
 
         .action-section h2 {
@@ -141,6 +146,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <a href="/" class="back-btn">← Back to Dashboard</a>
@@ -148,41 +154,266 @@
         <div class="profile-card">
             <div class="profile-header">
                 <div class="profile-avatar">
-                    <%= (user.full_name || user.username).charAt(0).toUpperCase() %>
+                    <%= ((user.full_name || user.username || 'U' ).charAt(0).toUpperCase()) %>
                 </div>
-                <div class="profile-name"><%= user.full_name || user.username %></div>
-                <div class="profile-role"><%= user.role === 'admin' ? '👑 Administrator' : '👨‍🏫 Teacher' %></div>
+                <div class="profile-name">
+                    <%= user.full_name || user.username || 'Unknown User' %>
+                </div>
+                <div class="profile-role">
+                    <%= user.role==='admin' ? '👑 Administrator' : '👨‍🏫 Teacher' %>
+                </div>
             </div>
 
             <div class="profile-info">
                 <div class="info-row">
                     <div class="info-label">Username:</div>
-                    <div class="info-value"><%= user.username %></div>
+                    <div class="info-value">
+                        <%= user.username %>
+                    </div>
                 </div>
                 <div class="info-row">
                     <div class="info-label">Email:</div>
-                    <div class="info-value"><%= user.email %></div>
+                    <div class="info-value">
+                        <%= user.email %>
+                    </div>
                 </div>
                 <div class="info-row">
                     <div class="info-label">Full Name:</div>
-                    <div class="info-value"><%= user.full_name || 'Not set' %></div>
+                    <div class="info-value">
+                        <%= user.full_name || 'Not set' %>
+                    </div>
                 </div>
                 <div class="info-row">
                     <div class="info-label">Account Created:</div>
-                    <div class="info-value"><%= new Date(user.created_at).toLocaleDateString() %></div>
+                    <div class="info-value">
+                        <%= user.created_at_formatted %>
+                    </div>
                 </div>
             </div>
         </div>
 
         <div class="action-section">
             <h2>Account Actions</h2>
-            <button onclick="alert('Edit profile feature coming soon!')" class="btn btn-primary">
+            <button onclick="showEditModal()" class="btn btn-primary">
                 ✏️ Edit Profile
             </button>
-            <button onclick="alert('Change password feature coming soon!')" class="btn btn-primary">
+
+            <!-- Edit Profile Modal -->
+            <div id="editModal"
+                style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+                <div style="background: white; padding: 30px; border-radius: 12px; max-width: 500px; width: 90%;">
+                    <h3 style="margin-bottom: 20px;">Edit Profile</h3>
+
+                    <form id="editProfileForm">
+                        <div style="margin-bottom: 15px;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600;">Full Name:</label>
+                            <input type="text" id="editFullName" value="<%= user.full_name || '' %>" required
+                                style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 1em;">
+                        </div>
+
+                        <div style="margin-bottom: 15px;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600;">Email:</label>
+                            <input type="email" id="editEmail" value="<%= user.email || '' %>" required
+                                style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 1em;">
+                        </div>
+
+                        <div id="editError"
+                            style="display: none; color: #f44336; margin-bottom: 15px; padding: 10px; background: #ffebee; border-radius: 5px;">
+                        </div>
+                        <div id="editSuccess"
+                            style="display: none; color: #4caf50; margin-bottom: 15px; padding: 10px; background: #e8f5e9; border-radius: 5px;">
+                        </div>
+
+                        <div style="display: flex; gap: 10px;">
+                            <button type="submit" class="btn btn-primary" style="flex: 1;">
+                                Save Changes
+                            </button>
+                            <button type="button" onclick="hideEditModal()" class="btn"
+                                style="flex: 1; background: #999;">
+                                Cancel
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <script>
+                function showEditModal() {
+                    document.getElementById('editModal').style.display = 'flex';
+                }
+
+                function hideEditModal() {
+                    document.getElementById('editModal').style.display = 'none';
+                    document.getElementById('editError').style.display = 'none';
+                    document.getElementById('editSuccess').style.display = 'none';
+                }
+
+                document.getElementById('editProfileForm').addEventListener('submit', async (e) => {
+                    e.preventDefault();
+
+                    const fullName = document.getElementById('editFullName').value;
+                    const email = document.getElementById('editEmail').value;
+
+                    const errorDiv = document.getElementById('editError');
+                    const successDiv = document.getElementById('editSuccess');
+
+                    errorDiv.style.display = 'none';
+                    successDiv.style.display = 'none';
+
+                    try {
+                        const response = await fetch('/api/update-profile', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                full_name: fullName,
+                                email: email
+                            })
+                        });
+
+                        const data = await response.json();
+
+                        if (data.status === 'Success') {
+                            successDiv.textContent = '✅ Profile updated successfully!';
+                            successDiv.style.display = 'block';
+
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 1500);
+                        } else {
+                            errorDiv.textContent = data.error || 'Failed to update profile';
+                            errorDiv.style.display = 'block';
+                        }
+                    } catch (error) {
+                        errorDiv.textContent = 'Network error. Please try again.';
+                        errorDiv.style.display = 'block';
+                    }
+                });
+            </script>
+            <button onclick="showPasswordModal()" class="btn btn-primary">
                 🔒 Change Password
             </button>
+
+            <!-- Password Change Modal -->
+            <div id="passwordModal"
+                style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+                <div style="background: white; padding: 30px; border-radius: 12px; max-width: 500px; width: 90%;">
+                    <h3 style="margin-bottom: 20px;">Change Password</h3>
+
+                    <form id="changePasswordForm">
+                        <div style="margin-bottom: 15px;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600;">Current
+                                Password:</label>
+                            <input type="password" id="currentPassword" required
+                                style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 1em;">
+                        </div>
+
+                        <div style="margin-bottom: 15px;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600;">New Password:</label>
+                            <input type="password" id="newPassword" required minlength="6"
+                                style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 1em;">
+                            <small style="color: #666;">Minimum 6 characters</small>
+                        </div>
+
+                        <div style="margin-bottom: 20px;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600;">Confirm New
+                                Password:</label>
+                            <input type="password" id="confirmPassword" required minlength="6"
+                                style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 1em;">
+                        </div>
+
+                        <div id="passwordError"
+                            style="display: none; color: #f44336; margin-bottom: 15px; padding: 10px; background: #ffebee; border-radius: 5px;">
+                        </div>
+                        <div id="passwordSuccess"
+                            style="display: none; color: #4caf50; margin-bottom: 15px; padding: 10px; background: #e8f5e9; border-radius: 5px;">
+                        </div>
+
+                        <div style="display: flex; gap: 10px;">
+                            <button type="submit" class="btn btn-primary" style="flex: 1;">
+                                Save Password
+                            </button>
+                            <button type="button" onclick="hidePasswordModal()" class="btn"
+                                style="flex: 1; background: #999;">
+                                Cancel
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <script>
+                function showPasswordModal() {
+                    document.getElementById('passwordModal').style.display = 'flex';
+                }
+
+                function hidePasswordModal() {
+                    document.getElementById('passwordModal').style.display = 'none';
+                    document.getElementById('changePasswordForm').reset();
+                    document.getElementById('passwordError').style.display = 'none';
+                    document.getElementById('passwordSuccess').style.display = 'none';
+                }
+
+                document.getElementById('changePasswordForm').addEventListener('submit', async (e) => {
+                    e.preventDefault();
+
+                    const currentPassword = document.getElementById('currentPassword').value;
+                    const newPassword = document.getElementById('newPassword').value;
+                    const confirmPassword = document.getElementById('confirmPassword').value;
+
+                    const errorDiv = document.getElementById('passwordError');
+                    const successDiv = document.getElementById('passwordSuccess');
+
+                    errorDiv.style.display = 'none';
+                    successDiv.style.display = 'none';
+
+                    // Validate passwords match
+                    if (newPassword !== confirmPassword) {
+                        errorDiv.textContent = 'New passwords do not match!';
+                        errorDiv.style.display = 'block';
+                        return;
+                    }
+
+                    if (newPassword.length < 6) {
+                        errorDiv.textContent = 'Password must be at least 6 characters!';
+                        errorDiv.style.display = 'block';
+                        return;
+                    }
+
+                    try {
+                        const response = await fetch('/api/change-password', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                currentPassword,
+                                newPassword
+                            })
+                        });
+
+                        const data = await response.json();
+
+                        if (data.status === 'Success') {
+                            successDiv.textContent = '✅ Password changed successfully!';
+                            successDiv.style.display = 'block';
+
+                            setTimeout(() => {
+                                hidePasswordModal();
+                            }, 2000);
+                        } else {
+                            errorDiv.textContent = data.error || 'Failed to change password';
+                            errorDiv.style.display = 'block';
+                        }
+                    } catch (error) {
+                        errorDiv.textContent = 'Network error. Please try again.';
+                        errorDiv.style.display = 'block';
+                    }
+                });
+            </script>
         </div>
     </div>
 </body>
+
 </html>
