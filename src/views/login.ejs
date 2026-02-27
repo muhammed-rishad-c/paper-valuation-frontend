@@ -1,23 +1,13 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Paper Valuation System</title>
-    <link rel="stylesheet" href="/style.css">
-</head>
-<body class="auth-page">
+<%- include('partials/head', { pageTitle: 'Login', bodyClass: 'auth-page' }) %>
 
     <div class="auth-card">
 
-        <!-- Header -->
         <div class="auth-header">
             <div class="icon">📝</div>
             <h1>Paper Valuation</h1>
             <p>Sign in to your account</p>
         </div>
 
-        <!-- Form Body -->
         <div class="auth-body">
 
             <% if (messages && messages.error && messages.error.length > 0) { %>
@@ -51,9 +41,7 @@
                     >
                 </div>
 
-                <button type="submit" class="btn-submit">
-                    Login →
-                </button>
+                <button type="submit" class="btn-submit">Login →</button>
 
             </form>
 

@@ -1,15 +1,11 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Paper Valuation System</title>
-    <link rel="stylesheet" href="/style.css">
-</head>
-<body>
+<%- include('partials/head', { pageTitle: 'Dashboard' }) %>
+
+<%- include('partials/navbar', { user: user, activePage: 'dashboard' }) %>
+
+<main class="page-content">
     <div class="container">
 
-        <!-- Header -->
+        <!-- Welcome Header -->
         <header class="header">
             <div>
                 <h1>Welcome, <%= user.full_name || user.username %>! 👋</h1>
@@ -65,68 +61,47 @@
         </section>
 
     </div>
+</main>
 
-    <script>
-        async function loadDashboardStats() {
-            try {
-                const response = await fetch('/api/dashboard/stats');
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                const data = await response.json();
+<%- include('partials/footer') %>
 
-                if (data.status === 'Success') {
-                    document.getElementById('totalExams').textContent = data.stats.total_exams || 0;
-                    displayRecentActivity(data.recent_activity);
-                } else {
-                    throw new Error(data.error || 'Failed to load stats');
-                }
-            } catch (error) {
-                console.error('Dashboard error:', error);
-                showError();
-            }
+<script>
+    async function loadDashboardStats() {
+        try {
+            const response = await fetch('/api/dashboard/stats');
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const data = await response.json();
+            if (data.status === 'Success') {
+                document.getElementById('totalExams').textContent = data.stats.total_exams || 0;
+                displayRecentActivity(data.recent_activity);
+            } else throw new Error(data.error || 'Failed');
+        } catch (e) { showError(); }
+    }
+
+    function displayRecentActivity(activities) {
+        const list = document.getElementById('activityList');
+        if (!activities || !activities.length) {
+            list.innerHTML = `<li class="empty-state"><div class="empty-icon">📭</div><div class="empty-text">No recent activity</div><div class="empty-subtext">Start by creating an answer key or uploading papers!</div></li>`;
+            return;
         }
+        list.innerHTML = activities.map(a => `
+            <li class="activity-item">
+                <div class="activity-content">
+                    <div class="activity-title">${escapeHtml(a.title)}</div>
+                    <div class="activity-details">${escapeHtml(a.details)}</div>
+                </div>
+                <div class="activity-date">${escapeHtml(a.date)}</div>
+            </li>`).join('');
+    }
 
-        function displayRecentActivity(activities) {
-            const list = document.getElementById('activityList');
-            if (!activities || activities.length === 0) {
-                list.innerHTML = `
-                    <li class="empty-state">
-                        <div class="empty-icon">📭</div>
-                        <div class="empty-text">No recent activity</div>
-                        <div class="empty-subtext">Start by creating an answer key or uploading papers!</div>
-                    </li>`;
-                return;
-            }
-            list.innerHTML = activities.map(a => `
-                <li class="activity-item">
-                    <div class="activity-content">
-                        <div class="activity-title">${escapeHtml(a.title)}</div>
-                        <div class="activity-details">${escapeHtml(a.details)}</div>
-                    </div>
-                    <div class="activity-date">${escapeHtml(a.date)}</div>
-                </li>`).join('');
-        }
+    function showError() {
+        document.getElementById('activityList').innerHTML = `<li class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-text">Failed to load dashboard</div><div class="empty-subtext">Please refresh the page to try again</div></li>`;
+        document.getElementById('totalExams').textContent = '?';
+    }
 
-        function showError() {
-            document.getElementById('activityList').innerHTML = `
-                <li class="empty-state">
-                    <div class="empty-icon">⚠️</div>
-                    <div class="empty-text">Failed to load dashboard</div>
-                    <div class="empty-subtext">Please refresh the page to try again</div>
-                </li>`;
-            document.getElementById('totalExams').textContent = '?';
-        }
+    function escapeHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
 
-        function escapeHtml(text) {
-            const d = document.createElement('div');
-            d.textContent = text;
-            return d.innerHTML;
-        }
-
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', loadDashboardStats);
-        } else {
-            loadDashboardStats();
-        }
-    </script>
-</body>
-</html>
+    document.readyState === 'loading'
+        ? document.addEventListener('DOMContentLoaded', loadDashboardStats)
+        : loadDashboardStats();
+</script>

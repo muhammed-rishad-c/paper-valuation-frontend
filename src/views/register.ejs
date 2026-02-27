@@ -1,23 +1,13 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register - Paper Valuation System</title>
-    <link rel="stylesheet" href="/style.css">
-</head>
-<body class="auth-page">
+<%- include('partials/head', { pageTitle: 'Register', bodyClass: 'auth-page' }) %>
 
     <div class="auth-card">
 
-        <!-- Header -->
         <div class="auth-header">
             <div class="icon">🎓</div>
             <h1>Create Account</h1>
             <p>Join the Paper Valuation System</p>
         </div>
 
-        <!-- Form Body -->
         <div class="auth-body">
 
             <% if (typeof error !== 'undefined' && error) { %>
@@ -28,7 +18,6 @@
 
             <form action="/register" method="POST">
 
-                <!-- Username -->
                 <div class="form-group">
                     <label for="username">Username</label>
                     <input
@@ -44,7 +33,6 @@
                     <div class="form-hint">3–50 characters, letters and numbers only</div>
                 </div>
 
-                <!-- Email -->
                 <div class="form-group">
                     <label for="email">Email Address</label>
                     <input
@@ -56,7 +44,6 @@
                     >
                 </div>
 
-                <!-- Full Name -->
                 <div class="form-group">
                     <label for="full_name">
                         Full Name
@@ -70,7 +57,6 @@
                     >
                 </div>
 
-                <!-- Password -->
                 <div class="form-group">
                     <label for="password">Password</label>
                     <input
@@ -84,7 +70,6 @@
                     <div class="form-hint">At least 8 characters</div>
                 </div>
 
-                <!-- Confirm Password -->
                 <div class="form-group">
                     <label for="confirm_password">Confirm Password</label>
                     <input
@@ -97,9 +82,7 @@
                     >
                 </div>
 
-                <button type="submit" class="btn-submit">
-                    Create Account →
-                </button>
+                <button type="submit" class="btn-submit">Create Account →</button>
 
             </form>
 
@@ -115,11 +98,11 @@
 
     <script>
         document.querySelector('form').addEventListener('submit', function(e) {
-            const password = document.getElementById('password').value;
-            const confirm  = document.getElementById('confirm_password').value;
-            if (password !== confirm) {
+            const pw  = document.getElementById('password').value;
+            const cpw = document.getElementById('confirm_password').value;
+            if (pw !== cpw) {
                 e.preventDefault();
-                alert('Passwords do not match! Please try again.');
+                alert('Passwords do not match!');
                 document.getElementById('confirm_password').focus();
             }
         });

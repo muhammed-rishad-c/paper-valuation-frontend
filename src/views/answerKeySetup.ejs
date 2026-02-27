@@ -1,429 +1,20 @@
-<!DOCTYPE html>
-<html lang="en">
+<%- include('partials/head', { pageTitle: 'Answer Key Setup' }) %>
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Answer Key Setup</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+<%- include('partials/navbar', { user: user, activePage: 'answer-key' }) %>
 
-        body {
-            font-family: Arial, sans-serif;
-            background: #f5f5f5;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        }
-
-        .header {
-            background: #667eea;
-            color: white;
-            padding: 30px;
-            text-align: center;
-            border-radius: 8px 8px 0 0;
-        }
-
-        .header h1 {
-            margin-bottom: 10px;
-        }
-
-        .progress-bar {
-            display: flex;
-            justify-content: space-around;
-            padding: 20px;
-            background: #f8f9fa;
-        }
-
-        .progress-step {
-            text-align: center;
-            flex: 1;
-            position: relative;
-        }
-
-        .step-circle {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: #ddd;
-            color: #666;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
-
-        .progress-step.active .step-circle {
-            background: #667eea;
-            color: white;
-        }
-
-        .progress-step.completed .step-circle {
-            background: #4caf50;
-            color: white;
-        }
-
-        .step-label {
-            font-size: 0.9em;
-            color: #666;
-        }
-
-        .progress-step.active .step-label {
-            color: #667eea;
-            font-weight: 600;
-        }
-
-        .content {
-            padding: 40px;
-        }
-
-        .step-section {
-            display: none;
-        }
-
-        .step-section.active {
-            display: block;
-        }
-
-        .info-box {
-            background: #e7f3ff;
-            border-left: 4px solid #2196f3;
-            padding: 15px;
-            margin-bottom: 20px;
-        }
-
-        .warning-box {
-            background: #fff3cd;
-            border-left: 4px solid #ffc107;
-            padding: 15px;
-            margin-bottom: 20px;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 600;
-        }
-
-        .form-group input {
-            width: 100%;
-            padding: 10px;
-            border: 2px solid #ddd;
-            border-radius: 4px;
-            font-size: 1em;
-        }
-
-        .form-group input:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        .form-group small {
-            display: block;
-            margin-top: 5px;
-            color: #666;
-            font-size: 0.85em;
-        }
-
-        .marks-example {
-            background: #f8f9fa;
-            border: 1px solid #dee2e6;
-            border-radius: 4px;
-            padding: 10px;
-            margin-top: 10px;
-            font-size: 0.9em;
-        }
-
-        .marks-example strong {
-            color: #667eea;
-        }
-
-        .upload-area {
-            border: 3px dashed #ddd;
-            border-radius: 8px;
-            padding: 40px;
-            text-align: center;
-            cursor: pointer;
-            margin-bottom: 20px;
-        }
-
-        .upload-area:hover {
-            border-color: #667eea;
-            background: #f8f9ff;
-        }
-
-        .upload-icon {
-            font-size: 3em;
-            margin-bottom: 10px;
-        }
-
-        .upload-text {
-            font-size: 1.1em;
-            margin-bottom: 5px;
-        }
-
-        .upload-subtext {
-            color: #666;
-            font-size: 0.9em;
-        }
-
-        .extracted-answers {
-            margin-top: 20px;
-        }
-
-        .answer-item {
-            background: #f8f9fa;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 15px;
-        }
-
-        .answer-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-
-        .answer-label {
-            font-weight: 600;
-            color: #667eea;
-            font-size: 1.1em;
-        }
-
-        .delete-btn {
-            background: #dc3545;
-            color: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-
-        .delete-btn:hover {
-            background: #c82333;
-        }
-
-        textarea {
-            width: 100%;
-            min-height: 100px;
-            padding: 10px;
-            border: 2px solid #ddd;
-            border-radius: 4px;
-            font-family: inherit;
-            resize: vertical;
-        }
-
-        textarea:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        .button-group {
-            display: flex;
-            gap: 15px;
-            justify-content: space-between;
-            margin-top: 30px;
-        }
-
-        .btn {
-            padding: 12px 30px;
-            border: none;
-            border-radius: 6px;
-            font-size: 1em;
-            font-weight: 600;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-block;
-        }
-
-        .btn-primary {
-            background: #667eea;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #5568d3;
-        }
-
-        .btn-secondary {
-            background: #6c757d;
-            color: white;
-        }
-
-        .btn-secondary:hover {
-            background: #5a6268;
-        }
-
-        .btn-success {
-            background: #4caf50;
-            color: white;
-        }
-
-        .btn-success:hover {
-            background: #45a049;
-        }
-
-        .loading-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.7);
-            z-index: 9999;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .loading-overlay.active {
-            display: flex;
-        }
-
-        .loading-content {
-            background: white;
-            padding: 40px;
-            border-radius: 12px;
-            text-align: center;
-        }
-
-        .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
-        }
-
-        @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            100% {
-                transform: rotate(360deg);
-            }
-        }
-
-        .alert {
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-
-        .alert-success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-
-        .alert-error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-
-        /* OR Groups Styles */
-        .or-group-item {
-            background: white;
-            padding: 15px;
-            margin: 12px 0;
-            border-radius: 8px;
-            border: 2px solid #e0e0e0;
-            position: relative;
-        }
-
-        .or-group-item:hover {
-            border-color: #ff9800;
-            box-shadow: 0 2px 8px rgba(255, 152, 0, 0.1);
-        }
-
-        .or-type-select {
-            width: 100%;
-            padding: 8px;
-            border: 2px solid #ddd;
-            border-radius: 4px;
-            font-size: 0.95em;
-            background: white;
-        }
-
-        .or-type-select:focus {
-            outline: none;
-            border-color: #ff9800;
-        }
-
-        .or-input-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-top: 12px;
-        }
-
-        .or-input-field {
-            width: 100%;
-            padding: 8px;
-            border: 2px solid #ddd;
-            border-radius: 4px;
-            font-size: 0.95em;
-        }
-
-        .or-input-field:focus {
-            outline: none;
-            border-color: #ff9800;
-        }
-
-        .or-hint {
-            margin-top: 10px;
-            padding: 10px;
-            background: #f5f5f5;
-            border-radius: 4px;
-            font-size: 0.85em;
-            color: #666;
-        }
-
-        .remove-or-btn {
-            background: #f44336;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.9em;
-            transition: background 0.2s;
-        }
-
-        .remove-or-btn:hover {
-            background: #d32f2f;
-        }
-    </style>
-</head>
-
-<body>
+<main class="page-content">
     <div class="container">
+
+        <!-- Page Title -->
         <div class="header">
-            <h1>🔑 Answer Key Setup Wizard</h1>
-            <p>Configure your exam answer key in 3 easy steps</p>
+            <div>
+                <h1>🔑 Answer Key Setup</h1>
+                <p>Configure your exam answer key in 3 easy steps</p>
+            </div>
+            <a href="/" class="btn btn-secondary">← Back to Dashboard</a>
         </div>
 
+        <!-- Progress Bar -->
         <div class="progress-bar">
             <div class="progress-step active" data-step="1">
                 <div class="step-circle">1</div>
@@ -439,7 +30,9 @@
             </div>
         </div>
 
-        <div class="content">
+        <!-- Step Content -->
+        <div class="section content">
+
             <!-- STEP 1: Exam Metadata -->
             <div class="step-section active" id="step1">
                 <h2>📋 Step 1: Exam Information</h2>
@@ -452,8 +45,8 @@
                 <form id="metadata-form">
                     <div class="form-group">
                         <label for="exam-name">Exam Name *</label>
-                        <input type="text" id="exam-name" name="exam_name" placeholder="e.g., Mathematics Mid-Term 2025"
-                            required>
+                        <input type="text" id="exam-name" name="exam_name"
+                            placeholder="e.g., Mathematics Mid-Term 2025" required>
                         <small>Give this answer key a unique, descriptive name</small>
                     </div>
 
@@ -471,15 +64,13 @@
                         <label for="short-questions">Short Answer Questions *</label>
                         <input type="text" id="short-questions" name="short_questions"
                             placeholder="e.g., 1-10 or 1,2,3,4,5" required>
-                        <small>Use ranges (1-10) or comma-separated (1,2,3). These will be extracted as single
-                            paragraphs.</small>
+                        <small>Use ranges (1-10) or comma-separated (1,2,3).</small>
                     </div>
 
                     <div class="form-group">
                         <label for="short-marks">Marks for Short Questions *</label>
                         <input type="text" id="short-marks" name="short_marks" placeholder="e.g., 2 or 2,2,3" required>
-                        <small>Single number for uniform marks (e.g., "2") or comma-separated for individual marks
-                            (e.g., "2,2,3")</small>
+                        <small>Single number for uniform marks or comma-separated for individual marks</small>
                         <div class="marks-example">
                             <strong>Examples:</strong><br>
                             • Questions 1-3, Marks "2" → Q1=2, Q2=2, Q3=2<br>
@@ -491,53 +82,43 @@
                         <label for="long-questions">Long Answer Questions *</label>
                         <input type="text" id="long-questions" name="long_questions"
                             placeholder="e.g., 11-20 or 11,12,13" required>
-                        <small>Use ranges (11-20) or comma-separated (11,12,13). These will preserve formatting and
-                            structure.</small>
+                        <small>Use ranges (11-20) or comma-separated (11,12,13).</small>
                     </div>
 
                     <div class="form-group">
                         <label for="long-marks">Marks for Long Questions *</label>
                         <input type="text" id="long-marks" name="long_marks" placeholder="e.g., 8 or 7,10,8" required>
-                        <small>Single number for uniform marks (e.g., "8") or comma-separated for individual marks
-                            (e.g., "7,10,8")</small>
+                        <small>Single number for uniform marks or comma-separated for individual marks</small>
                         <div class="marks-example">
                             <strong>Examples:</strong><br>
                             • Questions 4-5, Marks "8" → Q4=8, Q5=8<br>
                             • Questions 4-5, Marks "7,10" → Q4=7, Q5=10
                         </div>
                     </div>
-                    <!-- 🆕 OR QUESTIONS SECTION -->
-                    <div class="form-group"
-                        style="background: #fff3e0; padding: 20px; border-radius: 8px; border: 2px solid #ff9800; margin-top: 30px;">
-                        <h3 style="margin-top: 0; color: #e65100; display: flex; align-items: center; gap: 10px;">
-                            <span>⚡</span>
-                            <span>OR Questions Configuration (Optional)</span>
-                        </h3>
-                        <div class="warning-box" style="background: #fff; margin-bottom: 15px;">
+
+                    <!-- OR Questions Section -->
+                    <div class="form-group" style="background:#fff3e0; padding:1.25rem; border-radius:var(--r-lg); border:2px solid #ffb74d; margin-top:1.5rem;">
+                        <h3 style="margin-top:0; color:#e65100; margin-bottom:1rem;">⚡ OR Questions Configuration <span style="font-size:0.8rem; font-weight:400; color:#bf360c;">(Optional)</span></h3>
+                        <div class="warning-box" style="margin-bottom:1rem;">
                             <strong>📌 What are OR Questions?</strong><br>
-                            Questions where students choose between options. System evaluates all written answers and
-                            takes the best score.<br><br>
+                            Questions where students choose between options. System evaluates all written answers and takes the best score.<br><br>
                             <strong>Examples:</strong><br>
-                            • <strong>Single:</strong> Q5 OR Q6 (student writes one, both evaluated, best score
-                            counted)<br>
-                            • <strong>Pair:</strong> Q6,Q7 OR Q8,Q9 (student writes one pair, both pairs evaluated, best
-                            total counted)
+                            • <strong>Single:</strong> Q5 OR Q6 — student writes one, best score counted<br>
+                            • <strong>Pair:</strong> Q6,Q7 OR Q8,Q9 — student writes one pair, best total counted
                         </div>
 
-                        <div id="orGroupsContainer">
-                            <!-- OR groups will be dynamically added here -->
-                        </div>
+                        <div id="orGroupsContainer"></div>
 
-                        <button type="button" class="btn btn-primary" onclick="addOrGroup()"
-                            style="margin-top: 10px; padding: 10px 20px; font-size: 0.95em;">
+                        <button type="button" class="btn btn-primary" onclick="addOrGroup()" style="margin-top:0.5rem;">
                             ➕ Add OR Group
                         </button>
                     </div>
 
                     <div class="button-group">
                         <a href="/" class="btn btn-secondary">← Back to Home</a>
-                        <button type="button" class="btn btn-primary" onclick="goToStep2()">Next: Upload Short Answers
-                            →</button>
+                        <button type="button" class="btn btn-primary" onclick="goToStep2()">
+                            Next: Upload Short Answers →
+                        </button>
                     </div>
                 </form>
             </div>
@@ -547,7 +128,7 @@
                 <h2>📝 Step 2: Upload Short Answer Key</h2>
 
                 <div class="info-box">
-                    <strong>ℹ️ Instructions:</strong> Upload images of your short answer key pages one by one.
+                    <strong>ℹ️ Instructions:</strong> Upload images of your short answer key pages.
                     The system will extract text in real-time for you to review and edit.
                 </div>
 
@@ -557,16 +138,15 @@
                     <div class="upload-text">Click to upload or drag and drop</div>
                     <div class="upload-subtext">PNG, JPG up to 10MB</div>
                 </div>
-                <input type="file" id="short-file-input" accept="image/*" style="display: none;">
+                <input type="file" id="short-file-input" accept="image/*" style="display:none;">
 
-                <div class="extracted-answers" id="short-answers-container">
-                    <!-- Extracted answers will appear here -->
-                </div>
+                <div class="extracted-answers" id="short-answers-container"></div>
 
                 <div class="button-group">
                     <button type="button" class="btn btn-secondary" onclick="goToStep1()">← Back</button>
-                    <button type="button" class="btn btn-primary" onclick="goToStep3()">Next: Upload Long Answers
-                        →</button>
+                    <button type="button" class="btn btn-primary" onclick="goToStep3()">
+                        Next: Upload Long Answers →
+                    </button>
                 </div>
             </div>
 
@@ -575,7 +155,7 @@
                 <h2>📖 Step 3: Upload Long Answer Key</h2>
 
                 <div class="info-box">
-                    <strong>ℹ️ Instructions:</strong> Upload images of your long answer key pages one by one.
+                    <strong>ℹ️ Instructions:</strong> Upload images of your long answer key pages.
                     These answers will preserve paragraph structure and formatting.
                 </div>
 
@@ -585,599 +165,321 @@
                     <div class="upload-text">Click to upload or drag and drop</div>
                     <div class="upload-subtext">PNG, JPG up to 10MB</div>
                 </div>
-                <input type="file" id="long-file-input" accept="image/*" style="display: none;">
+                <input type="file" id="long-file-input" accept="image/*" style="display:none;">
 
-                <div class="extracted-answers" id="long-answers-container">
-                    <!-- Extracted answers will appear here -->
-                </div>
+                <div class="extracted-answers" id="long-answers-container"></div>
 
                 <div class="button-group">
                     <button type="button" class="btn btn-secondary" onclick="goToStep2()">← Back</button>
-                    <button type="button" class="btn btn-success" onclick="saveAnswerKey()">💾 Save & Continue to Batch
-                        Upload →</button>
+                    <button type="button" class="btn btn-success" onclick="saveAnswerKey()">
+                        💾 Save & Continue →
+                    </button>
                 </div>
             </div>
-        </div>
+
+        </div><!-- /.section.content -->
+    </div><!-- /.container -->
+</main>
+
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loading-overlay">
+    <div class="loading-content">
+        <div class="spinner"></div>
+        <h3>Processing...</h3>
+        <p id="loading-message">Extracting text from image</p>
     </div>
+</div>
 
-    <!-- Loading Overlay -->
-    <div class="loading-overlay" id="loading-overlay">
-        <div class="loading-content">
-            <div class="spinner"></div>
-            <h3>Processing...</h3>
-            <p id="loading-message">Extracting text from image</p>
-        </div>
-    </div>
+<%- include('partials/footer') %>
 
-    <script>
-        let currentStep = 1;
-        let examMetadata = {};
-        let shortAnswers = {};
-        let longAnswers = {};
+<script>
+    let currentStep = 1;
+    let examMetadata = {};
+    let shortAnswers = {};
+    let longAnswers = {};
 
-        function goToStep1() {
-            showStep(1);
+    function goToStep1() { showStep(1); }
+
+    function goToStep2() {
+        const form = document.getElementById('metadata-form');
+        if (!form.checkValidity()) { form.reportValidity(); return; }
+
+        const shortMarks = document.getElementById('short-marks').value.trim();
+        const longMarks  = document.getElementById('long-marks').value.trim();
+
+        if (!validateMarksFormat(shortMarks)) {
+            showAlert('error', '❌ Invalid format for short question marks. Use single number (e.g., "2") or comma-separated (e.g., "2,2,3")');
+            return;
+        }
+        if (!validateMarksFormat(longMarks)) {
+            showAlert('error', '❌ Invalid format for long question marks. Use single number (e.g., "8") or comma-separated (e.g., "7,10")');
+            return;
         }
 
-        function goToStep2() {
-            const form = document.getElementById('metadata-form');
-            if (!form.checkValidity()) {
-                form.reportValidity();
-                return;
-            }
+        examMetadata = {
+            exam_name:       document.getElementById('exam-name').value,
+            class_name:      document.getElementById('class-name').value,
+            subject:         document.getElementById('subject').value,
+            short_questions: document.getElementById('short-questions').value,
+            long_questions:  document.getElementById('long-questions').value,
+            short_marks:     shortMarks,
+            long_marks:      longMarks
+        };
 
-            // Validate marks format
-            const shortMarks = document.getElementById('short-marks').value.trim();
-            const longMarks = document.getElementById('long-marks').value.trim();
+        showStep(2);
+    }
 
-            if (!validateMarksFormat(shortMarks)) {
-                showAlert('error', '❌ Invalid format for short question marks. Use single number (e.g., "2") or comma-separated (e.g., "2,2,3")');
-                return;
-            }
+    function validateMarksFormat(marksStr) {
+        return /^\d+(\s*,\s*\d+)*$/.test(marksStr);
+    }
 
-            if (!validateMarksFormat(longMarks)) {
-                showAlert('error', '❌ Invalid format for long question marks. Use single number (e.g., "8") or comma-separated (e.g., "7,10")');
-                return;
-            }
+    function goToStep3() { showStep(3); }
 
-            examMetadata = {
-                exam_name: document.getElementById('exam-name').value,
-                class_name: document.getElementById('class-name').value,
-                subject: document.getElementById('subject').value,
-                short_questions: document.getElementById('short-questions').value,
-                long_questions: document.getElementById('long-questions').value,
-                short_marks: shortMarks,
-                long_marks: longMarks
-            };
+    function showStep(stepNumber) {
+        document.querySelectorAll('.step-section').forEach(s => s.classList.remove('active'));
+        document.getElementById('step' + stepNumber).classList.add('active');
 
-            showStep(2);
-        }
-
-        function validateMarksFormat(marksStr) {
-            // Allow single number or comma-separated numbers
-            const pattern = /^\d+(\s*,\s*\d+)*$/;
-            return pattern.test(marksStr);
-        }
-
-        function goToStep3() {
-            showStep(3);
-        }
-
-        function showStep(stepNumber) {
-            document.querySelectorAll('.step-section').forEach(section => {
-                section.classList.remove('active');
-            });
-
-            document.getElementById(`step${stepNumber}`).classList.add('active');
-
-            document.querySelectorAll('.progress-step').forEach(step => {
-                const stepNum = parseInt(step.dataset.step);
-                step.classList.remove('active', 'completed');
-
-                if (stepNum === stepNumber) {
-                    step.classList.add('active');
-                } else if (stepNum < stepNumber) {
-                    step.classList.add('completed');
-                }
-            });
-
-            currentStep = stepNumber;
-        }
-
-        document.getElementById('short-file-input').addEventListener('change', (e) => {
-            handleFileUpload(e.target.files[0], 'short');
+        document.querySelectorAll('.progress-step').forEach(step => {
+            const n = parseInt(step.dataset.step);
+            step.classList.remove('active', 'completed');
+            if (n === stepNumber) step.classList.add('active');
+            else if (n < stepNumber) step.classList.add('completed');
         });
 
-        document.getElementById('long-file-input').addEventListener('change', (e) => {
-            handleFileUpload(e.target.files[0], 'long');
+        currentStep = stepNumber;
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    document.getElementById('short-file-input').addEventListener('change', e => handleFileUpload(e.target.files[0], 'short'));
+    document.getElementById('long-file-input').addEventListener('change',  e => handleFileUpload(e.target.files[0], 'long'));
+
+    ['short-upload-area', 'long-upload-area'].forEach(areaId => {
+        const area = document.getElementById(areaId);
+        area.addEventListener('dragover',  e => { e.preventDefault(); area.classList.add('dragover'); });
+        area.addEventListener('dragleave', ()  => area.classList.remove('dragover'));
+        area.addEventListener('drop', e => {
+            e.preventDefault();
+            area.classList.remove('dragover');
+            handleFileUpload(e.dataTransfer.files[0], areaId.includes('short') ? 'short' : 'long');
         });
+    });
 
-        ['short-upload-area', 'long-upload-area'].forEach(areaId => {
-            const area = document.getElementById(areaId);
-
-            area.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                area.classList.add('dragover');
-            });
-
-            area.addEventListener('dragleave', () => {
-                area.classList.remove('dragover');
-            });
-
-            area.addEventListener('drop', (e) => {
-                e.preventDefault();
-                area.classList.remove('dragover');
-                const type = areaId.includes('short') ? 'short' : 'long';
-                handleFileUpload(e.dataTransfer.files[0], type);
-            });
-        });
-
-        async function handleFileUpload(file, answerType) {
-            if (!file) return;
-
-            const formData = new FormData();
-            formData.append('answer_key_image', file);
-            formData.append('answer_type', answerType);
-
-            showLoading('Extracting text from image...');
-
-            try {
-                const response = await fetch('/api/extract-answer-key', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const result = await response.json();
-                hideLoading();
-
-                if (result.status === 'Success') {
-                    displayExtractedAnswers(result.answers, answerType);
-                    showAlert('success', `✅ Successfully extracted ${Object.keys(result.answers).length} answers!`);
-                } else {
-                    showAlert('error', `❌ Extraction failed: ${result.error}`);
-                }
-            } catch (error) {
-                hideLoading();
-                showAlert('error', `❌ Upload failed: ${error.message}`);
+    async function handleFileUpload(file, answerType) {
+        if (!file) return;
+        const formData = new FormData();
+        formData.append('answer_key_image', file);
+        formData.append('answer_type', answerType);
+        showLoading('Extracting text from image...');
+        try {
+            const response = await fetch('/api/extract-answer-key', { method: 'POST', body: formData });
+            const result = await response.json();
+            hideLoading();
+            if (result.status === 'Success') {
+                displayExtractedAnswers(result.answers, answerType);
+                showAlert('success', '✅ Successfully extracted ' + Object.keys(result.answers).length + ' answers!');
+            } else {
+                showAlert('error', '❌ Extraction failed: ' + result.error);
             }
+        } catch (error) {
+            hideLoading();
+            showAlert('error', '❌ Upload failed: ' + error.message);
+        }
+    }
+
+    function displayExtractedAnswers(answers, answerType) {
+        const container = document.getElementById(answerType + '-answers-container');
+        Object.entries(answers).forEach(([qLabel, answerText]) => {
+            const item = document.createElement('div');
+            item.className = 'answer-item';
+            item.dataset.question = qLabel;
+            item.dataset.type = answerType;
+            item.innerHTML = `
+                <div class="answer-header">
+                    <span class="answer-label">${qLabel}</span>
+                    <button class="delete-btn" onclick="deleteAnswer('${qLabel}', '${answerType}')">🗑️ Delete</button>
+                </div>
+                <textarea id="${answerType}-${qLabel}">${answerText}</textarea>`;
+            container.appendChild(item);
+            if (answerType === 'short') shortAnswers[qLabel] = answerText;
+            else longAnswers[qLabel] = answerText;
+        });
+    }
+
+    function deleteAnswer(qLabel, answerType) {
+        const container = document.getElementById(answerType + '-answers-container');
+        const item = container.querySelector('[data-question="' + qLabel + '"]');
+        if (item && confirm('Delete ' + qLabel + '?')) {
+            item.remove();
+            if (answerType === 'short') delete shortAnswers[qLabel];
+            else delete longAnswers[qLabel];
+        }
+    }
+
+    async function saveAnswerKey() {
+        document.querySelectorAll('#short-answers-container textarea').forEach(t => {
+            shortAnswers[t.id.replace('short-', '')] = t.value;
+        });
+        document.querySelectorAll('#long-answers-container textarea').forEach(t => {
+            longAnswers[t.id.replace('long-', '')] = t.value;
+        });
+
+        if (!Object.keys(shortAnswers).length && !Object.keys(longAnswers).length) {
+            showAlert('error', '❌ Please upload at least one answer key page!');
+            return;
         }
 
-        function displayExtractedAnswers(answers, answerType) {
-            const container = document.getElementById(`${answerType}-answers-container`);
+        const orGroups = collectOrGroups();
+        if (orGroups.length > 0) {
+            const v = validateOrGroups(orGroups);
+            if (!v.valid) { showAlert('error', '❌ OR Group Error: ' + v.error); return; }
+        }
 
-            Object.entries(answers).forEach(([qLabel, answerText]) => {
-                const answerItem = document.createElement('div');
-                answerItem.className = 'answer-item';
-                answerItem.dataset.question = qLabel;
-                answerItem.dataset.type = answerType;
+        showLoading('Saving answer key...');
 
-                answerItem.innerHTML = `
-                    <div class="answer-header">
-                        <span class="answer-label">${qLabel}</span>
-                        <button class="delete-btn" onclick="deleteAnswer('${qLabel}', '${answerType}')">🗑️ Delete</button>
+        try {
+            const response = await fetch('/api/save-answer-key', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ...examMetadata,
+                    short_answers: shortAnswers,
+                    long_answers: longAnswers,
+                    or_groups: orGroups
+                })
+            });
+            const result = await response.json();
+            hideLoading();
+
+            if (result.status === 'Success') {
+                showAlert('success', '✅ Answer key saved! Redirecting...');
+                sessionStorage.setItem('latest_exam_id', result.exam_id);
+                sessionStorage.setItem('exam_class', examMetadata.class_name);
+                sessionStorage.setItem('exam_subject', examMetadata.subject);
+                setTimeout(() => {
+                    const toIndividual = sessionStorage.getItem('return_to_individual');
+                    const toSeries     = sessionStorage.getItem('return_to_series');
+                    window.location.href = toIndividual === 'true' ? '/upload-individual' : '/upload-series';
+                }, 2000);
+            } else {
+                showAlert('error', '❌ Save failed: ' + result.error);
+            }
+        } catch (error) {
+            hideLoading();
+            showAlert('error', '❌ Network error: ' + error.message);
+        }
+    }
+
+    function validateOrGroups(orGroups) {
+        const seen = new Set();
+        for (let i = 0; i < orGroups.length; i++) {
+            const g = orGroups[i];
+            const questions = g.type === 'single' ? g.options : [...g.option_a, ...g.option_b];
+            if (g.type === 'single' && g.options[0] === g.options[1])
+                return { valid: false, error: 'OR Group ' + (i+1) + ': Cannot have same question in both options' };
+            for (let q of questions) {
+                if (!/^\d+$/.test(q)) return { valid: false, error: 'OR Group ' + (i+1) + ': "' + q + '" is not a valid question number' };
+                if (seen.has(q)) return { valid: false, error: 'Question ' + q + ' appears in multiple OR groups' };
+                seen.add(q);
+            }
+        }
+        return { valid: true };
+    }
+
+    function showLoading(message) {
+        document.getElementById('loading-message').textContent = message;
+        document.getElementById('loading-overlay').classList.add('active');
+    }
+
+    function hideLoading() {
+        document.getElementById('loading-overlay').classList.remove('active');
+    }
+
+    function showAlert(type, message) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'alert alert-' + type;
+        alertDiv.textContent = message;
+        const content = document.querySelector('.content');
+        content.insertBefore(alertDiv, content.firstChild);
+        setTimeout(() => alertDiv.remove(), 5000);
+    }
+
+    // OR Groups
+    let orGroupCounter = 0;
+
+    function addOrGroup() {
+        orGroupCounter++;
+        const container = document.getElementById('orGroupsContainer');
+        const div = document.createElement('div');
+        div.id = 'orGroup_' + orGroupCounter;
+        div.className = 'or-group-item';
+        div.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1rem;">
+                <div style="flex:1; margin-right:1rem;">
+                    <label style="display:block; margin-bottom:0.4rem; font-size:0.875rem; font-weight:600;">OR Group Type:</label>
+                    <select id="orType_${orGroupCounter}" class="or-type-select" onchange="updateOrGroupFields(${orGroupCounter})">
+                        <option value="single">Single Question (e.g., Q5 OR Q6)</option>
+                        <option value="pair">Question Pair (e.g., Q6,Q7 OR Q8,Q9)</option>
+                    </select>
+                </div>
+                <button type="button" class="remove-or-btn" onclick="removeOrGroup(${orGroupCounter})">✖ Remove</button>
+            </div>
+            <div id="orGroupFields_${orGroupCounter}"></div>`;
+        container.appendChild(div);
+        updateOrGroupFields(orGroupCounter);
+    }
+
+    function updateOrGroupFields(groupId) {
+        const type = document.getElementById('orType_' + groupId).value;
+        const fields = document.getElementById('orGroupFields_' + groupId);
+        if (type === 'single') {
+            fields.innerHTML = `
+                <div class="or-input-grid">
+                    <div>
+                        <label style="display:block; margin-bottom:0.4rem; font-size:0.825rem; font-weight:600;">Option A (Question Number):</label>
+                        <input type="text" id="orSingleA_${groupId}" class="or-input-field" placeholder="5">
                     </div>
-                    <textarea id="${answerType}-${qLabel}">${answerText}</textarea>
-                `;
-
-                container.appendChild(answerItem);
-
-                if (answerType === 'short') {
-                    shortAnswers[qLabel] = answerText;
-                } else {
-                    longAnswers[qLabel] = answerText;
-                }
-            });
+                    <div>
+                        <label style="display:block; margin-bottom:0.4rem; font-size:0.825rem; font-weight:600;">Option B (Question Number):</label>
+                        <input type="text" id="orSingleB_${groupId}" class="or-input-field" placeholder="6">
+                    </div>
+                </div>
+                <div class="or-hint">💡 Student answers Q5 OR Q6 — system evaluates both and takes the best score.</div>`;
+        } else {
+            fields.innerHTML = `
+                <div class="or-input-grid">
+                    <div>
+                        <label style="display:block; margin-bottom:0.4rem; font-size:0.825rem; font-weight:600;">Pair A (comma-separated):</label>
+                        <input type="text" id="orPairA_${groupId}" class="or-input-field" placeholder="6,7">
+                    </div>
+                    <div>
+                        <label style="display:block; margin-bottom:0.4rem; font-size:0.825rem; font-weight:600;">Pair B (comma-separated):</label>
+                        <input type="text" id="orPairB_${groupId}" class="or-input-field" placeholder="8,9">
+                    </div>
+                </div>
+                <div class="or-hint">💡 Student answers Q6,Q7 OR Q8,Q9 — system evaluates all and takes the best pair total.</div>`;
         }
+    }
 
-        function deleteAnswer(qLabel, answerType) {
-            const container = document.getElementById(`${answerType}-answers-container`);
-            const item = container.querySelector(`[data-question="${qLabel}"]`);
+    function removeOrGroup(groupId) {
+        const div = document.getElementById('orGroup_' + groupId);
+        if (div && confirm('Remove this OR group?')) div.remove();
+    }
 
-            if (item && confirm(`Are you sure you want to delete ${qLabel}?`)) {
-                item.remove();
-
-                if (answerType === 'short') {
-                    delete shortAnswers[qLabel];
-                } else {
-                    delete longAnswers[qLabel];
-                }
-            }
-        }
-
-        async function saveAnswerKey() {
-            // Collect all edited answers from textareas
-            document.querySelectorAll('#short-answers-container textarea').forEach(textarea => {
-                const qLabel = textarea.id.replace('short-', '');
-                shortAnswers[qLabel] = textarea.value;
-            });
-
-            document.querySelectorAll('#long-answers-container textarea').forEach(textarea => {
-                const qLabel = textarea.id.replace('long-', '');
-                longAnswers[qLabel] = textarea.value;
-            });
-
-            // Validate that at least one answer exists
-            if (Object.keys(shortAnswers).length === 0 && Object.keys(longAnswers).length === 0) {
-                showAlert('error', '❌ Please upload at least one answer key page!');
-                return;
-            }
-
-            // Collect OR groups
-            const orGroups = collectOrGroups();
-
-            if (orGroups.length > 0) {
-                console.log(`✅ Collected ${orGroups.length} OR groups:`, orGroups);
-
-                // Validate OR groups
-                const validationResult = validateOrGroups(orGroups);
-                if (!validationResult.valid) {
-                    showAlert('error', `❌ OR Group Error: ${validationResult.error}`);
-                    return;
-                }
-            } else {
-                console.log('ℹ️ No OR groups configured (optional feature)');
-            }
-
-            showLoading('Saving answer key with OR groups...');
-
-            // Create the complete payload
-            const payload = {
-                exam_name: examMetadata.exam_name,
-                class_name: examMetadata.class_name,
-                subject: examMetadata.subject,
-                short_questions: examMetadata.short_questions,
-                long_questions: examMetadata.long_questions,
-                short_marks: examMetadata.short_marks,
-                long_marks: examMetadata.long_marks,
-                short_answers: shortAnswers,
-                long_answers: longAnswers,
-                or_groups: orGroups  // Include OR groups (empty array if none)
-            };
-
-            console.log('📦 Complete payload to send:', JSON.stringify(payload, null, 2));
-
-            try {
-                const response = await fetch('/api/save-answer-key', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(payload)
-                });
-
-                const result = await response.json();
-                hideLoading();
-
-                if (result.status === 'Success') {
-                    let successMessage = `✅ Answer key saved successfully!\n\n`;
-                    successMessage += `📋 Exam ID: ${result.exam_id}\n`;
-                    successMessage += `💯 Total Marks: ${result.total_marks}\n`;
-                    successMessage += `📝 Questions: ${result.question_count}`;
-
-                    if (orGroups.length > 0) {
-                        successMessage += `\n⚡ OR Groups: ${orGroups.length}`;
-                    }
-
-                    showAlert('success', successMessage);
-
-                    // Store in session for next page
-                    sessionStorage.setItem('latest_exam_id', result.exam_id);
-                    sessionStorage.setItem('exam_class', examMetadata.class_name);
-                    sessionStorage.setItem('exam_subject', examMetadata.subject);
-
-                    // Redirect to batch upload page
-                    // Store exam ID for potential return flow
-
-
-                    const returnToIndividual = sessionStorage.getItem('return_to_individual');
-                    const returnToSeries = sessionStorage.getItem('return_to_series');
-
-                    // Redirect based on where user came from
-                    setTimeout(() => {
-                        if (returnToIndividual === 'true') {
-                            window.location.href = '/upload-individual';
-                        } else if (returnToSeries === 'true') {
-                            window.location.href = '/upload-series';
-                        } else {
-                            // Default: go to series (original behavior)
-                            window.location.href = '/upload-series';
-                        }
-                    }, 2000);
-
-                } else {
-                    showAlert('error', `❌ Save failed: ${result.error}`);
-                }
-            } catch (error) {
-                hideLoading();
-                console.error('💥 Save error:', error);
-                showAlert('error', `❌ Network error: ${error.message}`);
-            }
-        }
-
-        // Validation function for OR groups
-        function validateOrGroups(orGroups) {
-            for (let i = 0; i < orGroups.length; i++) {
-                const group = orGroups[i];
-
-                if (group.type === 'single') {
-                    // Validate single OR questions
-                    if (!group.options || group.options.length !== 2) {
-                        return {
-                            valid: false,
-                            error: `OR Group ${i + 1}: Must have exactly 2 options`
-                        };
-                    }
-
-                    // Check if question numbers are valid
-                    for (let opt of group.options) {
-                        if (!/^\d+$/.test(opt)) {
-                            return {
-                                valid: false,
-                                error: `OR Group ${i + 1}: "${opt}" is not a valid question number`
-                            };
-                        }
-                    }
-
-                    // Check for duplicates within group
-                    if (group.options[0] === group.options[1]) {
-                        return {
-                            valid: false,
-                            error: `OR Group ${i + 1}: Cannot have same question in both options (${group.options[0]})`
-                        };
-                    }
-
-                } else if (group.type === 'pair') {
-                    // Validate pair OR questions
-                    if (!group.option_a || !group.option_b) {
-                        return {
-                            valid: false,
-                            error: `OR Group ${i + 1}: Both pairs must be specified`
-                        };
-                    }
-
-                    if (group.option_a.length === 0 || group.option_b.length === 0) {
-                        return {
-                            valid: false,
-                            error: `OR Group ${i + 1}: Pairs cannot be empty`
-                        };
-                    }
-
-                    // Validate all question numbers in pairs
-                    const allQuestions = [...group.option_a, ...group.option_b];
-                    for (let qNum of allQuestions) {
-                        if (!/^\d+$/.test(qNum)) {
-                            return {
-                                valid: false,
-                                error: `OR Group ${i + 1}: "${qNum}" is not a valid question number`
-                            };
-                        }
-                    }
-
-                    // Check for duplicates within same pair
-                    const pairASet = new Set(group.option_a);
-                    const pairBSet = new Set(group.option_b);
-
-                    if (pairASet.size !== group.option_a.length) {
-                        return {
-                            valid: false,
-                            error: `OR Group ${i + 1}: Pair A has duplicate questions`
-                        };
-                    }
-
-                    if (pairBSet.size !== group.option_b.length) {
-                        return {
-                            valid: false,
-                            error: `OR Group ${i + 1}: Pair B has duplicate questions`
-                        };
-                    }
-                }
-            }
-
-            // Check for overlapping OR groups
-            const allOrQuestions = new Set();
-            for (let group of orGroups) {
-                let questions = [];
-
-                if (group.type === 'single') {
-                    questions = group.options;
-                } else {
-                    questions = [...group.option_a, ...group.option_b];
-                }
-
-                for (let q of questions) {
-                    if (allOrQuestions.has(q)) {
-                        return {
-                            valid: false,
-                            error: `Question ${q} appears in multiple OR groups`
-                        };
-                    }
-                    allOrQuestions.add(q);
-                }
-            }
-
-            return { valid: true };
-        }
-
-        function showLoading(message) {
-            document.getElementById('loading-message').textContent = message;
-            document.getElementById('loading-overlay').classList.add('active');
-        }
-
-        function hideLoading() {
-            document.getElementById('loading-overlay').classList.remove('active');
-        }
-
-        function showAlert(type, message) {
-            const alertDiv = document.createElement('div');
-            alertDiv.className = `alert alert-${type}`;
-            alertDiv.textContent = message;
-
-            const content = document.querySelector('.content');
-            content.insertBefore(alertDiv, content.firstChild);
-
-            setTimeout(() => alertDiv.remove(), 5000);
-        }
-        // =====================================
-        // OR QUESTIONS FUNCTIONALITY
-        // =====================================
-
-        let orGroupCounter = 0;
-
-        function addOrGroup() {
-            orGroupCounter++;
-            const container = document.getElementById('orGroupsContainer');
-
-            const groupDiv = document.createElement('div');
-            groupDiv.id = `orGroup_${orGroupCounter}`;
-            groupDiv.className = 'or-group-item';
-
-            groupDiv.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
-            <div style="flex: 1; margin-right: 15px;">
-                <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">
-                    OR Group Type:
-                </label>
-                <select id="orType_${orGroupCounter}" class="or-type-select" onchange="updateOrGroupFields(${orGroupCounter})">
-                    <option value="single">Single Question (e.g., Q5 OR Q6)</option>
-                    <option value="pair">Question Pair (e.g., Q6,Q7 OR Q8,Q9)</option>
-                </select>
-            </div>
-            <button type="button" class="remove-or-btn" onclick="removeOrGroup(${orGroupCounter})">
-                ✖ Remove
-            </button>
-        </div>
-        
-        <div id="orGroupFields_${orGroupCounter}">
-            <!-- Dynamic fields will be inserted here -->
-        </div>
-    `;
-
-            container.appendChild(groupDiv);
-            updateOrGroupFields(orGroupCounter);
-
-            showAlert('success', '✅ OR group added! Configure the options below.');
-        }
-
-        function updateOrGroupFields(groupId) {
-            const type = document.getElementById(`orType_${groupId}`).value;
-            const fieldsDiv = document.getElementById(`orGroupFields_${groupId}`);
-
+    function collectOrGroups() {
+        const groups = [];
+        document.querySelectorAll('#orGroupsContainer .or-group-item').forEach(div => {
+            const id   = div.id.split('_')[1];
+            const type = document.getElementById('orType_' + id)?.value;
             if (type === 'single') {
-                fieldsDiv.innerHTML = `
-            <div class="or-input-grid">
-                <div>
-                    <label style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 0.9em; color: #555;">
-                        Option A (Question Number):
-                    </label>
-                    <input type="text" 
-                           id="orSingleA_${groupId}" 
-                           class="or-input-field" 
-                           placeholder="5"
-                           pattern="[0-9]+"
-                           title="Enter question number (e.g., 5)">
-                </div>
-                <div>
-                    <label style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 0.9em; color: #555;">
-                        Option B (Question Number):
-                    </label>
-                    <input type="text" 
-                           id="orSingleB_${groupId}" 
-                           class="or-input-field" 
-                           placeholder="6"
-                           pattern="[0-9]+"
-                           title="Enter question number (e.g., 6)">
-                </div>
-            </div>
-            <div class="or-hint">
-                💡 <strong>Example:</strong> Student can answer Q5 OR Q6. System evaluates both (if written) and takes the best score.
-            </div>
-        `;
+                const a = document.getElementById('orSingleA_' + id)?.value.trim();
+                const b = document.getElementById('orSingleB_' + id)?.value.trim();
+                if (a && b) groups.push({ type: 'single', options: [a, b] });
             } else {
-                fieldsDiv.innerHTML = `
-            <div class="or-input-grid">
-                <div>
-                    <label style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 0.9em; color: #555;">
-                        Pair A (comma-separated):
-                    </label>
-                    <input type="text" 
-                           id="orPairA_${groupId}" 
-                           class="or-input-field" 
-                           placeholder="6,7"
-                           pattern="[0-9,\\s]+"
-                           title="Enter question numbers separated by comma (e.g., 6,7)">
-                </div>
-                <div>
-                    <label style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 0.9em; color: #555;">
-                        Pair B (comma-separated):
-                    </label>
-                    <input type="text" 
-                           id="orPairB_${groupId}" 
-                           class="or-input-field" 
-                           placeholder="8,9"
-                           pattern="[0-9,\\s]+"
-                           title="Enter question numbers separated by comma (e.g., 8,9)">
-                </div>
-            </div>
-            <div class="or-hint">
-                💡 <strong>Example:</strong> Student can answer Q6,Q7 OR Q8,Q9. System evaluates all written questions and takes the best pair total.
-            </div>
-        `;
+                const a = document.getElementById('orPairA_' + id)?.value.trim();
+                const b = document.getElementById('orPairB_' + id)?.value.trim();
+                if (a && b) groups.push({ type: 'pair', option_a: a.split(',').map(q => q.trim()), option_b: b.split(',').map(q => q.trim()) });
             }
-        }
-
-        function removeOrGroup(groupId) {
-            const groupDiv = document.getElementById(`orGroup_${groupId}`);
-            if (groupDiv && confirm('Remove this OR group configuration?')) {
-                groupDiv.remove();
-                showAlert('success', '✅ OR group removed.');
-            }
-        }
-
-        function collectOrGroups() {
-            const orGroups = [];
-            const container = document.getElementById('orGroupsContainer');
-
-            if (!container) return orGroups;
-
-            const groups = container.querySelectorAll('.or-group-item');
-
-            groups.forEach(groupDiv => {
-                const groupId = groupDiv.id.split('_')[1];
-                const typeSelect = document.getElementById(`orType_${groupId}`);
-
-                if (!typeSelect) return;
-
-                const type = typeSelect.value;
-
-                if (type === 'single') {
-                    const optionA = document.getElementById(`orSingleA_${groupId}`)?.value.trim();
-                    const optionB = document.getElementById(`orSingleB_${groupId}`)?.value.trim();
-
-                    if (optionA && optionB) {
-                        orGroups.push({
-                            type: 'single',
-                            options: [optionA, optionB]
-                        });
-                        console.log(`Added single OR group: ${optionA} or ${optionB}`);
-                    }
-                } else {
-                    const pairA = document.getElementById(`orPairA_${groupId}`)?.value.trim();
-                    const pairB = document.getElementById(`orPairB_${groupId}`)?.value.trim();
-
-                    if (pairA && pairB) {
-                        orGroups.push({
-                            type: 'pair',
-                            option_a: pairA.split(',').map(q => q.trim()),
-                            option_b: pairB.split(',').map(q => q.trim())
-                        });
-                        console.log(`Added pair OR group: [${pairA}] or [${pairB}]`);
-                    }
-                }
-            });
-
-            return orGroups;
-        }
-    </script>
-</body>
-
-</html>
+        });
+        return groups;
+    }
+</script>

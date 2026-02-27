@@ -1,636 +1,269 @@
-<!DOCTYPE html>
-<html lang="en">
+<%- include('partials/head', { pageTitle: 'Individual Evaluation' }) %>
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Automated Paper Valuator</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 40px;
-            background-color: #f4f7f9;
-            color: #333;
-        }
+<%- include('partials/navbar', { user: user, activePage: 'upload' }) %>
 
-        .container {
-            max-width: 600px;
-            margin: 50px auto;
-            padding: 30px;
-            background-color: #ffffff;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
-
-        h1 {
-            text-align: center;
-            color: #1e88e5;
-            margin-bottom: 30px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-        }
-
-        .button-group {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 25px;
-        }
-
-        button {
-            flex: 1;
-            padding: 12px;
-            background-color: #43a047;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-size: 1.1em;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-
-        button:hover:enabled {
-            background-color: #388e3c;
-        }
-
-        button:disabled {
-            background-color: #9e9e9e;
-            cursor: not-allowed;
-        }
-
-        .add-button {
-            background-color: #1e88e5;
-        }
-
-        .add-button:hover:enabled {
-            background-color: #1565c0;
-        }
-
-        .loading {
-            display: none;
-            text-align: center;
-            color: #1e88e5;
-            margin-top: 20px;
-            font-style: italic;
-        }
-
-        .file-list {
-            margin-top: 15px;
-            margin-bottom: 15px;
-        }
-
-        .file-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 10px;
-            margin-bottom: 8px;
-            background-color: #f5f5f5;
-            border-radius: 6px;
-            border-left: 3px solid #1e88e5;
-        }
-
-        .file-item span {
-            flex-grow: 1;
-            font-size: 0.9em;
-        }
-
-        .file-item .page-number {
-            font-weight: bold;
-            color: #1e88e5;
-            margin-right: 10px;
-            min-width: 70px;
-        }
-
-        .file-item button {
-            width: auto;
-            padding: 5px 10px;
-            font-size: 0.85em;
-            background-color: #e53935;
-            flex: none;
-        }
-
-        .file-item button:hover {
-            background-color: #c62828;
-        }
-
-        .reorder-buttons {
-            display: flex;
-            gap: 5px;
-            margin-right: 10px;
-        }
-
-        .reorder-buttons button {
-            width: 30px;
-            padding: 5px;
-            font-size: 0.9em;
-            background-color: #757575;
-            flex: none;
-        }
-
-        .reorder-buttons button:hover:enabled {
-            background-color: #616161;
-        }
-
-        .note {
-            font-size: 0.9em;
-            color: #757575;
-            margin-top: 15px;
-            border-top: 1px solid #eee;
-            padding-top: 10px;
-        }
-
-        .warning {
-            background-color: #fff3cd;
-            border-left: 4px solid #ffc107;
-            padding: 12px;
-            margin-bottom: 20px;
-            border-radius: 4px;
-            font-size: 0.9em;
-        }
-
-        .warning strong {
-            color: #856404;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 40px 20px;
-            color: #757575;
-            font-style: italic;
-        }
-
-        #hiddenFileInput {
-            display: none;
-        }
-    </style>
-</head>
-
-<body>
+<main class="page-content">
     <div class="container">
-        <h1>Automated Paper Valuator (MVP)</h1>
 
-        <div class="warning">
-            <strong>⚠️ IMPORTANT:</strong> Add pages in the correct order (Page 1, then Page 2, then Page 3, etc.).
+        <!-- Page header -->
+        <div class="header">
+            <div>
+                <h1>📄 Individual Paper Evaluation</h1>
+                <p>Upload student answer sheets for AI-powered evaluation</p>
+            </div>
+            <a href="/" class="btn btn-secondary">← Dashboard</a>
+        </div>
+
+        <!-- Warning -->
+        <div class="warning-banner">
+            ⚠️ <strong>Important:</strong> Add pages in the correct order (Page 1 → Page 2 → Page 3…).
             Use the ↑↓ arrows to reorder if needed.
         </div>
 
-        <!-- Hidden file input -->
-        <input type="file" id="hiddenFileInput" accept="image/jpeg, image/png" multiple style="display: none;">
-        <!-- 🆕 ADD THIS SECTION -->
-        <!-- 🆕 ENHANCED EXAM SELECTOR WITH CREATE OPTION -->
-        <div class="global-header"
-            style="background: #e8f5e9; border: 2px solid #4caf50; padding: 20px; border-radius: 8px; margin-bottom: 25px;">
-            <h3 style="margin-top: 0; color: #2e7d32;">🎯 Select Answer Key</h3>
-            <p style="font-size: 0.9em; color: #666; margin-bottom: 15px;">
+        <!-- Answer Key Selector -->
+        <div class="panel panel--green">
+            <h3>🎯 Select Answer Key</h3>
+            <p style="font-size:0.875rem; color:var(--color-text-2); margin-bottom:1rem;">
                 Choose which exam's answer key to use for evaluation.
             </p>
 
-            <!-- Exam Selector -->
-            <div id="examSelectorContainer">
-                <div style="display: flex; gap: 10px; align-items: center;">
-                    <div style="flex: 1;">
-                        <label style="font-weight: bold; margin-bottom: 8px; display: block;">Select Exam:</label>
-                        <select id="examIdSelect" class="input-box"
-                            style="width: 100%; padding: 10px; border: 2px solid #4caf50; border-radius: 4px; cursor: pointer; font-size: 1em;">
-                            <option value="">-- Select an exam --</option>
-                        </select>
-                    </div>
-                    <div style="padding-top: 28px;">
-                        <button type="button" onclick="goToCreateAnswerKey()" class="btn-create-key"
-                            style="padding: 10px 20px; background: #ff9800; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; white-space: nowrap;">
-                            ➕ Create New
-                        </button>
-                    </div>
+            <div id="examSelectorContainer" class="exam-selector-row">
+                <div>
+                    <label>Select Exam:</label>
+                    <select id="examIdSelect" class="input-box">
+                        <option value="">-- Select an exam --</option>
+                    </select>
                 </div>
+                <button type="button" class="btn btn-secondary" onclick="goToCreateAnswerKey()">
+                    ➕ Create New
+                </button>
             </div>
 
-            <!-- Selected Exam Preview -->
-            <div id="examPreview"
-                style="margin-top: 15px; padding: 12px; background: white; border-radius: 4px; display: none; border-left: 4px solid #4caf50;">
-                <strong style="color: #2e7d32;">Selected Exam:</strong>
-                <div id="examDetails" style="font-size: 0.9em; color: #555; margin-top: 8px;"></div>
+            <div id="examPreview" class="exam-preview">
+                <strong>Selected Exam:</strong>
+                <div id="examDetails" style="margin-top:0.4rem;"></div>
             </div>
 
-            <!-- No Exams Warning (shown if empty) -->
-            <div id="noExamsWarning"
-                style="display: none; margin-top: 15px; padding: 20px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;">
-                <div style="display: flex; align-items: start; gap: 15px;">
-                    <div style="font-size: 2em;">⚠️</div>
-                    <div style="flex: 1;">
-                        <strong style="font-size: 1.1em; display: block; margin-bottom: 8px;">No Answer Keys
-                            Found!</strong>
-                        <p style="margin: 10px 0; color: #666;">
-                            Before evaluating papers, you need to create an answer key first.
-                            This contains the correct answers and marking scheme for your exam.
-                        </p>
-                        <div style="margin-top: 15px;">
-                            <button onclick="goToCreateAnswerKey()"
-                                style="padding: 12px 25px; background: #ff9800; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 1em;">
-                                🔑 Create Answer Key Now →
-                            </button>
-                            <button onclick="window.location.reload()"
-                                style="padding: 12px 25px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 1em; margin-left: 10px;">
-                                🔄 Refresh
-                            </button>
+            <div id="noExamsWarning" class="no-exams-warning">
+                <div class="no-exams-warning__inner">
+                    <div class="no-exams-warning__icon">⚠️</div>
+                    <div>
+                        <h4>No Answer Keys Found!</h4>
+                        <p>Before evaluating papers, you need to create an answer key first.</p>
+                        <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+                            <button class="btn btn-secondary" onclick="goToCreateAnswerKey()">🔑 Create Answer Key →</button>
+                            <button class="btn btn-cancel" onclick="window.location.reload()">🔄 Refresh</button>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <style>
-            .input-box {
-                padding: 10px;
-                border: 2px solid #ddd;
-                border-radius: 4px;
-                font-size: 1em;
-            }
+        <!-- Upload panel -->
+        <div class="section">
 
-            .input-box:focus {
-                outline: none;
-                border-color: #4caf50;
-            }
+            <!-- File controls -->
+            <div class="file-controls">
+                <button type="button" id="addPagesButton" class="btn btn-primary">📄 Add Pages</button>
+                <button type="button" class="btn btn-danger-outline" onclick="clearAll()">🗑️ Clear All</button>
+            </div>
 
-            .input-box:disabled {
-                background: #f5f5f5;
-                cursor: not-allowed;
-            }
+            <!-- Hidden file input -->
+            <input type="file" id="hiddenFileInput" accept="image/jpeg,image/png" multiple style="display:none;">
 
-            .global-header h3 {
-                display: flex;
-                align-items: center;
-                gap: 10px;
-            }
+            <!-- File list -->
+            <div id="fileList" class="file-list"></div>
 
-            .btn-create-key:hover {
-                background: #f57c00;
-                transform: translateY(-1px);
-                box-shadow: 0 2px 8px rgba(255, 152, 0, 0.3);
-                transition: all 0.2s;
-            }
-        </style>
+            <!-- Empty state -->
+            <div id="emptyState" class="empty-state">
+                📂 No pages added yet. Click "Add Pages" to start.
+            </div>
 
-        <style>
-            .input-box {
-                padding: 10px;
-                border: 2px solid #ddd;
-                border-radius: 4px;
-                font-size: 1em;
-            }
-
-            .input-box:focus {
-                outline: none;
-                border-color: #4caf50;
-            }
-
-            .global-header h3 {
-                display: flex;
-                align-items: center;
-                gap: 10px;
-            }
-        </style>
-
-        <div class="button-group">
-            <button type="button" id="addPagesButton" class="add-button">
-                📄 Add Pages
+            <!-- Submit button -->
+            <button type="button" id="submitButton" onclick="submitEvaluation()" style="display:none; margin-top:1rem;">
+                🚀 Start Valuation
             </button>
-            <button type="button" id="clearAllButton" onclick="clearAll()"
-                style="background-color: #e53935; flex: 0.5;">
-                🗑️ Clear All
-            </button>
-        </div>
 
-        <div id="fileList" class="file-list"></div>
+            <!-- Loading bar -->
+            <div id="loadingMessage" class="loading-bar" style="margin-top:1rem;">
+                <div class="spinner"></div>
+                <div>
+                    <p style="margin:0; font-weight:600; color:var(--color-primary);">Processing paper...</p>
+                    <p style="margin:0; font-size:0.8rem; color:var(--color-muted);">This may take a moment for multiple pages.</p>
+                </div>
+            </div>
 
-        <div id="emptyState" class="empty-state">
-            No pages added yet. Click "Add Pages" to start.
-        </div>
+            <!-- How-to note -->
+            <div class="note">
+                <strong>How to use:</strong>
+                <ol>
+                    <li>Select an exam answer key above</li>
+                    <li>Click "Add Pages" and select one or more images</li>
+                    <li>Repeat to add more pages — they'll be appended in order</li>
+                    <li>Use ↑↓ arrows to reorder pages if needed</li>
+                    <li>Click "Start Valuation" when ready</li>
+                </ol>
+                <strong>Note:</strong> Ensure question numbers (Q1, Q2, etc.) are clearly marked on the <strong>left side</strong> of the paper.
+            </div>
 
-        <button type="button" id="submitButton" onclick="submitEvaluation()" style="display: none;">
-            🚀 Start Valuation
-        </button>
-
-        <div id="loadingMessage" class="loading">
-            <p>Processing paper via Google Vision API and Python Engine...</p>
-            <p>This may take longer for multiple pages.</p>
-        </div>
-
-        <div class="note">
-            <strong>How to use:</strong>
-            <ol style="margin: 10px 0; padding-left: 20px;">
-                <li>Click "Add Pages" and select one or more images</li>
-                <li>Repeat to add more pages (they will be appended in order)</li>
-                <li>Use ↑↓ arrows to reorder pages if needed</li>
-                <li>Click "Start Valuation" when ready</li>
-            </ol>
-            <strong>Note:</strong> Ensure question numbers (Q1, Q2, etc.) are clearly marked on the <b>left</b> side of
-            the paper.
         </div>
     </div>
+</main>
 
-    <script>
-        const fileInput = document.getElementById('hiddenFileInput');
-        const fileListDiv = document.getElementById('fileList');
-        const submitButton = document.getElementById('submitButton');
-        const addPagesButton = document.getElementById('addPagesButton');
-        const emptyState = document.getElementById('emptyState');
+<%- include('partials/footer') %>
 
-        // Store files in order
-        let orderedFiles = [];
+<script>
+    const fileInput    = document.getElementById('hiddenFileInput');
+    const fileListDiv  = document.getElementById('fileList');
+    const submitButton = document.getElementById('submitButton');
+    const addPagesBtn  = document.getElementById('addPagesButton');
+    const emptyState   = document.getElementById('emptyState');
 
-        // Trigger file selection when "Add Pages" button is clicked
-        addPagesButton.addEventListener('click', function () {
-            fileInput.click();
-        });
+    let orderedFiles = [];
 
-        // Handle file selection - APPEND new files to existing ones
-        fileInput.addEventListener('change', function (e) {
-            const newFiles = Array.from(e.target.files);
+    addPagesBtn.addEventListener('click', () => fileInput.click());
 
-            if (newFiles.length > 0) {
-                // Append new files to existing array
-                orderedFiles = orderedFiles.concat(newFiles);
-                renderFileList();
-            }
-
-            // Reset input so same file can be selected again if needed
-            fileInput.value = '';
-        });
-
-        function renderFileList() {
-            if (orderedFiles.length === 0) {
-                fileListDiv.innerHTML = '';
-                submitButton.style.display = 'none';
-                emptyState.style.display = 'block';
-                return;
-            }
-
-            emptyState.style.display = 'none';
-            fileListDiv.innerHTML = '';
-
-            orderedFiles.forEach((file, index) => {
-                const fileItem = document.createElement('div');
-                fileItem.className = 'file-item';
-
-                fileItem.innerHTML = `
-                    <span class="page-number">Page ${index + 1}:</span>
-                    <span>${file.name}</span>
-                    <div class="reorder-buttons">
-                        <button type="button" onclick="moveUp(${index})" ${index === 0 ? 'disabled' : ''}>↑</button>
-                        <button type="button" onclick="moveDown(${index})" ${index === orderedFiles.length - 1 ? 'disabled' : ''}>↓</button>
-                    </div>
-                    <button type="button" onclick="removeFile(${index})">Remove</button>
-                `;
-
-                fileListDiv.appendChild(fileItem);
-            });
-
-            submitButton.style.display = 'block';
-        }
-
-        function moveUp(index) {
-            if (index > 0) {
-                [orderedFiles[index], orderedFiles[index - 1]] = [orderedFiles[index - 1], orderedFiles[index]];
-                renderFileList();
-            }
-        }
-
-        function moveDown(index) {
-            if (index < orderedFiles.length - 1) {
-                [orderedFiles[index], orderedFiles[index + 1]] = [orderedFiles[index + 1], orderedFiles[index]];
-                renderFileList();
-            }
-        }
-
-        function removeFile(index) {
-            orderedFiles.splice(index, 1);
+    fileInput.addEventListener('change', function (e) {
+        const newFiles = Array.from(e.target.files);
+        if (newFiles.length > 0) {
+            orderedFiles = orderedFiles.concat(newFiles);
             renderFileList();
         }
+        fileInput.value = '';
+    });
 
-        function clearAll() {
-            if (orderedFiles.length > 0 && confirm('Are you sure you want to clear all pages?')) {
-                orderedFiles = [];
-                renderFileList();
-            }
+    function renderFileList() {
+        if (orderedFiles.length === 0) {
+            fileListDiv.innerHTML = '';
+            submitButton.style.display = 'none';
+            emptyState.style.display = 'block';
+            return;
         }
 
-        function submitEvaluation() {
-            // Validate exam selection
-            const examId = document.getElementById('examIdSelect').value;
-            if (!examId) {
-                alert('⚠️ Please select an exam first!');
-                document.getElementById('examIdSelect').focus();
-                return;
-            }
+        emptyState.style.display = 'none';
+        fileListDiv.innerHTML = orderedFiles.map((file, i) => `
+            <div class="file-item">
+                <span class="page-number">Page ${i + 1}</span>
+                <span>${file.name}</span>
+                <div class="reorder-buttons">
+                    <button type="button" onclick="moveUp(${i})"   ${i === 0 ? 'disabled' : ''}>↑</button>
+                    <button type="button" onclick="moveDown(${i})" ${i === orderedFiles.length - 1 ? 'disabled' : ''}>↓</button>
+                </div>
+                <button type="button" onclick="removeFile(${i})">Remove</button>
+            </div>`).join('');
 
-            if (orderedFiles.length === 0) {
-                alert('Please add at least one page.');
-                return;
-            }
+        submitButton.style.display = 'block';
+    }
 
-            // Create FormData with files in correct order
-            const formData = new FormData();
+    function moveUp(i) {
+        if (i > 0) { [orderedFiles[i], orderedFiles[i-1]] = [orderedFiles[i-1], orderedFiles[i]]; renderFileList(); }
+    }
 
-            // 🆕 ADD EXAM ID
-            formData.append('exam_id', examId);
+    function moveDown(i) {
+        if (i < orderedFiles.length - 1) { [orderedFiles[i], orderedFiles[i+1]] = [orderedFiles[i+1], orderedFiles[i]]; renderFileList(); }
+    }
 
-            orderedFiles.forEach(file => {
-                formData.append('paper_images', file);
+    function removeFile(i) { orderedFiles.splice(i, 1); renderFileList(); }
+
+    function clearAll() {
+        if (orderedFiles.length > 0 && confirm('Clear all pages?')) { orderedFiles = []; renderFileList(); }
+    }
+
+    function submitEvaluation() {
+        const examId = document.getElementById('examIdSelect').value;
+        if (!examId) { alert('⚠️ Please select an exam first!'); document.getElementById('examIdSelect').focus(); return; }
+        if (orderedFiles.length === 0) { alert('Please add at least one page.'); return; }
+
+        const formData = new FormData();
+        formData.append('exam_id', examId);
+        orderedFiles.forEach(file => formData.append('paper_images', file));
+
+        document.getElementById('loadingMessage').style.display = 'flex';
+        submitButton.disabled = true;
+        submitButton.textContent = '⏳ Processing...';
+        addPagesBtn.disabled = true;
+        document.getElementById('examIdSelect').disabled = true;
+
+        fetch('/individualEvaluate', { method: 'POST', body: formData })
+            .then(res => { if (!res.ok) throw new Error('Server error'); return res.text(); })
+            .then(html => { document.open(); document.write(html); document.close(); })
+            .catch(err => {
+                alert('Error: ' + err.message);
+                document.getElementById('loadingMessage').style.display = 'none';
+                submitButton.disabled = false;
+                submitButton.textContent = '🚀 Start Valuation';
+                addPagesBtn.disabled = false;
+                document.getElementById('examIdSelect').disabled = false;
             });
+    }
 
-            // Show loading
-            document.getElementById('loadingMessage').style.display = 'block';
-            submitButton.disabled = true;
-            submitButton.innerText = '⏳ Processing Pages...';
-            addPagesButton.disabled = true;
-            document.getElementById('examIdSelect').disabled = true;
+    // ---- Load exams ----
+    async function loadAvailableExams() {
+        try {
+            const res  = await fetch('/api/list_answer_keys');
+            const data = await res.json();
 
-            // Send to server
-            fetch('/individualEvaluate', {
-                method: 'POST',
-                body: formData
-            })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Server error');
-                    }
-                    return response.text();
-                })
-                .then(html => {
-                    // Replace entire page with results
-                    document.open();
-                    document.write(html);
-                    document.close();
-                })
-                .catch(error => {
-                    alert('Error: ' + error.message);
-                    document.getElementById('loadingMessage').style.display = 'none';
-                    submitButton.disabled = false;
-                    submitButton.innerText = '🚀 Start Valuation';
-                    addPagesButton.disabled = false;
-                    document.getElementById('examIdSelect').disabled = false;
+            const select    = document.getElementById('examIdSelect');
+            const noWarn    = document.getElementById('noExamsWarning');
+            const selectorC = document.getElementById('examSelectorContainer');
+
+            if (data.status === 'Success' && data.answer_keys.length > 0) {
+                data.answer_keys.forEach(exam => {
+                    const opt = document.createElement('option');
+                    opt.value = exam.exam_id;
+                    opt.textContent = exam.exam_name + ' (' + exam.class + ' — ' + exam.subject + ')';
+                    opt.dataset.examName = exam.exam_name;
+                    opt.dataset.class    = exam.class;
+                    opt.dataset.subject  = exam.subject;
+                    select.appendChild(opt);
                 });
-        }
 
-        // ==========================================
-        // LOAD AVAILABLE EXAMS
-        // ==========================================
-        // ==========================================
-        // LOAD AVAILABLE EXAMS (ENHANCED)
-        // ==========================================
-        async function loadAvailableExams() {
-            try {
-                const response = await fetch('/api/list_answer_keys');
-                const data = await response.json();
+                select.addEventListener('change', function () {
+                    const preview = document.getElementById('examPreview');
+                    const details = document.getElementById('examDetails');
+                    if (!this.value) { preview.style.display = 'none'; return; }
+                    const opt = this.options[this.selectedIndex];
+                    details.innerHTML =
+                        '<div><strong>Exam:</strong> ' + opt.dataset.examName + '</div>' +
+                        '<div><strong>Class:</strong> ' + opt.dataset.class + ' &nbsp;|&nbsp; <strong>Subject:</strong> ' + opt.dataset.subject + '</div>';
+                    preview.style.display = 'block';
+                });
 
-                const select = document.getElementById('examIdSelect');
-                const noExamsWarning = document.getElementById('noExamsWarning');
-                const examSelectorContainer = document.getElementById('examSelectorContainer');
+                noWarn.style.display    = 'none';
+                selectorC.style.display = 'flex';
 
-                if (data.status === 'Success' && data.answer_keys.length > 0) {
-                    // ✅ Answer keys exist
-                    data.answer_keys.forEach(exam => {
-                        const option = document.createElement('option');
-                        option.value = exam.exam_id;
-                        option.textContent = `${exam.exam_name} (${exam.class} - ${exam.subject})`;
-                        option.dataset.examName = exam.exam_name;
-                        option.dataset.class = exam.class;
-                        option.dataset.subject = exam.subject;
-                        select.appendChild(option);
-                    });
-
-                    // Hide warning, show selector
-                    noExamsWarning.style.display = 'none';
-                    examSelectorContainer.style.display = 'block';
-
-                    console.log(`✅ Loaded ${data.answer_keys.length} available exams`);
-
-                    // Check if user just created an answer key and came back
-                    const latestExamId = sessionStorage.getItem('latest_exam_id');
-                    if (latestExamId && sessionStorage.getItem('return_to_individual') === 'true') {
-                        // Auto-select the newly created exam
-                        select.value = latestExamId;
-                        select.dispatchEvent(new Event('change'));
-
-                        // Clear session storage
-                        sessionStorage.removeItem('return_to_individual');
-
-                        // Show success message
-                        showSuccessNotification('✅ Answer key loaded! You can now upload papers for evaluation.');
-                    }
-
-                } else {
-                    // ❌ No answer keys found
-                    noExamsWarning.style.display = 'block';
-                    examSelectorContainer.style.display = 'none';
-                    select.disabled = true;
-
-                    // Also disable the submit button
-                    submitButton.style.display = 'none';
-                    addPagesButton.disabled = true;
-
-                    console.log('⚠️ No answer keys found - user must create one first');
+                const latestId = sessionStorage.getItem('latest_exam_id');
+                if (latestId && sessionStorage.getItem('return_to_individual') === 'true') {
+                    select.value = latestId;
+                    select.dispatchEvent(new Event('change'));
+                    sessionStorage.removeItem('return_to_individual');
+                    showToast('✅ Answer key loaded! You can now upload papers for evaluation.');
                 }
-            } catch (error) {
-                console.error('❌ Failed to load exams:', error);
-                alert('Failed to load answer keys. Please refresh the page.');
-            }
-        }
 
-        // ==========================================
-        // SUCCESS NOTIFICATION (HELPER)
-        // ==========================================
-        function showSuccessNotification(message) {
-            const notification = document.createElement('div');
-            notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: #4caf50;
-        color: white;
-        padding: 15px 25px;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-        z-index: 10000;
-        font-weight: 600;
-        animation: slideIn 0.3s ease;
-    `;
-            notification.textContent = message;
-
-            document.body.appendChild(notification);
-
-            setTimeout(() => {
-                notification.style.animation = 'slideOut 0.3s ease';
-                setTimeout(() => notification.remove(), 300);
-            }, 4000);
-        }
-
-        // Add CSS animation
-        const style = document.createElement('style');
-        style.textContent = `
-    @keyframes slideIn {
-        from { transform: translateX(400px); opacity: 0; }
-        to { transform: translateX(0); opacity: 1; }
-    }
-    @keyframes slideOut {
-        from { transform: translateX(0); opacity: 1; }
-        to { transform: translateX(400px); opacity: 0; }
-    }
-`;
-        document.head.appendChild(style);
-
-        // Show exam details when selected
-        document.getElementById('examIdSelect').addEventListener('change', function () {
-            const examId = this.value;
-            const preview = document.getElementById('examPreview');
-            const details = document.getElementById('examDetails');
-
-            if (examId) {
-                const selectedOption = this.options[this.selectedIndex];
-                details.innerHTML = `
-            <div><strong>Exam:</strong> ${selectedOption.dataset.examName}</div>
-            <div style="margin-top: 5px;"><strong>Class:</strong> ${selectedOption.dataset.class} | <strong>Subject:</strong> ${selectedOption.dataset.subject}</div>
-            <div style="margin-top: 5px;"><strong>Exam ID:</strong> ${examId}</div>
-        `;
-                preview.style.display = 'block';
             } else {
-                preview.style.display = 'none';
+                noWarn.style.display    = 'block';
+                selectorC.style.display = 'none';
+                select.disabled         = true;
+                addPagesBtn.disabled    = true;
+                submitButton.style.display = 'none';
             }
-        });
+        } catch (e) { console.error('Failed to load exams:', e); }
+    }
 
-        // Load exams when page loads
-        window.addEventListener('DOMContentLoaded', loadAvailableExams);
+    function goToCreateAnswerKey() {
+        sessionStorage.setItem('return_to_individual', 'true');
+        if (orderedFiles.length > 0 &&
+            !confirm('You have ' + orderedFiles.length + ' page(s) ready. Leaving will lose these files. Continue?')) return;
+        window.location.href = '/answer-key-setup';
+    }
 
-        // ==========================================
-        // NAVIGATION TO ANSWER KEY CREATION
-        // ==========================================
-        function goToCreateAnswerKey() {
-            // Store current state (in case user wants to come back)
-            sessionStorage.setItem('return_to_individual', 'true');
-            sessionStorage.setItem('individual_files_count', orderedFiles.length);
+    function showToast(message) {
+        const t = document.createElement('div');
+        t.className = 'toast';
+        t.textContent = message;
+        document.body.appendChild(t);
+        setTimeout(() => { t.style.animation = 'toastOut 0.3s ease forwards'; setTimeout(() => t.remove(), 300); }, 4000);
+    }
 
-            // Show confirmation if user has already added files
-            if (orderedFiles.length > 0) {
-                const confirmed = confirm(
-                    `⚠️ You have ${orderedFiles.length} page(s) ready to evaluate.\n\n` +
-                    'If you leave now, these files will be lost.\n\n' +
-                    'Do you want to proceed to create an answer key?'
-                );
-
-                if (!confirmed) {
-                    return;
-                }
-            }
-
-            // Navigate to answer key setup
-            window.location.href = '/answer-key-setup';
-        }
-    </script>
-</body>
-
-</html>
+    window.addEventListener('DOMContentLoaded', loadAvailableExams);
+</script>

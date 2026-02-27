@@ -22,8 +22,8 @@ app.set('views', path.join(__dirname, 'src/views'));
 // ==========================================
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
-// ==========================================
+ 
+// ========================================== 
 // STATIC FILES
 // ==========================================
 app.use(express.static(path.join(__dirname, 'src/public')));
@@ -37,7 +37,7 @@ app.use(session(sessionConfig));
 
 // 2. Flash messages
 app.use(flash());
-
+ 
 // 3. Initialize Passport ONCE ONLY
 app.use(passport.initialize());
 
