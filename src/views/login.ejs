@@ -4,170 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Paper Valuation System</title>
-    <style>
-        /* ==========================================
-           RESET & BASE
-           ========================================== */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-
-        /* ==========================================
-           MAIN CARD
-           ========================================== */
-        .auth-card {
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
-            overflow: hidden;
-            width: 100%;
-            max-width: 420px;
-        }
-
-        /* ==========================================
-           HEADER SECTION
-           Top colored section with title
-           ========================================== */
-        .auth-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 40px 30px;
-            text-align: center;
-            color: white;
-        }
-
-        .auth-header .icon {
-            font-size: 3em;
-            margin-bottom: 10px;
-        }
-
-        .auth-header h1 {
-            font-size: 1.8em;
-            font-weight: 700;
-            margin-bottom: 5px;
-        }
-
-        .auth-header p {
-            opacity: 0.85;
-            font-size: 0.95em;
-        }
-
-        /* ==========================================
-           FORM SECTION
-           ========================================== */
-        .auth-body {
-            padding: 40px 35px;
-        }
-
-        /* Error message box - only shown when login fails */
-        .error-box {
-            background: #fff5f5;
-            border: 1px solid #fed7d7;
-            border-left: 4px solid #e53e3e;
-            color: #c53030;
-            padding: 12px 16px;
-            border-radius: 8px;
-            margin-bottom: 25px;
-            font-size: 0.9em;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        /* Individual form group (label + input) */
-        .form-group {
-            margin-bottom: 22px;
-        }
-
-        .form-group label {
-            display: block;
-            font-weight: 600;
-            color: #2d3748;
-            margin-bottom: 8px;
-            font-size: 0.9em;
-        }
-
-        .form-group input {
-            width: 100%;
-            padding: 13px 16px;
-            border: 2px solid #e2e8f0;
-            border-radius: 8px;
-            font-size: 1em;
-            color: #2d3748;
-            transition: border-color 0.2s, box-shadow 0.2s;
-            outline: none;
-        }
-
-        /* Input focus effect */
-        .form-group input:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
-        }
-
-        /* Submit button */
-        .btn-submit {
-            width: 100%;
-            padding: 14px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 1.05em;
-            font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-            margin-top: 5px;
-        }
-
-        .btn-submit:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
-        }
-
-        .btn-submit:active {
-            transform: translateY(0);
-        }
-
-        /* ==========================================
-           FOOTER LINKS
-           ========================================== */
-        .auth-footer {
-            text-align: center;
-            margin-top: 25px;
-            color: #718096;
-            font-size: 0.9em;
-        }
-
-        .auth-footer a {
-            color: #667eea;
-            font-weight: 600;
-            text-decoration: none;
-        }
-
-        .auth-footer a:hover {
-            text-decoration: underline;
-        }
-
-        /* Divider line */
-        .divider {
-            border: none;
-            border-top: 1px solid #e2e8f0;
-            margin: 25px 0;
-        }
-    </style>
+    <link rel="stylesheet" href="/style.css">
 </head>
-<body>
+<body class="auth-page">
 
     <div class="auth-card">
 
@@ -181,24 +20,12 @@
         <!-- Form Body -->
         <div class="auth-body">
 
-            <!--
-                ERROR MESSAGE
-                Only shows when login fails
-                "error" variable comes from auth route:
-                res.render('login', { error: 'message' })
-                If no error, this block is hidden
-            -->
             <% if (messages && messages.error && messages.error.length > 0) { %>
                 <div class="error-box">
                     ⚠️ <%= messages.error[0] %>
                 </div>
             <% } %>
 
-            <!--
-                LOGIN FORM
-                action="/login" → sends to our POST /login route
-                method="POST"   → form data sent in request body
-            -->
             <form action="/login" method="POST">
 
                 <div class="form-group">
@@ -232,7 +59,6 @@
 
             <hr class="divider">
 
-            <!-- Link to registration page -->
             <div class="auth-footer">
                 Don't have an account?
                 <a href="/register">Create one here</a>
