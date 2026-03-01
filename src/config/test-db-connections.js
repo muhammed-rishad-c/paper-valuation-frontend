@@ -16,10 +16,7 @@ const sequelize = new Sequelize(
 async function testConnection() {
   try {
     await sequelize.authenticate();
-    console.log('✅ Database connection successful!');
-    console.log(`   Database: ${process.env.PG_DATABASE}`);
-    console.log(`   Host: ${process.env.PG_HOST}:${process.env.PG_PORT}`);
-    console.log(`   User: ${process.env.PG_USER}`);
+
     await sequelize.close();
   } catch (error) {
     console.error('❌ Database connection failed:');

@@ -3,13 +3,11 @@ const { User, Exam, Question, OrGroup, Submission, StudentAnswer, sequelize } = 
 
 async function testPhase2() {
   try {
-    console.log('🧪 Testing Phase 2 - Database Tables\n');
 
-    // Test connection
     await sequelize.authenticate();
-    console.log('✅ Database connected\n');
 
-    // Check each table exists by counting rows
+
+
     const counts = {
       Users: await User.count(),
       Exams: await Exam.count(),
@@ -21,15 +19,14 @@ async function testPhase2() {
 
     console.log('📊 Tables created (all should show 0 rows):');
     Object.entries(counts).forEach(([table, count]) => {
-      console.log(`   ✅ ${table}: ${count} rows`);
+
     });
 
-    // Test associations work
-    console.log('\n🔗 Testing associations...');
+
     const userWithExams = await User.findOne({
       include: [{ model: Exam, as: 'exams' }]
     });
-    console.log('   ✅ User → Exams association works');
+
 
     const examWithAll = await Exam.findOne({
       include: [
@@ -38,14 +35,7 @@ async function testPhase2() {
         { model: Submission, as: 'submissions' }
       ]
     });
-    console.log('   ✅ Exam → Questions association works');
-    console.log('   ✅ Exam → OrGroups association works');
-    console.log('   ✅ Exam → Submissions association works');
-
-    console.log('\n🎉 Phase 2 Complete!');
-    console.log('   All 6 tables created in database');
-    console.log('   All associations working');
-    console.log('   Ready for Phase 3 (Authentication)!\n');
+   
 
     await sequelize.close();
 
