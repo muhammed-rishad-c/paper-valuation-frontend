@@ -1,223 +1,247 @@
 <%- include('partials/head', { pageTitle: title || 'Valuation Prep' }) %>
 
-<%- include('partials/navbar', { user: user, activePage: 'history' }) %>
+    <%- include('partials/navbar', { user: user, activePage: 'history' }) %>
 
-<main class="page-content">
-    <div class="container">
+        <main class="page-content">
+            <div class="container">
 
-        <!-- Exam header -->
-        <div class="exam-header">
-            <h1><%= examData.exam_metadata.exam_name %></h1>
-            <p>📚 Class: <%= examData.exam_metadata.class %> &nbsp;•&nbsp; Subject: <%= examData.exam_metadata.subject %></p>
-            <p>💯 Total Marks: <%= examData.exam_metadata.total_marks %></p>
-            <div class="exam-header-stats">
-                <div class="exam-header-stat">
-                    <div class="val"><%= examData.students.length %></div>
-                    <div class="lbl">Students</div>
-                </div>
-                <div class="exam-header-stat">
-                    <div class="val"><%= examData.exam_metadata.total_marks %></div>
-                    <div class="lbl">Total Marks</div>
-                </div>
-                <div class="exam-header-stat">
-                    <div class="val"><%= Object.keys(examData.teacher_answers).length %></div>
-                    <div class="lbl">Questions</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Action buttons -->
-        <div class="valuation-actions">
-            <button class="btn btn-valuation" id="startValuationBtn" onclick="startValuation()">
-                🎯 Start AI Valuation for All Students
-            </button>
-            <button class="btn btn-secondary" onclick="exportValuationJSON()">
-                📥 Export Data (JSON)
-            </button>
-        </div>
-
-        <!-- Progress indicator -->
-        <div id="valuationProgress" class="valuation-progress">
-            <h3>⏳ Valuation in Progress...</h3>
-            <p id="progressText">Initializing AI evaluation system...</p>
-            <div class="vp-bar-container">
-                <div id="progressBar" class="vp-bar" style="width:10%;">10%</div>
-            </div>
-        </div>
-
-        <!-- Alert container -->
-        <div id="errorContainer" class="error-container"></div>
-
-        <!-- Results (injected by JS) -->
-        <div id="valuationResults" style="display:none;"></div>
-
-        <!-- Student submissions -->
-        <div class="section" style="margin-top:1.5rem;">
-            <h2 class="section-title">📝 Student Submissions</h2>
-
-            <% examData.students.forEach((student, idx) => { %>
-            <div class="student-submission-card">
-                <div class="student-submission-header">
-                    <span style="font-size:1.25rem;">👤</span>
-                    <h3>Student <%= idx + 1 %>: <%= student.name %> <span style="color:var(--color-muted); font-size:0.85rem;">(Roll: <%= student.roll_no %>)</span></h3>
-                </div>
-
-                <div style="padding:0.75rem 1.5rem;">
-                    <span style="font-size:0.8rem; font-weight:600; text-transform:uppercase; letter-spacing:0.07em; color:var(--color-muted);">Status:</span>
-                    <span style="font-size:0.875rem; font-weight:600; color:var(--color-text); margin-left:0.5rem;"><%= student.valuation_status %></span>
-                </div>
-
-                <% Object.keys(examData.teacher_answers).forEach(qNum => { %>
-                <div class="question-compare-block">
-                    <div class="question-compare-title">
-                        <span class="question-label">Q<%= qNum %></span>
-                        <span class="question-type"><%= examData.question_types[qNum] %></span>
-                        <span style="font-size:0.775rem; color:var(--color-muted);"><%= examData.question_marks[qNum] %> marks</span>
-                    </div>
-                    <div class="question-compare">
-                        <div class="teacher-answer">
-                            <strong>✅ Teacher's Answer:</strong>
-                            <p style="margin-top:0.5rem; font-size:0.85rem; color:var(--color-text-2);">
-                                <%= examData.teacher_answers[qNum] %>
-                            </p>
+                <!-- Exam header -->
+                <div class="exam-header">
+                    <h1>
+                        <%= examData.exam_metadata.exam_name %>
+                    </h1>
+                    <p>📚 Class: <%= examData.exam_metadata.class %> &nbsp;•&nbsp; Subject: <%=
+                                examData.exam_metadata.subject %>
+                    </p>
+                    <p>💯 Total Marks: <%= examData.exam_metadata.total_marks %>
+                    </p>
+                    <div class="exam-header-stats">
+                        <div class="exam-header-stat">
+                            <div class="val">
+                                <%= examData.students.length %>
+                            </div>
+                            <div class="lbl">Students</div>
                         </div>
-                        <div class="student-answer">
-                            <strong>📝 Student's Answer:</strong>
-                            <p style="margin-top:0.5rem; font-size:0.85rem; color:var(--color-text-2);">
-                                <%= student.answers[qNum] || '(No answer provided)' %>
-                            </p>
+                        <div class="exam-header-stat">
+                            <div class="val">
+                                <%= examData.effective_total_marks || examData.exam_metadata.total_marks %>
+                            </div>
+                            <div class="lbl">Total Marks</div>
+                        </div>
+                        <div class="exam-header-stat">
+                            <div class="val">
+                                <%= Object.keys(examData.teacher_answers).length %>
+                            </div>
+                            <div class="lbl">Questions</div>
                         </div>
                     </div>
                 </div>
-                <% }); %>
+
+                <!-- Action buttons -->
+                <div class="valuation-actions">
+                    <button class="btn btn-valuation" id="startValuationBtn" onclick="startValuation()">
+                        🎯 Start AI Valuation for All Students
+                    </button>
+                    <button class="btn btn-secondary" onclick="exportValuationJSON()">
+                        📥 Export Data (JSON)
+                    </button>
+                </div>
+
+                <!-- Progress indicator -->
+                <div id="valuationProgress" class="valuation-progress">
+                    <h3>⏳ Valuation in Progress...</h3>
+                    <p id="progressText">Initializing AI evaluation system...</p>
+                    <div class="vp-bar-container">
+                        <div id="progressBar" class="vp-bar" style="width:10%;">10%</div>
+                    </div>
+                </div>
+
+                <!-- Alert container -->
+                <div id="errorContainer" class="error-container"></div>
+
+                <!-- Results (injected by JS) -->
+                <div id="valuationResults" style="display:none;"></div>
+
+                <!-- Student submissions -->
+                <div class="section" style="margin-top:1.5rem;">
+                    <h2 class="section-title">📝 Student Submissions</h2>
+
+                    <% examData.students.forEach((student, idx)=> { %>
+                        <div class="student-submission-card">
+                            <div class="student-submission-header">
+                                <span style="font-size:1.25rem;">👤</span>
+                                <h3>Student <%= idx + 1 %>: <%= student.name %> <span
+                                                style="color:var(--color-muted); font-size:0.85rem;">(Roll: <%=
+                                                    student.roll_no %>)</span></h3>
+                            </div>
+
+                            <div style="padding:0.75rem 1.5rem;">
+                                <span
+                                    style="font-size:0.8rem; font-weight:600; text-transform:uppercase; letter-spacing:0.07em; color:var(--color-muted);">Status:</span>
+                                <span
+                                    style="font-size:0.875rem; font-weight:600; color:var(--color-text); margin-left:0.5rem;">
+                                    <%= student.valuation_status %>
+                                </span>
+                            </div>
+
+                            <% Object.keys(examData.teacher_answers).forEach(qNum=> { %>
+                                <div class="question-compare-block">
+                                    <div class="question-compare-title">
+                                        <span class="question-label">Q<%= qNum %></span>
+                                        <span class="question-type">
+                                            <%= examData.question_types[qNum] %>
+                                        </span>
+                                        <span style="font-size:0.775rem; color:var(--color-muted);">
+                                            <%= examData.question_marks[qNum] %> marks
+                                        </span>
+                                    </div>
+                                    <div class="question-compare">
+                                        <div class="teacher-answer">
+                                            <strong>✅ Teacher's Answer:</strong>
+                                            <p style="margin-top:0.5rem; font-size:0.85rem; color:var(--color-text-2);">
+                                                <%= examData.teacher_answers[qNum] %>
+                                            </p>
+                                        </div>
+                                        <div class="student-answer">
+                                            <strong>📝 Student's Answer:</strong>
+                                            <p style="margin-top:0.5rem; font-size:0.85rem; color:var(--color-text-2);">
+                                                <%= student.answers[qNum] || '(No answer provided)' %>
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <% }); %>
+                        </div>
+                        <% }); %>
+
+                </div>
             </div>
-            <% }); %>
+        </main>
 
-        </div>
-    </div>
-</main>
+        <%- include('partials/footer') %>
+            <script id="examDataJson" type="application/json">
+            <%- JSON.stringify(examData) %>
+            </script>
 
-<%- include('partials/footer') %>
+            <script>
+                // ============================================
+                // DATA INITIALIZATION
+                // ============================================
+                const valuationData = JSON.parse(document.getElementById('examDataJson').textContent);
+                const examId = valuationData.exam_metadata.exam_id;
 
-<script>
-    // ============================================
-    // DATA INITIALIZATION
-    // ============================================
-    const valuationData = <%- JSON.stringify(examData) %>;
-    const examId = valuationData.exam_metadata.exam_id;
+                console.log('📊 Valuation page loaded for exam:', examId);
+                console.log('👥 Total students:', valuationData.students.length);
 
-    console.log('📊 Valuation page loaded for exam:', examId);
-    console.log('👥 Total students:', valuationData.students.length);
+                // Check for duplicates
+                const rollNumbers = valuationData.students.map(s => s.roll_no);
+                const uniqueRolls = [...new Set(rollNumbers)];
+                if (rollNumbers.length !== uniqueRolls.length) {
+                    console.warn('⚠️ Duplicate roll numbers found!');
+                }
 
-    // Check for duplicates
-    const rollNumbers = valuationData.students.map(s => s.roll_no);
-    const uniqueRolls = [...new Set(rollNumbers)];
-    if (rollNumbers.length !== uniqueRolls.length) {
-        console.warn('⚠️ Duplicate roll numbers found!');
-    }
+                // ============================================
+                // EXPORT
+                // ============================================
+                function exportValuationJSON() {
+                    try {
+                        const blob = new Blob([JSON.stringify(valuationData, null, 2)], { type: 'application/json' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'valuation_' + examId + '_' + Date.now() + '.json';
+                        a.click();
+                        URL.revokeObjectURL(url);
+                        showAlert('success', '✅ Valuation data exported successfully!');
+                    } catch (error) {
+                        showAlert('error', '❌ Failed to export: ' + error.message);
+                    }
+                }
 
-    // ============================================
-    // EXPORT
-    // ============================================
-    function exportValuationJSON() {
-        try {
-            const blob = new Blob([JSON.stringify(valuationData, null, 2)], { type: 'application/json' });
-            const url  = URL.createObjectURL(blob);
-            const a    = document.createElement('a');
-            a.href = url;
-            a.download = 'valuation_' + examId + '_' + Date.now() + '.json';
-            a.click();
-            URL.revokeObjectURL(url);
-            showAlert('success', '✅ Valuation data exported successfully!');
-        } catch (error) {
-            showAlert('error', '❌ Failed to export: ' + error.message);
-        }
-    }
+                // ============================================
+                // VALUATION PROCESS
+                // ============================================
+                async function startValuation() {
+                    const progressDiv = document.getElementById('valuationProgress');
+                    const resultsDiv = document.getElementById('valuationResults');
+                    const startBtn = document.getElementById('startValuationBtn');
 
-    // ============================================
-    // VALUATION PROCESS
-    // ============================================
-    async function startValuation() {
-        const progressDiv  = document.getElementById('valuationProgress');
-        const resultsDiv   = document.getElementById('valuationResults');
-        const startBtn     = document.getElementById('startValuationBtn');
+                    startBtn.disabled = true;
+                    startBtn.textContent = '⏳ Processing...';
+                    progressDiv.style.display = 'block';
+                    resultsDiv.style.display = 'none';
+                    clearErrors();
 
-        startBtn.disabled = true;
-        startBtn.textContent = '⏳ Processing...';
-        progressDiv.style.display = 'block';
-        resultsDiv.style.display = 'none';
-        clearErrors();
+                    try {
+                        updateProgress(20, 'Sending request to AI evaluation system...');
 
-        try {
-            updateProgress(20, 'Sending request to AI evaluation system...');
+                        const response = await fetch('/api/evaluate_exam/' + examId, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' }
+                        });
 
-            const response = await fetch('/api/evaluate_exam/' + examId, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' }
-            });
+                        if (!response.ok) {
+                            const errorText = await response.text();
+                            throw new Error('Server error (' + response.status + '): ' + errorText);
+                        }
 
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error('Server error (' + response.status + '): ' + errorText);
-            }
+                        updateProgress(60, 'AI is analyzing student answers...');
 
-            updateProgress(60, 'AI is analyzing student answers...');
+                        const result = await response.json();
 
-            const result = await response.json();
+                        if (result.status === 'Success') {
+                            updateProgress(100, 'Valuation complete! Preparing results...');
+                            setTimeout(() => {
+                                displayValuationResults(result);
+                                progressDiv.style.display = 'none';
+                                startBtn.disabled = false;
+                                startBtn.textContent = '🎯 Start AI Valuation for All Students';
+                            }, 500);
+                        } else {
+                            throw new Error(result.error || 'Valuation failed');
+                        }
 
-            if (result.status === 'Success') {
-                updateProgress(100, 'Valuation complete! Preparing results...');
-                setTimeout(() => {
-                    displayValuationResults(result);
-                    progressDiv.style.display = 'none';
-                    startBtn.disabled = false;
-                    startBtn.textContent = '🎯 Start AI Valuation for All Students';
-                }, 500);
-            } else {
-                throw new Error(result.error || 'Valuation failed');
-            }
+                    } catch (error) {
+                        console.error('Valuation error:', error);
+                        progressDiv.style.display = 'none';
+                        startBtn.disabled = false;
+                        startBtn.textContent = '🎯 Start AI Valuation for All Students';
+                        showAlert('error', '❌ Valuation Failed: ' + error.message);
+                    }
+                }
 
-        } catch (error) {
-            console.error('Valuation error:', error);
-            progressDiv.style.display = 'none';
-            startBtn.disabled = false;
-            startBtn.textContent = '🎯 Start AI Valuation for All Students';
-            showAlert('error', '❌ Valuation Failed: ' + error.message);
-        }
-    }
+                function updateProgress(percentage, message) {
+                    const bar = document.getElementById('progressBar');
+                    const text = document.getElementById('progressText');
+                    if (bar) { bar.style.width = percentage + '%'; bar.textContent = percentage + '%'; }
+                    if (text) { text.textContent = message; }
+                }
 
-    function updateProgress(percentage, message) {
-        const bar  = document.getElementById('progressBar');
-        const text = document.getElementById('progressText');
-        if (bar)  { bar.style.width = percentage + '%'; bar.textContent = percentage + '%'; }
-        if (text) { text.textContent = message; }
-    }
+                // ============================================
+                // RESULTS DISPLAY
+                // ============================================
+                function displayValuationResults(data) {
+                    const resultsDiv = document.getElementById('valuationResults');
+                    resultsDiv.style.display = 'block';
+                    resultsDiv.innerHTML = buildResultsHTML(data);
+                    resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    showAlert('success', '✅ AI Valuation completed successfully!');
 
-    // ============================================
-    // RESULTS DISPLAY
-    // ============================================
-    function displayValuationResults(data) {
-        const resultsDiv = document.getElementById('valuationResults');
-        resultsDiv.style.display = 'block';
-        resultsDiv.innerHTML = buildResultsHTML(data);
-        resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        showAlert('success', '✅ AI Valuation completed successfully!');
+                    // Animate progress bars
+                    requestAnimationFrame(() => {
+                        setTimeout(() => {
+                            resultsDiv.querySelectorAll('.mini-q-fill, .progress-bar').forEach(bar => {
+                                const w = bar.dataset.width;
+                                if (w) { bar.style.width = '0%'; setTimeout(() => bar.style.width = w, 80); }
+                            });
+                        }, 100);
+                    });
+                }
 
-        // Animate progress bars
-        requestAnimationFrame(() => {
-            setTimeout(() => {
-                resultsDiv.querySelectorAll('.mini-q-fill, .progress-bar').forEach(bar => {
-                    const w = bar.dataset.width;
-                    if (w) { bar.style.width = '0%'; setTimeout(() => bar.style.width = w, 80); }
-                });
-            }, 100);
-        });
-    }
+                function buildResultsHTML(data) {
+                    const html = [];
 
-    function buildResultsHTML(data) {
-        const html = [];
-
-        html.push(`
+                    html.push(`
             <div class="valuation-summary">
                 <h2>✅ AI Valuation Complete!</h2>
                 <div class="vs-stats">
@@ -230,7 +254,7 @@
                         <div class="lbl">Successfully Evaluated</div>
                     </div>
                     <div class="vs-stat">
-                        <div class="val" style="color:#fca5a5;">${data.evaluation_failed}</div>
+                        <div class="val" style="color:#fca5a5;">${data.results.filter(r => r.status === 'Success' && r.result === 'Fail').length}</div>
                         <div class="lbl">Failed</div>
                     </div>
                 </div>
@@ -238,34 +262,34 @@
             <h2 class="section-title">📊 Individual Student Results</h2>
         `);
 
-        const sorted = [...data.results].sort((a, b) => {
-            if (a.status === 'Success' && b.status === 'Success') {
-                return b.total_marks_obtained - a.total_marks_obtained;
-            }
-            return 0;
-        });
+                    const sorted = [...data.results].sort((a, b) => {
+                        if (a.status === 'Success' && b.status === 'Success') {
+                            return b.total_marks_obtained - a.total_marks_obtained;
+                        }
+                        return 0;
+                    });
 
-        sorted.forEach((student, idx) => {
-            if (student.status === 'Success') {
-                html.push(buildStudentCard(student, idx));
-            } else {
-                html.push(buildErrorCard(student));
-            }
-        });
+                    sorted.forEach((student, idx) => {
+                        if (student.status === 'Success') {
+                            html.push(buildStudentCard(student, idx));
+                        } else {
+                            html.push(buildErrorCard(student));
+                        }
+                    });
 
-        return html.join('');
-    }
+                    return html.join('');
+                }
 
-    function buildStudentCard(student, idx) {
-        const ranks    = ['🥇', '🥈', '🥉'];
-        const rank     = idx < 3 ? ranks[idx] : '#' + (idx + 1);
-        const isPassing = student.result === 'Pass';
+                function buildStudentCard(student, idx) {
+                    const ranks = ['🥇', '🥈', '🥉'];
+                    const rank = idx < 3 ? ranks[idx] : '#' + (idx + 1);
+                    const isPassing = student.result === 'Pass';
 
-        // Build question bars
-        const qBars = Object.entries(student.marks_breakdown).map(([qLabel, q]) => {
-            const pct      = Math.round((q.marks_obtained / q.max_marks) * 100);
-            const color    = pct >= 70 ? '#22c55e' : pct >= 40 ? '#fb923c' : '#ef4444';
-            return `
+                    // Build question bars
+                    const qBars = Object.entries(student.marks_breakdown).map(([qLabel, q]) => {
+                        const pct = Math.round((q.marks_obtained / q.max_marks) * 100);
+                        const color = pct >= 70 ? '#22c55e' : pct >= 40 ? '#fb923c' : '#ef4444';
+                        return `
                 <div class="mini-q-bar">
                     <span class="mini-q-label">${qLabel}</span>
                     <div class="mini-q-progress">
@@ -273,9 +297,9 @@
                     </div>
                     <span class="mini-q-score">${q.marks_obtained}/${q.max_marks}</span>
                 </div>`;
-        }).join('');
+                    }).join('');
 
-        return `
+                    return `
             <div class="student-result-card">
                 <div class="student-result-header">
                     <span class="student-rank">${rank}</span>
@@ -308,30 +332,30 @@
                     </details>
                 </div>
             </div>`;
-    }
+                }
 
-    function buildErrorCard(student) {
-        return `
+                function buildErrorCard(student) {
+                    return `
             <div class="student-error-card">
                 <h4>❌ Roll No: ${student.roll_no} — Evaluation Failed</h4>
                 <p>Error: ${student.error}</p>
             </div>`;
-    }
+                }
 
-    // ============================================
-    // UTILITIES
-    // ============================================
-    function showAlert(type, message) {
-        const container = document.getElementById('errorContainer');
-        const div       = document.createElement('div');
-        div.className   = 'alert alert-' + (type === 'success' ? 'success' : 'error');
-        div.textContent = message;
-        container.innerHTML = '';
-        container.appendChild(div);
-        if (type !== 'info') setTimeout(() => div.remove(), 5000);
-    }
+                // ============================================
+                // UTILITIES
+                // ============================================
+                function showAlert(type, message) {
+                    const container = document.getElementById('errorContainer');
+                    const div = document.createElement('div');
+                    div.className = 'alert alert-' + (type === 'success' ? 'success' : 'error');
+                    div.textContent = message;
+                    container.innerHTML = '';
+                    container.appendChild(div);
+                    if (type !== 'info') setTimeout(() => div.remove(), 5000);
+                }
 
-    function clearErrors() {
-        document.getElementById('errorContainer').innerHTML = '';
-    }
-</script>
+                function clearErrors() {
+                    document.getElementById('errorContainer').innerHTML = '';
+                }
+            </script>

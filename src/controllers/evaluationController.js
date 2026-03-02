@@ -1198,6 +1198,7 @@ exports.getValuationPrep = async (req, res) => {
             question_types: {},
             question_marks: {},
             teacher_answers: {},
+            or_groups: [],
             students: []
         };
 
@@ -1206,6 +1207,27 @@ exports.getValuationPrep = async (req, res) => {
             examData.question_marks[q.question_number] = q.max_marks;
             examData.teacher_answers[`Q${q.question_number}`] = q.teacher_answer;
         });
+
+        // Build or_groups
+        examData.or_groups = exam.or_groups.map(g => ({
+            type: g.group_type,
+            options: JSON.parse(g.option_a),
+            option_b: g.option_b ? JSON.parse(g.option_b) : []
+        }));
+
+        // Calculate effective total marks (excluding duplicate OR questions)
+        const orQuestions = new Set();
+        examData.or_groups.forEach(g => {
+            if (g.type === 'single') {
+                orQuestions.add(g.options[1].toString());
+            } else if (g.type === 'pair') {
+                g.option_b.forEach(q => orQuestions.add(q.toString()));
+            }
+        });
+
+        examData.effective_total_marks = Object.entries(examData.question_marks)
+            .filter(([qNum]) => !orQuestions.has(qNum.toString()))
+            .reduce((sum, [, marks]) => sum + marks, 0);
 
         exam.submissions.forEach(submission => {
             const studentAnswers = {};
