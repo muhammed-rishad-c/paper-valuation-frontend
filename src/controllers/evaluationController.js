@@ -1081,7 +1081,7 @@ exports.postEvaluateSeriesBatch = async (req, res) => {
 
             if (studentResult && studentResult.status === 'Success' && exam_id) {
                 try {
-                    const extractedRollNo = studentResult.student_info.roll_no;
+                    const extractedRollNo = roll_no || studentResult.student_info.roll_no;
                     const extractedName = studentResult.student_info.name || 'Unknown';
 
                     const existingSubmission = await Submission.findOne({
