@@ -1215,7 +1215,7 @@ exports.getValuationPrep = async (req, res) => {
             option_b: g.option_b ? JSON.parse(g.option_b) : []
         }));
 
-        // Calculate effective total marks (excluding duplicate OR questions)
+        
         const orQuestions = new Set();
         examData.or_groups.forEach(g => {
             if (g.type === 'single') {
