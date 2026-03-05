@@ -1,418 +1,740 @@
 <%- include('partials/head', { pageTitle: 'Answer Key Setup' }) %>
 
-<%- include('partials/navbar', { user: user, activePage: 'answer-key' }) %>
+    <%- include('partials/navbar', { user: user, activePage: 'answer-key' }) %>
 
-<main class="page-content">
-    <div class="container">
+        <main class="page-content">
+            <div class="container">
 
-        <!-- Page Title -->
-        <div class="header">
-            <div>
-                <h1>🔑 Answer Key Setup</h1>
-                <p>Configure your exam answer key in 3 easy steps</p>
-            </div>
-            <a href="/" class="btn btn-secondary">← Back to Dashboard</a>
-        </div>
-
-        <!-- Progress Bar -->
-        <div class="progress-bar">
-            <div class="progress-step active" data-step="1">
-                <div class="step-circle">1</div>
-                <div class="step-label">Exam Details</div>
-            </div>
-            <div class="progress-step" data-step="2">
-                <div class="step-circle">2</div>
-                <div class="step-label">Short Answers</div>
-            </div>
-            <div class="progress-step" data-step="3">
-                <div class="step-circle">3</div>
-                <div class="step-label">Long Answers</div>
-            </div>
-        </div>
-
-        <!-- Step Content -->
-        <div class="section content">
-
-            <!-- STEP 1: Exam Metadata -->
-            <div class="step-section active" id="step1">
-                <h2>📋 Step 1: Exam Information</h2>
-
-                <div class="info-box">
-                    <strong>ℹ️ Instructions:</strong> Fill in the basic exam details and specify which questions are
-                    short answers vs long answers with their marks.
+                <!-- Page Title -->
+                <div class="header">
+                    <div>
+                        <h1>🔑 Answer Key Setup</h1>
+                        <p>Configure your exam answer key in 3 easy steps</p>
+                    </div>
+                    <a href="/" class="btn btn-secondary">← Back to Dashboard</a>
                 </div>
 
-                <form id="metadata-form">
-                    <div class="form-group">
-                        <label for="exam-name">Exam Name *</label>
-                        <input type="text" id="exam-name" name="exam_name"
-                            placeholder="e.g., Mathematics Mid-Term 2025" required>
-                        <small>Give this answer key a unique, descriptive name</small>
+                <!-- Progress Bar -->
+                <div class="progress-bar">
+                    <div class="progress-step active" data-step="1">
+                        <div class="step-circle">1</div>
+                        <div class="step-label">Exam Details</div>
+                    </div>
+                    <div class="progress-step" data-step="2">
+                        <div class="step-circle">2</div>
+                        <div class="step-label">Short Answers</div>
+                    </div>
+                    <div class="progress-step" data-step="3">
+                        <div class="step-circle">3</div>
+                        <div class="step-label">Long Answers</div>
+                    </div>
+                </div>
+
+                <!-- Step Content -->
+                <div class="section content">
+
+                    <!-- STEP 1: Exam Metadata -->
+                    <div class="step-section active" id="step1">
+                        <h2>📋 Step 1: Exam Information</h2>
+
+                        <div class="info-box">
+                            <strong>ℹ️ Instructions:</strong> Fill in the basic exam details and specify which questions
+                            are
+                            short answers vs long answers with their marks.
+                        </div>
+
+                        <form id="metadata-form">
+                            <div class="form-group">
+                                <label for="exam-name">Exam Name *</label>
+                                <input type="text" id="exam-name" name="exam_name"
+                                    placeholder="e.g., Mathematics Mid-Term 2025" required>
+                                <small>Give this answer key a unique, descriptive name</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="class-name">Class *</label>
+                                <input type="text" id="class-name" name="class_name" placeholder="e.g., S5" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="subject">Subject *</label>
+                                <input type="text" id="subject" name="subject" placeholder="e.g., Mathematics" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="short-questions">Short Answer Questions *</label>
+                                <input type="text" id="short-questions" name="short_questions"
+                                    placeholder="e.g., 1-10 or 1,2,3,4,5" required>
+                                <small>Use ranges (1-10) or comma-separated (1,2,3).</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="short-marks">Marks for Short Questions *</label>
+                                <input type="text" id="short-marks" name="short_marks" placeholder="e.g., 2 or 2,2,3"
+                                    required>
+                                <small>Single number for uniform marks or comma-separated for individual marks</small>
+                                <div class="marks-example">
+                                    <strong>Examples:</strong><br>
+                                    • Questions 1-3, Marks "2" → Q1=2, Q2=2, Q3=2<br>
+                                    • Questions 1-3, Marks "2,2,3" → Q1=2, Q2=2, Q3=3
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="long-questions">Long Answer Questions *</label>
+                                <input type="text" id="long-questions" name="long_questions"
+                                    placeholder="e.g., 11-20 or 11,12,13" required>
+                                <small>Use ranges (11-20) or comma-separated (11,12,13).</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="long-marks">Marks for Long Questions *</label>
+                                <input type="text" id="long-marks" name="long_marks" placeholder="e.g., 8 or 7,10,8"
+                                    required>
+                                <small>Single number for uniform marks or comma-separated for individual marks</small>
+                                <div class="marks-example">
+                                    <strong>Examples:</strong><br>
+                                    • Questions 4-5, Marks "8" → Q4=8, Q5=8<br>
+                                    • Questions 4-5, Marks "7,10" → Q4=7, Q5=10
+                                </div>
+                            </div>
+
+                            <!-- OR Questions Section -->
+                            <div class="form-group"
+                                style="background:#fff3e0; padding:1.25rem; border-radius:var(--r-lg); border:2px solid #ffb74d; margin-top:1.5rem;">
+                                <h3 style="margin-top:0; color:#e65100; margin-bottom:1rem;">⚡ OR Questions
+                                    Configuration <span
+                                        style="font-size:0.8rem; font-weight:400; color:#bf360c;">(Optional)</span></h3>
+                                <div class="warning-box" style="margin-bottom:1rem;">
+                                    <strong>📌 What are OR Questions?</strong><br>
+                                    Questions where students choose between options. System evaluates all written
+                                    answers and takes the best score.<br><br>
+                                    <strong>Examples:</strong><br>
+                                    • <strong>Single:</strong> Q5 OR Q6 — student writes one, best score counted<br>
+                                    • <strong>Pair:</strong> Q6,Q7 OR Q8,Q9 — student writes one pair, best total
+                                    counted
+                                </div>
+
+                                <div id="orGroupsContainer"></div>
+
+                                <button type="button" class="btn btn-primary" onclick="addOrGroup()"
+                                    style="margin-top:0.5rem;">
+                                    ➕ Add OR Group
+                                </button>
+                            </div>
+
+                            <div class="button-group">
+                                <a href="/" class="btn btn-secondary">← Back to Home</a>
+                                <button type="button" class="btn btn-primary" onclick="goToStep2()">
+                                    Next: Upload Short Answers →
+                                </button>
+                            </div>
+                        </form>
                     </div>
 
-                    <div class="form-group">
-                        <label for="class-name">Class *</label>
-                        <input type="text" id="class-name" name="class_name" placeholder="e.g., S5" required>
-                    </div>
+                    <!-- STEP 2: Short Answer Upload -->
+                    <!-- STEP 2: Short Answer Upload -->
+                    <div class="step-section" id="step2">
+                        <h2>📝 Step 2: Short Answer Key</h2>
 
-                    <div class="form-group">
-                        <label for="subject">Subject *</label>
-                        <input type="text" id="subject" name="subject" placeholder="e.g., Mathematics" required>
-                    </div>
+                        <div class="info-box">
+                            <strong>ℹ️ Instructions:</strong> Choose how you want to provide short answers - upload an
+                            image for OCR extraction, or enter answers manually.
+                        </div>
 
-                    <div class="form-group">
-                        <label for="short-questions">Short Answer Questions *</label>
-                        <input type="text" id="short-questions" name="short_questions"
-                            placeholder="e.g., 1-10 or 1,2,3,4,5" required>
-                        <small>Use ranges (1-10) or comma-separated (1,2,3).</small>
-                    </div>
+                        <!-- Input Method Selection -->
+                        <div class="input-method-section">
+                            <h3>How would you like to provide SHORT answers?</h3>
+                            <div class="method-choice">
+                                <label class="method-option">
+                                    <input type="radio" name="short_input_method" value="image" checked
+                                        onchange="toggleShortInputMethod()">
+                                    <div class="method-option-content">
+                                        <div class="method-option-title">📤 Upload Image (OCR Extraction)</div>
+                                        <div class="method-option-desc">Upload a photo of your answer key and let AI
+                                            extract the text automatically</div>
+                                    </div>
+                                </label>
+                                <label class="method-option">
+                                    <input type="radio" name="short_input_method" value="manual"
+                                        onchange="toggleShortInputMethod()">
+                                    <div class="method-option-content">
+                                        <div class="method-option-title">⌨️ Enter Manually</div>
+                                        <div class="method-option-desc">Type or paste answers directly - faster for
+                                            typed answer keys</div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
 
-                    <div class="form-group">
-                        <label for="short-marks">Marks for Short Questions *</label>
-                        <input type="text" id="short-marks" name="short_marks" placeholder="e.g., 2 or 2,2,3" required>
-                        <small>Single number for uniform marks or comma-separated for individual marks</small>
-                        <div class="marks-example">
-                            <strong>Examples:</strong><br>
-                            • Questions 1-3, Marks "2" → Q1=2, Q2=2, Q3=2<br>
-                            • Questions 1-3, Marks "2,2,3" → Q1=2, Q2=2, Q3=3
+                        <!-- Image Upload Section -->
+                        <div id="short-upload-section">
+                            <div class="upload-area" id="short-upload-area"
+                                onclick="document.getElementById('short-file-input').click()">
+                                <div class="upload-icon">📤</div>
+                                <div class="upload-text">Click to upload or drag and drop</div>
+                                <div class="upload-subtext">PNG, JPG up to 10MB</div>
+                            </div>
+                            <input type="file" id="short-file-input" accept="image/*" style="display:none;">
+                            <div class="extracted-answers" id="short-answers-container"></div>
+                        </div>
+
+                        <!-- Manual Entry Section -->
+                        <div id="short-manual-section" class="manual-entry-container">
+                            <div id="short-manual-container">
+                                <!-- Dynamic form will be generated here -->
+                            </div>
+                        </div>
+
+                        <div class="button-group">
+                            <button type="button" class="btn btn-secondary" onclick="goToStep1()">← Back</button>
+                            <button type="button" class="btn btn-primary" onclick="goToStep3()">
+                                Next: Long Answers →
+                            </button>
                         </div>
                     </div>
 
-                    <div class="form-group">
-                        <label for="long-questions">Long Answer Questions *</label>
-                        <input type="text" id="long-questions" name="long_questions"
-                            placeholder="e.g., 11-20 or 11,12,13" required>
-                        <small>Use ranges (11-20) or comma-separated (11,12,13).</small>
-                    </div>
+                    <!-- STEP 3: Long Answer Upload -->
+                    <!-- STEP 3: Long Answer Upload -->
+                    <div class="step-section" id="step3">
+                        <h2>📖 Step 3: Long Answer Key</h2>
 
-                    <div class="form-group">
-                        <label for="long-marks">Marks for Long Questions *</label>
-                        <input type="text" id="long-marks" name="long_marks" placeholder="e.g., 8 or 7,10,8" required>
-                        <small>Single number for uniform marks or comma-separated for individual marks</small>
-                        <div class="marks-example">
-                            <strong>Examples:</strong><br>
-                            • Questions 4-5, Marks "8" → Q4=8, Q5=8<br>
-                            • Questions 4-5, Marks "7,10" → Q4=7, Q5=10
+                        <div class="info-box">
+                            <strong>ℹ️ Instructions:</strong> Choose how you want to provide long answers - upload an
+                            image for OCR extraction, or enter answers manually.
+                        </div>
+
+                        <!-- Input Method Selection -->
+                        <div class="input-method-section">
+                            <h3>How would you like to provide LONG answers?</h3>
+                            <div class="method-choice">
+                                <label class="method-option">
+                                    <input type="radio" name="long_input_method" value="image" checked
+                                        onchange="toggleLongInputMethod()">
+                                    <div class="method-option-content">
+                                        <div class="method-option-title">📤 Upload Image (OCR Extraction)</div>
+                                        <div class="method-option-desc">Upload a photo of your answer key and let AI
+                                            extract the text automatically</div>
+                                    </div>
+                                </label>
+                                <label class="method-option">
+                                    <input type="radio" name="long_input_method" value="manual"
+                                        onchange="toggleLongInputMethod()">
+                                    <div class="method-option-content">
+                                        <div class="method-option-title">⌨️ Enter Manually</div>
+                                        <div class="method-option-desc">Type or paste answers directly - formatting will
+                                            be preserved</div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Image Upload Section -->
+                        <div id="long-upload-section">
+                            <div class="upload-area" id="long-upload-area"
+                                onclick="document.getElementById('long-file-input').click()">
+                                <div class="upload-icon">📤</div>
+                                <div class="upload-text">Click to upload or drag and drop</div>
+                                <div class="upload-subtext">PNG, JPG up to 10MB</div>
+                            </div>
+                            <input type="file" id="long-file-input" accept="image/*" style="display:none;">
+                            <div class="extracted-answers" id="long-answers-container"></div>
+                        </div>
+
+                        <!-- Manual Entry Section -->
+                        <div id="long-manual-section" class="manual-entry-container">
+                            <div id="long-manual-container">
+                                <!-- Dynamic form will be generated here -->
+                            </div>
+                        </div>
+
+                        <div class="button-group">
+                            <button type="button" class="btn btn-secondary" onclick="goToStep2()">← Back</button>
+                            <button type="button" class="btn btn-primary" onclick="showPreview()">
+                                👁️ Preview Answer Key
+                            </button>
                         </div>
                     </div>
 
-                    <!-- OR Questions Section -->
-                    <div class="form-group" style="background:#fff3e0; padding:1.25rem; border-radius:var(--r-lg); border:2px solid #ffb74d; margin-top:1.5rem;">
-                        <h3 style="margin-top:0; color:#e65100; margin-bottom:1rem;">⚡ OR Questions Configuration <span style="font-size:0.8rem; font-weight:400; color:#bf360c;">(Optional)</span></h3>
-                        <div class="warning-box" style="margin-bottom:1rem;">
-                            <strong>📌 What are OR Questions?</strong><br>
-                            Questions where students choose between options. System evaluates all written answers and takes the best score.<br><br>
-                            <strong>Examples:</strong><br>
-                            • <strong>Single:</strong> Q5 OR Q6 — student writes one, best score counted<br>
-                            • <strong>Pair:</strong> Q6,Q7 OR Q8,Q9 — student writes one pair, best total counted
-                        </div>
+                </div><!-- /.section.content -->
+            </div><!-- /.container -->
+        </main>
 
-                        <div id="orGroupsContainer"></div>
-
-                        <button type="button" class="btn btn-primary" onclick="addOrGroup()" style="margin-top:0.5rem;">
-                            ➕ Add OR Group
-                        </button>
-                    </div>
-
-                    <div class="button-group">
-                        <a href="/" class="btn btn-secondary">← Back to Home</a>
-                        <button type="button" class="btn btn-primary" onclick="goToStep2()">
-                            Next: Upload Short Answers →
-                        </button>
-                    </div>
-                </form>
-            </div>
-
-            <!-- STEP 2: Short Answer Upload -->
-            <div class="step-section" id="step2">
-                <h2>📝 Step 2: Upload Short Answer Key</h2>
-
-                <div class="info-box">
-                    <strong>ℹ️ Instructions:</strong> Upload images of your short answer key pages.
-                    The system will extract text in real-time for you to review and edit.
+        <!-- Preview Modal -->
+        <div class="preview-overlay" id="preview-overlay">
+            <div class="preview-modal">
+                <div class="preview-header">
+                    <h2>👁️ Preview Answer Key</h2>
+                    <button class="preview-close" onclick="closePreview()">✕</button>
                 </div>
 
-                <div class="upload-area" id="short-upload-area"
-                    onclick="document.getElementById('short-file-input').click()">
-                    <div class="upload-icon">📤</div>
-                    <div class="upload-text">Click to upload or drag and drop</div>
-                    <div class="upload-subtext">PNG, JPG up to 10MB</div>
+                <div class="preview-content" id="preview-content">
+                    <!-- Preview content will be generated here -->
                 </div>
-                <input type="file" id="short-file-input" accept="image/*" style="display:none;">
 
-                <div class="extracted-answers" id="short-answers-container"></div>
-
-                <div class="button-group">
-                    <button type="button" class="btn btn-secondary" onclick="goToStep1()">← Back</button>
-                    <button type="button" class="btn btn-primary" onclick="goToStep3()">
-                        Next: Upload Long Answers →
+                <div class="preview-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closePreview()">
+                        ← Edit Answers
+                    </button>
+                    <button type="button" class="btn btn-success" onclick="confirmAndSave()">
+                        💾 Confirm & Save
                     </button>
                 </div>
             </div>
+        </div>
 
-            <!-- STEP 3: Long Answer Upload -->
-            <div class="step-section" id="step3">
-                <h2>📖 Step 3: Upload Long Answer Key</h2>
+        <!-- Loading Overlay -->
+        <div class="loading-overlay" id="loading-overlay">
+            <div class="loading-content">
+                <div class="spinner"></div>
+                <h3>Processing...</h3>
+                <p id="loading-message">Extracting text from image</p>
+            </div>
+        </div>
 
-                <div class="info-box">
-                    <strong>ℹ️ Instructions:</strong> Upload images of your long answer key pages.
-                    These answers will preserve paragraph structure and formatting.
-                </div>
+        <%- include('partials/footer') %>
 
-                <div class="upload-area" id="long-upload-area"
-                    onclick="document.getElementById('long-file-input').click()">
-                    <div class="upload-icon">📤</div>
-                    <div class="upload-text">Click to upload or drag and drop</div>
-                    <div class="upload-subtext">PNG, JPG up to 10MB</div>
-                </div>
-                <input type="file" id="long-file-input" accept="image/*" style="display:none;">
+            <script>
+                let currentStep = 1;
+                let examMetadata = {};
+                let shortAnswers = {};
+                let longAnswers = {};
 
-                <div class="extracted-answers" id="long-answers-container"></div>
+                let shortInputMethod = 'image';
+                let longInputMethod = 'image';
 
-                <div class="button-group">
-                    <button type="button" class="btn btn-secondary" onclick="goToStep2()">← Back</button>
-                    <button type="button" class="btn btn-success" onclick="saveAnswerKey()">
-                        💾 Save & Continue →
+
+                let shortQuestionsList = [];
+                let longQuestionsList = [];
+                let shortMarksList = [];
+                let longMarksList = [];
+
+                function goToStep1() { showStep(1); }
+
+                function goToStep2() {
+                    const form = document.getElementById('metadata-form');
+                    if (!form.checkValidity()) { form.reportValidity(); return; }
+
+                    const shortMarks = document.getElementById('short-marks').value.trim();
+                    const longMarks = document.getElementById('long-marks').value.trim();
+
+                    if (!validateMarksFormat(shortMarks)) {
+                        showAlert('error', '❌ Invalid format for short question marks. Use single number (e.g., "2") or comma-separated (e.g., "2,2,3")');
+                        return;
+                    }
+                    if (!validateMarksFormat(longMarks)) {
+                        showAlert('error', '❌ Invalid format for long question marks. Use single number (e.g., "8") or comma-separated (e.g., "7,10")');
+                        return;
+                    }
+
+                    examMetadata = {
+                        exam_name: document.getElementById('exam-name').value,
+                        class_name: document.getElementById('class-name').value,
+                        subject: document.getElementById('subject').value,
+                        short_questions: document.getElementById('short-questions').value,
+                        long_questions: document.getElementById('long-questions').value,
+                        short_marks: shortMarks,
+                        long_marks: longMarks
+                    };
+
+                    showStep(2);
+                }
+
+                function validateMarksFormat(marksStr) {
+                    return /^\d+(\s*,\s*\d+)*$/.test(marksStr);
+                }
+
+                function goToStep3() { showStep(3); }
+
+                function toggleShortInputMethod() {
+                    const method = document.querySelector('input[name="short_input_method"]:checked').value;
+                    shortInputMethod = method;
+
+                    const uploadSection = document.getElementById('short-upload-section');
+                    const manualSection = document.getElementById('short-manual-section');
+
+                    if (method === 'image') {
+                        uploadSection.style.display = 'block';
+                        manualSection.classList.remove('active');
+                    } else {
+                        uploadSection.style.display = 'none';
+                        manualSection.classList.add('active');
+                        generateManualForm('short');
+                    }
+                }
+
+                function toggleLongInputMethod() {
+                    const method = document.querySelector('input[name="long_input_method"]:checked').value;
+                    longInputMethod = method;
+
+                    const uploadSection = document.getElementById('long-upload-section');
+                    const manualSection = document.getElementById('long-manual-section');
+
+                    if (method === 'image') {
+                        uploadSection.style.display = 'block';
+                        manualSection.classList.remove('active');
+                    } else {
+                        uploadSection.style.display = 'none';
+                        manualSection.classList.add('active');
+                        generateManualForm('long');
+                    }
+                }
+
+                function generateManualForm(answerType) {
+                    const container = document.getElementById(answerType + '-manual-container');
+
+                    const questionRange = answerType === 'short'
+                        ? document.getElementById('short-questions').value
+                        : document.getElementById('long-questions').value;
+
+                    const marks = answerType === 'short'
+                        ? document.getElementById('short-marks').value
+                        : document.getElementById('long-marks').value;
+
+                    if (!questionRange || !marks) {
+                        container.innerHTML = '<div class="manual-empty-state">' +
+                            '<div class="manual-empty-icon">📝</div>' +
+                            '<div class="manual-empty-text">Configure questions first</div>' +
+                            '<div class="manual-empty-hint">Go back to Step 1 and specify question ranges and marks</div>' +
+                            '</div>';
+                        return;
+                    }
+
+                    try {
+                        const questions = parseQuestionRange(questionRange);
+                        const marksList = parseMarksString(marks, questions.length);
+
+                        if (answerType === 'short') {
+                            shortQuestionsList = questions;
+                            shortMarksList = marksList;
+                        } else {
+                            longQuestionsList = questions;
+                            longMarksList = marksList;
+                        }
+
+                        let html = '';
+                        questions.forEach((qNum, index) => {
+                            const qLabel = 'Q' + qNum;
+                            const qMarks = marksList[index];
+                            const minChars = answerType === 'short' ? 10 : 50;
+                            const rows = answerType === 'short' ? 2 : 6;
+                            const placeholderText = answerType === 'short'
+                                ? 'Enter answer for ' + qLabel + ' here...'
+                                : 'Enter answer for ' + qLabel + ' here...\nFormatting preserved:\n• Bullet points\n• Line breaks\n• Indentation';
+
+                            html += '<div class="manual-question-item">' +
+                                '<div class="manual-question-header">' +
+                                '<span class="manual-question-label">' +
+                                qLabel +
+                                '<span class="question-marks-badge">' + qMarks + ' marks</span>' +
+                                '</span>' +
+                                '<button type="button" class="paste-btn" onclick="pasteFromClipboard(\'' +
+                                answerType + '-manual-' + qLabel + '\')">' +
+                                '📋 Paste' +
+                                '</button>' +
+                                '</div>' +
+                                '<textarea id="' + answerType + '-manual-' + qLabel + '" ' +
+                                'class="manual-answer-textarea ' + answerType + '" ' +
+                                'rows="' + rows + '" ' +
+                                'placeholder="' + placeholderText + '" ' +
+                                'oninput="updateCharCount(\'' + answerType + '-manual-' + qLabel + '\', ' + minChars + ')"' +
+                                '></textarea>' +
+                                '<div class="char-counter">' +
+                                '<span class="char-count" id="' + answerType + '-manual-' + qLabel + '-count">0 characters</span>' +
+                                '<span class="char-hint">Min recommended: ' + minChars + '</span>' +
+                                '</div>' +
+                                '</div>';
+                        });
+
+                        container.innerHTML = html;
+
+                    } catch (error) {
+                        showAlert('error', 'Error generating form: ' + error.message);
+                        container.innerHTML = '<div class="manual-empty-state">' +
+                            '<div class="manual-empty-icon">⚠️</div>' +
+                            '<div class="manual-empty-text">Error parsing question range</div>' +
+                            '<div class="manual-empty-hint">' + error.message + '</div>' +
+                            '</div>';
+                    }
+                }
+
+
+
+
+
+
+                async function pasteFromClipboard(textareaId) {
+                    try {
+                        const text = await navigator.clipboard.readText();
+                        const textarea = document.getElementById(textareaId);
+                        textarea.value = text;
+
+                        // Trigger char count update
+                        const answerType = textareaId.split('-')[0];
+                        const minChars = answerType === 'short' ? 10 : 50;
+                        updateCharCount(textareaId, minChars);
+
+                        // Visual feedback
+                        textarea.classList.add('success-flash');
+                        setTimeout(() => textarea.classList.remove('success-flash'), 500);
+
+                        showToast('✅ Pasted successfully!');
+                    } catch (err) {
+                        showAlert('error', '❌ Paste failed. Please use Ctrl+V or Cmd+V instead.');
+                    }
+                }
+
+                function updateCharCount(textareaId, minChars) {
+                    const textarea = document.getElementById(textareaId);
+                    const counter = document.getElementById(textareaId + '-count');
+
+                    if (!textarea || !counter) return;
+
+                    const length = textarea.value.length;
+                    counter.textContent = length + ' characters';
+
+                    // Update styling based on length
+                    counter.classList.remove('warning', 'error');
+                    if (length === 0) {
+                        counter.classList.add('error');
+                    } else if (length < minChars) {
+                        counter.classList.add('warning');
+                    }
+                }
+
+                function showToast(message) {
+                    const toast = document.createElement('div');
+                    toast.className = 'toast';
+                    toast.textContent = message;
+                    document.body.appendChild(toast);
+
+                    setTimeout(() => {
+                        toast.style.animation = 'toastOut 0.3s ease forwards';
+                        setTimeout(() => toast.remove(), 300);
+                    }, 2000);
+                }
+
+                function showStep(stepNumber) {
+                    document.querySelectorAll('.step-section').forEach(s => s.classList.remove('active'));
+                    document.getElementById('step' + stepNumber).classList.add('active');
+
+                    document.querySelectorAll('.progress-step').forEach(step => {
+                        const n = parseInt(step.dataset.step);
+                        step.classList.remove('active', 'completed');
+                        if (n === stepNumber) step.classList.add('active');
+                        else if (n < stepNumber) step.classList.add('completed');
+                    });
+
+                    currentStep = stepNumber;
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+
+                document.getElementById('short-file-input').addEventListener('change', e => handleFileUpload(e.target.files[0], 'short'));
+                document.getElementById('long-file-input').addEventListener('change', e => handleFileUpload(e.target.files[0], 'long'));
+
+                ['short-upload-area', 'long-upload-area'].forEach(areaId => {
+                    const area = document.getElementById(areaId);
+                    area.addEventListener('dragover', e => { e.preventDefault(); area.classList.add('dragover'); });
+                    area.addEventListener('dragleave', () => area.classList.remove('dragover'));
+                    area.addEventListener('drop', e => {
+                        e.preventDefault();
+                        area.classList.remove('dragover');
+                        handleFileUpload(e.dataTransfer.files[0], areaId.includes('short') ? 'short' : 'long');
+                    });
+                });
+
+                async function handleFileUpload(file, answerType) {
+                    if (!file) return;
+                    const formData = new FormData();
+                    formData.append('answer_key_image', file);
+                    formData.append('answer_type', answerType);
+                    showLoading('Extracting text from image...');
+                    try {
+                        const response = await fetch('/api/extract-answer-key', { method: 'POST', body: formData });
+                        const result = await response.json();
+                        hideLoading();
+                        if (result.status === 'Success') {
+                            displayExtractedAnswers(result.answers, answerType);
+                            showAlert('success', '✅ Successfully extracted ' + Object.keys(result.answers).length + ' answers!');
+                        } else {
+                            showAlert('error', '❌ Extraction failed: ' + result.error);
+                        }
+                    } catch (error) {
+                        hideLoading();
+                        showAlert('error', '❌ Upload failed: ' + error.message);
+                    }
+                }
+
+                function displayExtractedAnswers(answers, answerType) {
+                    const container = document.getElementById(answerType + '-answers-container');
+                    Object.entries(answers).forEach(([qLabel, answerText]) => {
+                        const item = document.createElement('div');
+                        item.className = 'answer-item editable';
+                        item.dataset.question = qLabel;
+                        item.dataset.type = answerType;
+                        item.innerHTML = `
+            <div class="answer-header">
+                <span class="answer-label">
+                    ${qLabel}
+                    <span class="edit-indicator">✏️ Editable</span>
+                </span>
+                <div style="display:flex;gap:0.5rem;">
+                    <button type="button" class="paste-btn" onclick="pasteIntoAnswer('${answerType}-${qLabel}')">
+                        📋 Paste
+                    </button>
+                    <button class="delete-btn" onclick="deleteAnswer('${qLabel}', '${answerType}')">
+                        🗑️ Delete
                     </button>
                 </div>
             </div>
+            <textarea 
+                id="${answerType}-${qLabel}" 
+                rows="${answerType === 'short' ? 3 : 6}"
+                oninput="updateAnswerText('${qLabel}', '${answerType}')"
+            >${answerText}</textarea>
+            <div class="char-counter">
+                <span class="char-count" id="${answerType}-${qLabel}-count">${answerText.length} characters</span>
+            </div>
+        `;
+                        container.appendChild(item);
+                        if (answerType === 'short') shortAnswers[qLabel] = answerText;
+                        else longAnswers[qLabel] = answerText;
+                    });
+                }
 
-        </div><!-- /.section.content -->
-    </div><!-- /.container -->
-</main>
+                function pasteIntoAnswer(textareaId) {
+                    pasteFromClipboard(textareaId);
+                }
 
-<!-- Loading Overlay -->
-<div class="loading-overlay" id="loading-overlay">
-    <div class="loading-content">
-        <div class="spinner"></div>
-        <h3>Processing...</h3>
-        <p id="loading-message">Extracting text from image</p>
-    </div>
-</div>
+                function updateAnswerText(qLabel, answerType) {
+                    const textarea = document.getElementById(answerType + '-' + qLabel);
+                    const counter = document.getElementById(answerType + '-' + qLabel + '-count');
 
-<%- include('partials/footer') %>
+                    if (answerType === 'short') {
+                        shortAnswers[qLabel] = textarea.value;
+                    } else {
+                        longAnswers[qLabel] = textarea.value;
+                    }
 
-<script>
-    let currentStep = 1;
-    let examMetadata = {};
-    let shortAnswers = {};
-    let longAnswers = {};
+                    if (counter) {
+                        counter.textContent = textarea.value.length + ' characters';
+                    }
+                }
 
-    function goToStep1() { showStep(1); }
+                function deleteAnswer(qLabel, answerType) {
+                    const container = document.getElementById(answerType + '-answers-container');
+                    const item = container.querySelector('[data-question="' + qLabel + '"]');
+                    if (item && confirm('Delete ' + qLabel + '?')) {
+                        item.remove();
+                        if (answerType === 'short') delete shortAnswers[qLabel];
+                        else delete longAnswers[qLabel];
+                    }
+                }
 
-    function goToStep2() {
-        const form = document.getElementById('metadata-form');
-        if (!form.checkValidity()) { form.reportValidity(); return; }
+                function confirmAndSave() {
+                    closePreview();
+                    saveAnswerKey();
+                }
 
-        const shortMarks = document.getElementById('short-marks').value.trim();
-        const longMarks  = document.getElementById('long-marks').value.trim();
+                async function saveAnswerKey() {
+                    // Final collection of answers
+                    collectManualAnswers();
 
-        if (!validateMarksFormat(shortMarks)) {
-            showAlert('error', '❌ Invalid format for short question marks. Use single number (e.g., "2") or comma-separated (e.g., "2,2,3")');
-            return;
-        }
-        if (!validateMarksFormat(longMarks)) {
-            showAlert('error', '❌ Invalid format for long question marks. Use single number (e.g., "8") or comma-separated (e.g., "7,10")');
-            return;
-        }
+                    // Final validation
+                    const validation = validateAllAnswers();
+                    if (!validation.valid) {
+                        showAlert('error', validation.error);
+                        return;
+                    }
 
-        examMetadata = {
-            exam_name:       document.getElementById('exam-name').value,
-            class_name:      document.getElementById('class-name').value,
-            subject:         document.getElementById('subject').value,
-            short_questions: document.getElementById('short-questions').value,
-            long_questions:  document.getElementById('long-questions').value,
-            short_marks:     shortMarks,
-            long_marks:      longMarks
-        };
+                    const orGroups = collectOrGroups();
+                    if (orGroups.length > 0) {
+                        const v = validateOrGroups(orGroups);
+                        if (!v.valid) {
+                            showAlert('error', '❌ OR Group Error: ' + v.error);
+                            return;
+                        }
+                    }
 
-        showStep(2);
-    }
+                    showLoading('Saving answer key...');
 
-    function validateMarksFormat(marksStr) {
-        return /^\d+(\s*,\s*\d+)*$/.test(marksStr);
-    }
+                    try {
+                        const response = await fetch('/api/save-answer-key', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                ...examMetadata,
+                                short_answers: shortAnswers,
+                                long_answers: longAnswers,
+                                or_groups: orGroups
+                            })
+                        });
+                        const result = await response.json();
+                        hideLoading();
 
-    function goToStep3() { showStep(3); }
+                        if (result.status === 'Success') {
+                            showAlert('success', '✅ Answer key saved! Redirecting...');
+                            sessionStorage.setItem('latest_exam_id', result.exam_id);
+                            sessionStorage.setItem('exam_class', examMetadata.class_name);
+                            sessionStorage.setItem('exam_subject', examMetadata.subject);
+                            setTimeout(() => {
+                                const toIndividual = sessionStorage.getItem('return_to_individual');
+                                const toSeries = sessionStorage.getItem('return_to_series');
+                                window.location.href = toIndividual === 'true' ? '/upload-individual' : '/upload-series';
+                            }, 2000);
+                        } else {
+                            showAlert('error', '❌ Save failed: ' + result.error);
+                        }
+                    } catch (error) {
+                        hideLoading();
+                        showAlert('error', '❌ Network error: ' + error.message);
+                    }
+                }
 
-    function showStep(stepNumber) {
-        document.querySelectorAll('.step-section').forEach(s => s.classList.remove('active'));
-        document.getElementById('step' + stepNumber).classList.add('active');
+                function validateOrGroups(orGroups) {
+                    const seen = new Set();
+                    for (let i = 0; i < orGroups.length; i++) {
+                        const g = orGroups[i];
+                        const questions = g.type === 'single' ? g.options : [...g.option_a, ...g.option_b];
+                        if (g.type === 'single' && g.options[0] === g.options[1])
+                            return { valid: false, error: 'OR Group ' + (i + 1) + ': Cannot have same question in both options' };
+                        for (let q of questions) {
+                            if (!/^\d+$/.test(q)) return { valid: false, error: 'OR Group ' + (i + 1) + ': "' + q + '" is not a valid question number' };
+                            if (seen.has(q)) return { valid: false, error: 'Question ' + q + ' appears in multiple OR groups' };
+                            seen.add(q);
+                        }
+                    }
+                    return { valid: true };
+                }
 
-        document.querySelectorAll('.progress-step').forEach(step => {
-            const n = parseInt(step.dataset.step);
-            step.classList.remove('active', 'completed');
-            if (n === stepNumber) step.classList.add('active');
-            else if (n < stepNumber) step.classList.add('completed');
-        });
+                function showLoading(message) {
+                    document.getElementById('loading-message').textContent = message;
+                    document.getElementById('loading-overlay').classList.add('active');
+                }
 
-        currentStep = stepNumber;
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+                function hideLoading() {
+                    document.getElementById('loading-overlay').classList.remove('active');
+                }
 
-    document.getElementById('short-file-input').addEventListener('change', e => handleFileUpload(e.target.files[0], 'short'));
-    document.getElementById('long-file-input').addEventListener('change',  e => handleFileUpload(e.target.files[0], 'long'));
+                function showAlert(type, message) {
+                    const alertDiv = document.createElement('div');
+                    alertDiv.className = 'alert alert-' + type;
+                    alertDiv.textContent = message;
+                    const content = document.querySelector('.content');
+                    content.insertBefore(alertDiv, content.firstChild);
+                    setTimeout(() => alertDiv.remove(), 5000);
+                }
 
-    ['short-upload-area', 'long-upload-area'].forEach(areaId => {
-        const area = document.getElementById(areaId);
-        area.addEventListener('dragover',  e => { e.preventDefault(); area.classList.add('dragover'); });
-        area.addEventListener('dragleave', ()  => area.classList.remove('dragover'));
-        area.addEventListener('drop', e => {
-            e.preventDefault();
-            area.classList.remove('dragover');
-            handleFileUpload(e.dataTransfer.files[0], areaId.includes('short') ? 'short' : 'long');
-        });
-    });
+                // OR Groups
+                let orGroupCounter = 0;
 
-    async function handleFileUpload(file, answerType) {
-        if (!file) return;
-        const formData = new FormData();
-        formData.append('answer_key_image', file);
-        formData.append('answer_type', answerType);
-        showLoading('Extracting text from image...');
-        try {
-            const response = await fetch('/api/extract-answer-key', { method: 'POST', body: formData });
-            const result = await response.json();
-            hideLoading();
-            if (result.status === 'Success') {
-                displayExtractedAnswers(result.answers, answerType);
-                showAlert('success', '✅ Successfully extracted ' + Object.keys(result.answers).length + ' answers!');
-            } else {
-                showAlert('error', '❌ Extraction failed: ' + result.error);
-            }
-        } catch (error) {
-            hideLoading();
-            showAlert('error', '❌ Upload failed: ' + error.message);
-        }
-    }
-
-    function displayExtractedAnswers(answers, answerType) {
-        const container = document.getElementById(answerType + '-answers-container');
-        Object.entries(answers).forEach(([qLabel, answerText]) => {
-            const item = document.createElement('div');
-            item.className = 'answer-item';
-            item.dataset.question = qLabel;
-            item.dataset.type = answerType;
-            item.innerHTML = `
-                <div class="answer-header">
-                    <span class="answer-label">${qLabel}</span>
-                    <button class="delete-btn" onclick="deleteAnswer('${qLabel}', '${answerType}')">🗑️ Delete</button>
-                </div>
-                <textarea id="${answerType}-${qLabel}">${answerText}</textarea>`;
-            container.appendChild(item);
-            if (answerType === 'short') shortAnswers[qLabel] = answerText;
-            else longAnswers[qLabel] = answerText;
-        });
-    }
-
-    function deleteAnswer(qLabel, answerType) {
-        const container = document.getElementById(answerType + '-answers-container');
-        const item = container.querySelector('[data-question="' + qLabel + '"]');
-        if (item && confirm('Delete ' + qLabel + '?')) {
-            item.remove();
-            if (answerType === 'short') delete shortAnswers[qLabel];
-            else delete longAnswers[qLabel];
-        }
-    }
-
-    async function saveAnswerKey() {
-        document.querySelectorAll('#short-answers-container textarea').forEach(t => {
-            shortAnswers[t.id.replace('short-', '')] = t.value;
-        });
-        document.querySelectorAll('#long-answers-container textarea').forEach(t => {
-            longAnswers[t.id.replace('long-', '')] = t.value;
-        });
-
-        if (!Object.keys(shortAnswers).length && !Object.keys(longAnswers).length) {
-            showAlert('error', '❌ Please upload at least one answer key page!');
-            return;
-        }
-
-        const orGroups = collectOrGroups();
-        if (orGroups.length > 0) {
-            const v = validateOrGroups(orGroups);
-            if (!v.valid) { showAlert('error', '❌ OR Group Error: ' + v.error); return; }
-        }
-
-        showLoading('Saving answer key...');
-
-        try {
-            const response = await fetch('/api/save-answer-key', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    ...examMetadata,
-                    short_answers: shortAnswers,
-                    long_answers: longAnswers,
-                    or_groups: orGroups
-                })
-            });
-            const result = await response.json();
-            hideLoading();
-
-            if (result.status === 'Success') {
-                showAlert('success', '✅ Answer key saved! Redirecting...');
-                sessionStorage.setItem('latest_exam_id', result.exam_id);
-                sessionStorage.setItem('exam_class', examMetadata.class_name);
-                sessionStorage.setItem('exam_subject', examMetadata.subject);
-                setTimeout(() => {
-                    const toIndividual = sessionStorage.getItem('return_to_individual');
-                    const toSeries     = sessionStorage.getItem('return_to_series');
-                    window.location.href = toIndividual === 'true' ? '/upload-individual' : '/upload-series';
-                }, 2000);
-            } else {
-                showAlert('error', '❌ Save failed: ' + result.error);
-            }
-        } catch (error) {
-            hideLoading();
-            showAlert('error', '❌ Network error: ' + error.message);
-        }
-    }
-
-    function validateOrGroups(orGroups) {
-        const seen = new Set();
-        for (let i = 0; i < orGroups.length; i++) {
-            const g = orGroups[i];
-            const questions = g.type === 'single' ? g.options : [...g.option_a, ...g.option_b];
-            if (g.type === 'single' && g.options[0] === g.options[1])
-                return { valid: false, error: 'OR Group ' + (i+1) + ': Cannot have same question in both options' };
-            for (let q of questions) {
-                if (!/^\d+$/.test(q)) return { valid: false, error: 'OR Group ' + (i+1) + ': "' + q + '" is not a valid question number' };
-                if (seen.has(q)) return { valid: false, error: 'Question ' + q + ' appears in multiple OR groups' };
-                seen.add(q);
-            }
-        }
-        return { valid: true };
-    }
-
-    function showLoading(message) {
-        document.getElementById('loading-message').textContent = message;
-        document.getElementById('loading-overlay').classList.add('active');
-    }
-
-    function hideLoading() {
-        document.getElementById('loading-overlay').classList.remove('active');
-    }
-
-    function showAlert(type, message) {
-        const alertDiv = document.createElement('div');
-        alertDiv.className = 'alert alert-' + type;
-        alertDiv.textContent = message;
-        const content = document.querySelector('.content');
-        content.insertBefore(alertDiv, content.firstChild);
-        setTimeout(() => alertDiv.remove(), 5000);
-    }
-
-    // OR Groups
-    let orGroupCounter = 0;
-
-    function addOrGroup() {
-        orGroupCounter++;
-        const container = document.getElementById('orGroupsContainer');
-        const div = document.createElement('div');
-        div.id = 'orGroup_' + orGroupCounter;
-        div.className = 'or-group-item';
-        div.innerHTML = `
+                function addOrGroup() {
+                    orGroupCounter++;
+                    const container = document.getElementById('orGroupsContainer');
+                    const div = document.createElement('div');
+                    div.id = 'orGroup_' + orGroupCounter;
+                    div.className = 'or-group-item';
+                    div.innerHTML = `
             <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1rem;">
                 <div style="flex:1; margin-right:1rem;">
                     <label style="display:block; margin-bottom:0.4rem; font-size:0.875rem; font-weight:600;">OR Group Type:</label>
@@ -424,15 +746,15 @@
                 <button type="button" class="remove-or-btn" onclick="removeOrGroup(${orGroupCounter})">✖ Remove</button>
             </div>
             <div id="orGroupFields_${orGroupCounter}"></div>`;
-        container.appendChild(div);
-        updateOrGroupFields(orGroupCounter);
-    }
+                    container.appendChild(div);
+                    updateOrGroupFields(orGroupCounter);
+                }
 
-    function updateOrGroupFields(groupId) {
-        const type = document.getElementById('orType_' + groupId).value;
-        const fields = document.getElementById('orGroupFields_' + groupId);
-        if (type === 'single') {
-            fields.innerHTML = `
+                function updateOrGroupFields(groupId) {
+                    const type = document.getElementById('orType_' + groupId).value;
+                    const fields = document.getElementById('orGroupFields_' + groupId);
+                    if (type === 'single') {
+                        fields.innerHTML = `
                 <div class="or-input-grid">
                     <div>
                         <label style="display:block; margin-bottom:0.4rem; font-size:0.825rem; font-weight:600;">Option A (Question Number):</label>
@@ -444,8 +766,8 @@
                     </div>
                 </div>
                 <div class="or-hint">💡 Student answers Q5 OR Q6 — system evaluates both and takes the best score.</div>`;
-        } else {
-            fields.innerHTML = `
+                    } else {
+                        fields.innerHTML = `
                 <div class="or-input-grid">
                     <div>
                         <label style="display:block; margin-bottom:0.4rem; font-size:0.825rem; font-weight:600;">Pair A (comma-separated):</label>
@@ -457,29 +779,325 @@
                     </div>
                 </div>
                 <div class="or-hint">💡 Student answers Q6,Q7 OR Q8,Q9 — system evaluates all and takes the best pair total.</div>`;
-        }
-    }
+                    }
+                }
 
-    function removeOrGroup(groupId) {
-        const div = document.getElementById('orGroup_' + groupId);
-        if (div && confirm('Remove this OR group?')) div.remove();
-    }
+                function removeOrGroup(groupId) {
+                    const div = document.getElementById('orGroup_' + groupId);
+                    if (div && confirm('Remove this OR group?')) div.remove();
+                }
 
-    function collectOrGroups() {
-        const groups = [];
-        document.querySelectorAll('#orGroupsContainer .or-group-item').forEach(div => {
-            const id   = div.id.split('_')[1];
-            const type = document.getElementById('orType_' + id)?.value;
-            if (type === 'single') {
-                const a = document.getElementById('orSingleA_' + id)?.value.trim();
-                const b = document.getElementById('orSingleB_' + id)?.value.trim();
-                if (a && b) groups.push({ type: 'single', options: [a, b] });
-            } else {
-                const a = document.getElementById('orPairA_' + id)?.value.trim();
-                const b = document.getElementById('orPairB_' + id)?.value.trim();
-                if (a && b) groups.push({ type: 'pair', option_a: a.split(',').map(q => q.trim()), option_b: b.split(',').map(q => q.trim()) });
-            }
-        });
-        return groups;
-    }
-</script>
+                function collectOrGroups() {
+                    const groups = [];
+                    document.querySelectorAll('#orGroupsContainer .or-group-item').forEach(div => {
+                        const id = div.id.split('_')[1];
+                        const type = document.getElementById('orType_' + id)?.value;
+                        if (type === 'single') {
+                            const a = document.getElementById('orSingleA_' + id)?.value.trim();
+                            const b = document.getElementById('orSingleB_' + id)?.value.trim();
+                            if (a && b) groups.push({ type: 'single', options: [a, b] });
+                        } else {
+                            const a = document.getElementById('orPairA_' + id)?.value.trim();
+                            const b = document.getElementById('orPairB_' + id)?.value.trim();
+                            if (a && b) groups.push({ type: 'pair', option_a: a.split(',').map(q => q.trim()), option_b: b.split(',').map(q => q.trim()) });
+                        }
+                    });
+                    return groups;
+                }
+
+
+                function parseQuestionRange(rangeStr) {
+                    const questions = [];
+                    const parts = rangeStr.split(',');
+
+                    for (let part of parts) {
+                        part = part.trim();
+                        if (part.includes('-')) {
+                            const [start, end] = part.split('-').map(n => parseInt(n.trim()));
+                            for (let i = start; i <= end; i++) {
+                                questions.push(i);
+                            }
+                        } else {
+                            questions.push(parseInt(part));
+                        }
+                    }
+
+                    return questions;
+                }
+
+
+
+                function parseMarksString(marksStr, questionCount) {
+                    marksStr = marksStr.trim();
+
+                    // Single number - apply to all
+                    if (!marksStr.includes(',')) {
+                        const mark = parseInt(marksStr);
+                        if (isNaN(mark) || mark <= 0) {
+                            throw new Error('Marks must be positive numbers');
+                        }
+                        return Array(questionCount).fill(mark);
+                    }
+
+                    // Comma-separated list
+                    const marks = marksStr.split(',').map(m => parseInt(m.trim()));
+
+                    if (marks.some(m => isNaN(m) || m <= 0)) {
+                        throw new Error('All marks must be positive numbers');
+                    }
+
+                    if (marks.length !== questionCount) {
+                        throw new Error(
+                            `Marks count mismatch: provided ${marks.length} marks but have ${questionCount} questions`
+                        );
+                    }
+
+                    return marks;
+                }
+
+                // ============================================
+                // PREVIEW FUNCTIONALITY
+                // ============================================
+
+                function showPreview() {
+                    // Collect all answers first
+                    collectManualAnswers();
+
+                    // Validate
+                    const validation = validateAllAnswers();
+                    if (!validation.valid) {
+                        showAlert('error', validation.error);
+                        return;
+                    }
+
+                    // Generate preview content
+                    generatePreviewContent();
+
+                    // Show modal
+                    document.getElementById('preview-overlay').classList.add('active');
+                    document.body.style.overflow = 'hidden';
+                }
+
+                function closePreview() {
+                    document.getElementById('preview-overlay').classList.remove('active');
+                    document.body.style.overflow = 'auto';
+                }
+
+                function generatePreviewContent() {
+                    const previewContent = document.getElementById('preview-content');
+
+                    let html = '';
+
+                    // Exam metadata section
+                    html += '<div class="preview-section">' +
+                        '<h3 class="preview-section-title">📋 Exam Details</h3>' +
+                        '<div class="preview-exam-meta">' +
+                        '<div class="preview-meta-row">' +
+                        '<span class="preview-meta-label">Exam Name:</span>' +
+                        '<span class="preview-meta-value">' + examMetadata.exam_name + '</span>' +
+                        '</div>' +
+                        '<div class="preview-meta-row">' +
+                        '<span class="preview-meta-label">Class:</span>' +
+                        '<span class="preview-meta-value">' + examMetadata.class_name + '</span>' +
+                        '</div>' +
+                        '<div class="preview-meta-row">' +
+                        '<span class="preview-meta-label">Subject:</span>' +
+                        '<span class="preview-meta-value">' + examMetadata.subject + '</span>' +
+                        '</div>' +
+                        '<div class="preview-meta-row">' +
+                        '<span class="preview-meta-label">Total Questions:</span>' +
+                        '<span class="preview-meta-value">' +
+                        (Object.keys(shortAnswers).length + Object.keys(longAnswers).length) +
+                        '</span>' +
+                        '</div>' +
+                        '<div class="preview-meta-row">' +
+                        '<span class="preview-meta-label">Total Marks:</span>' +
+                        '<span class="preview-meta-value">' + calculateTotalMarks() + '</span>' +
+                        '</div>' +
+                        '</div>' +
+                        '</div>';
+
+
+                    if (Object.keys(shortAnswers).length > 0) {
+                        html += '<div class="preview-section">' +
+                            '<h3 class="preview-section-title">📝 Short Answer Questions (' +
+                            Object.keys(shortAnswers).length + ' questions)</h3>';
+
+                        Object.entries(shortAnswers).forEach(([qLabel, answer]) => {
+                            html += '<div class="preview-answer-card">' +
+                                '<div class="preview-answer-header">' +
+                                '<span class="preview-q-label">' + qLabel + '</span>' +
+                                '<span class="preview-q-type">Short</span>' +
+                                '</div>' +
+                                '<div class="preview-answer-text">' +
+                                (answer.trim() || '<span class="preview-answer-empty">No answer provided</span>') +
+                                '</div>' +
+                                '</div>';
+                        });
+
+                        html += '</div>';
+                    }
+
+
+                    if (Object.keys(longAnswers).length > 0) {
+                        html += '<div class="preview-section">' +
+                            '<h3 class="preview-section-title">📖 Long Answer Questions (' +
+                            Object.keys(longAnswers).length + ' questions)</h3>';
+
+                        Object.entries(longAnswers).forEach(([qLabel, answer]) => {
+                            html += '<div class="preview-answer-card">' +
+                                '<div class="preview-answer-header">' +
+                                '<span class="preview-q-label">' + qLabel + '</span>' +
+                                '<span class="preview-q-type">Long</span>' +
+                                '</div>' +
+                                '<div class="preview-answer-text">' +
+                                (answer.trim() || '<span class="preview-answer-empty">No answer provided</span>') +
+                                '</div>' +
+                                '</div>';
+                        });
+
+                        html += '</div>';
+                    }
+
+
+                    const orGroups = collectOrGroups();
+                    if (orGroups.length > 0) {
+                        html += '<div class="preview-section">' +
+                            '<div class="preview-or-groups">' +
+                            '<h4>⚡ OR Groups Configuration</h4>';
+
+                        orGroups.forEach((group, index) => {
+                            if (group.type === 'single') {
+                                html += '<div class="preview-or-item">' +
+                                    'Group ' + (index + 1) + ': Q' + group.options[0] + ' OR Q' + group.options[1] +
+                                    '</div>';
+                            } else if (group.type === 'pair') {
+                                html += '<div class="preview-or-item">' +
+                                    'Group ' + (index + 1) + ': Q' + group.option_a.join(',Q') +
+                                    ' OR Q' + group.option_b.join(',Q') +
+                                    '</div>';
+                            }
+                        });
+
+                        html += '</div></div>';
+                    }
+
+                    previewContent.innerHTML = html;
+                }
+
+                function calculateTotalMarks() {
+                    let total = 0;
+
+                    if (shortMarksList.length > 0) {
+                        total += shortMarksList.reduce((a, b) => a + b, 0);
+                    }
+                    if (longMarksList.length > 0) {
+                        total += longMarksList.reduce((a, b) => a + b, 0);
+                    }
+
+                    return total;
+                }
+
+                // ============================================
+                // COLLECT MANUAL ANSWERS
+                // ============================================
+
+                function collectManualAnswers() {
+                    // Collect short answers (manual or OCR)
+                    if (shortInputMethod === 'manual') {
+                        shortAnswers = {};
+                        shortQuestionsList.forEach(qNum => {
+                            const qLabel = 'Q' + qNum;
+                            const textarea = document.getElementById('short-manual-' + qLabel);
+                            if (textarea) {
+                                shortAnswers[qLabel] = textarea.value.trim();
+                            }
+                        });
+                    } else {
+                        // For OCR, collect from existing textareas
+                        document.querySelectorAll('#short-answers-container textarea').forEach(textarea => {
+                            const qLabel = textarea.id.replace('short-', '');
+                            shortAnswers[qLabel] = textarea.value.trim();
+                        });
+                    }
+
+                    // Collect long answers (manual or OCR)
+                    if (longInputMethod === 'manual') {
+                        longAnswers = {};
+                        longQuestionsList.forEach(qNum => {
+                            const qLabel = 'Q' + qNum;
+                            const textarea = document.getElementById('long-manual-' + qLabel);
+                            if (textarea) {
+                                longAnswers[qLabel] = textarea.value.trim();
+                            }
+                        });
+                    } else {
+                        // For OCR, collect from existing textareas
+                        document.querySelectorAll('#long-answers-container textarea').forEach(textarea => {
+                            const qLabel = textarea.id.replace('long-', '');
+                            longAnswers[qLabel] = textarea.value.trim();
+                        });
+                    }
+                }
+
+                // ============================================
+                // VALIDATION
+                // ============================================
+
+                function validateAllAnswers() {
+                    const totalAnswers = Object.keys(shortAnswers).length + Object.keys(longAnswers).length;
+
+                    if (totalAnswers === 0) {
+                        return {
+                            valid: false,
+                            error: '❌ Please provide at least one answer (either upload an image or enter manually)'
+                        };
+                    }
+
+                    // Check for empty answers
+                    const emptyShort = Object.entries(shortAnswers).filter(([k, v]) => !v || v.trim().length === 0);
+                    const emptyLong = Object.entries(longAnswers).filter(([k, v]) => !v || v.trim().length === 0);
+
+                    if (emptyShort.length > 0) {
+                        return {
+                            valid: false,
+                            error: '❌ Empty short answers: ' + emptyShort.map(([k]) => k).join(', ')
+                        };
+                    }
+
+                    if (emptyLong.length > 0) {
+                        return {
+                            valid: false,
+                            error: '❌ Empty long answers: ' + emptyLong.map(([k]) => k).join(', ')
+                        };
+                    }
+
+                    // Warn about short answers
+                    const tooShort = Object.entries(shortAnswers).filter(([k, v]) => v.length < 5);
+                    if (tooShort.length > 0) {
+                        const proceed = confirm(
+                            'Warning: Some short answers seem very short (' +
+                            tooShort.map(([k]) => k).join(', ') +
+                            '). Continue anyway?'
+                        );
+                        if (!proceed) {
+                            return { valid: false, error: 'Please review short answers' };
+                        }
+                    }
+
+                    // Warn about long answers
+                    const tooShortLong = Object.entries(longAnswers).filter(([k, v]) => v.length < 20);
+                    if (tooShortLong.length > 0) {
+                        const proceed = confirm(
+                            'Warning: Some long answers seem very short (' +
+                            tooShortLong.map(([k]) => k).join(', ') +
+                            '). Continue anyway?'
+                        );
+                        if (!proceed) {
+                            return { valid: false, error: 'Please review long answers' };
+                        }
+                    }
+
+                    return { valid: true };
+                }
+            </script>

@@ -21,7 +21,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 app.use(express.static(path.join(__dirname, 'src/public')));
 
-
+ 
 app.use(session(sessionConfig));
 app.use(flash());
 app.use(passport.initialize());
@@ -36,7 +36,7 @@ app.use((req, res, next) => {
   };
   next();
 });
-
+ 
 
 const authRoutes = require('./src/routes/auth');
 const indexRoutes = require('./src/routes/index');
@@ -56,4 +56,4 @@ app.use((err, req, res, next) => {
 app.listen(PORT, () => {
   console.log(`✅ Server running on http://localhost:${PORT}`);
   console.log(`✅ Python API at ${process.env.PYTHON_API_URL}`);
-});
+}); 
