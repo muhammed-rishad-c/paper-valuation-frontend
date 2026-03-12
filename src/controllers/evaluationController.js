@@ -16,6 +16,142 @@ const PYTHON_BASE_URL = process.env.PYTHON_API_URL || "http://localhost:5000";
 // PAGE RENDERS
 // ============================================
 
+function calculateActualTotalMarks(exam) {
+    if (!exam.questions || exam.questions.length === 0) {
+        return exam.total_marks || 0;
+    }
+
+    if (!exam.or_groups || exam.or_groups.length === 0) {
+        return exam.questions.reduce((sum, q) => sum + (q.max_marks || 0), 0);
+    }
+
+    const orGroupQuestions = new Set();
+    const orGroupMaxMarks = {};
+
+    exam.or_groups.forEach(group => {
+        let options = [];
+        let optionA = [];
+        let optionB = [];
+        
+        if (group.group_type === 'single') {
+            try {
+                options = typeof group.option_a === 'string' 
+                    ? JSON.parse(group.option_a) 
+                    : group.option_a;
+                
+                options = options.map(q => parseInt(q));
+                
+            } catch (e) {
+                console.error('Error parsing OR group options:', e);
+                return;
+            }
+            
+            if (options.length === 2) {
+                const q1 = options[0];
+                const q2 = options[1];
+                
+                orGroupQuestions.add(q1);
+                orGroupQuestions.add(q2);
+                
+                const q1Marks = exam.questions.find(q => q.question_number === q1)?.max_marks || 0;
+                const q2Marks = exam.questions.find(q => q.question_number === q2)?.max_marks || 0;
+                
+                const groupKey = `${Math.min(q1, q2)}-${Math.max(q1, q2)}`;
+                orGroupMaxMarks[groupKey] = Math.max(q1Marks, q2Marks);
+            }
+            
+        } else if (group.group_type === 'pair') {
+            try {
+                optionA = typeof group.option_a === 'string' 
+                    ? JSON.parse(group.option_a) 
+                    : group.option_a;
+                optionB = typeof group.option_b === 'string' 
+                    ? JSON.parse(group.option_b) 
+                    : group.option_b;
+                
+                optionA = optionA.map(q => parseInt(q));
+                optionB = optionB.map(q => parseInt(q));
+                
+            } catch (e) {
+                console.error('Error parsing OR group options:', e);
+                return;
+            }
+            
+            optionA.forEach(q => orGroupQuestions.add(q));
+            optionB.forEach(q => orGroupQuestions.add(q));
+            
+            // Calculate total marks for option A
+            const optionAMarks = optionA.reduce((sum, qNum) => {
+                const q = exam.questions.find(q => q.question_number === qNum);
+                return sum + (q?.max_marks || 0);
+            }, 0);
+            
+            
+            const optionBMarks = optionB.reduce((sum, qNum) => {
+                const q = exam.questions.find(q => q.question_number === qNum);
+                return sum + (q?.max_marks || 0);
+            }, 0);
+            
+            
+            const groupKey = `pair-${optionA.join(',')}-${optionB.join(',')}`;
+            orGroupMaxMarks[groupKey] = Math.max(optionAMarks, optionBMarks);
+        }
+    });
+
+    
+    let totalMarks = 0;
+    const processedOrGroups = new Set();
+
+    exam.questions.forEach(question => {
+        const qNum = question.question_number;
+        
+        if (orGroupQuestions.has(qNum)) {
+
+            let groupKey = null;
+            
+            exam.or_groups.forEach(group => {
+                if (group.group_type === 'single') {
+                    let options = typeof group.option_a === 'string' 
+                        ? JSON.parse(group.option_a) 
+                        : group.option_a;
+                    options = options.map(q => parseInt(q));
+                    
+                    if (options.includes(qNum)) {
+                        groupKey = `${Math.min(...options)}-${Math.max(...options)}`;
+                    }
+                } else if (group.group_type === 'pair') {
+                    let optionA = typeof group.option_a === 'string' 
+                        ? JSON.parse(group.option_a) 
+                        : group.option_a;
+                    let optionB = typeof group.option_b === 'string' 
+                        ? JSON.parse(group.option_b) 
+                        : group.option_b;
+                    
+                    optionA = optionA.map(q => parseInt(q));
+                    optionB = optionB.map(q => parseInt(q));
+                    
+                    if (optionA.includes(qNum) || optionB.includes(qNum)) {
+                        groupKey = `pair-${optionA.join(',')}-${optionB.join(',')}`;
+                    }
+                }
+            });
+            
+            
+            if (groupKey && !processedOrGroups.has(groupKey)) {
+                totalMarks += orGroupMaxMarks[groupKey] || 0;
+                processedOrGroups.add(groupKey);
+            }
+            
+        } else {
+            
+            totalMarks += question.max_marks || 0;
+        }
+    });
+
+    return totalMarks;
+}
+
+
 exports.getIndexPage = (req, res) => {
     res.render('index');
 };
@@ -376,6 +512,7 @@ exports.exportPDF = async (req, res) => {
             where: { exam_id, user_id: userId },
             include: [
                 { model: Question, as: 'questions' },
+                { model: OrGroup, as: 'or_groups' },
                 {
                     model: Submission,
                     as: 'submissions',
@@ -390,6 +527,13 @@ exports.exportPDF = async (req, res) => {
             return res.status(404).json({ error: 'Exam not found' });
         }
 
+        
+        console.log('calculateActualTotalMarks exists?', typeof calculateActualTotalMarks);
+
+        const actualTotalMarks = calculateActualTotalMarks(exam);
+
+        
+
         const doc = new PDFDocument({ margin: 50 });
 
         res.setHeader('Content-Type', 'application/pdf');
@@ -397,20 +541,20 @@ exports.exportPDF = async (req, res) => {
 
         doc.pipe(res);
 
-        // Title
+
         doc.fontSize(20).font('Helvetica-Bold').text('Exam Results Report', { align: 'center' });
         doc.moveDown();
 
-        // Exam Info
+
         doc.fontSize(12).font('Helvetica-Bold').text('Exam Information');
         doc.fontSize(10).font('Helvetica')
             .text(`Exam: ${exam.exam_name}`)
             .text(`Class: ${exam.class} | Subject: ${exam.subject}`)
-            .text(`Total Marks: ${exam.total_marks}`)
+            .text(`Total Marks: ${actualTotalMarks}`)
             .text(`Date: ${new Date().toLocaleDateString()}`);
         doc.moveDown();
 
-        // Summary Statistics
+
         const totalStudents = exam.submissions.length;
         const avgMarks = totalStudents > 0
             ? exam.submissions.reduce((sum, s) => sum + (parseFloat(s.total_marks_obtained) || 0), 0) / totalStudents
@@ -423,17 +567,24 @@ exports.exportPDF = async (req, res) => {
         doc.fontSize(12).font('Helvetica-Bold').text('Summary');
         doc.fontSize(10).font('Helvetica')
             .text(`Total Students: ${totalStudents}`)
-            .text(`Average Marks: ${avgMarks.toFixed(2)}/${exam.total_marks}`)
+            .text(`Average Marks: ${avgMarks.toFixed(2)}/${actualTotalMarks}`)
             .text(`Average Percentage: ${avgPercentage.toFixed(2)}%`)
             .text(`Pass Rate: ${totalStudents > 0 ? ((passCount / totalStudents) * 100).toFixed(1) : 0}% (${passCount}/${totalStudents})`);
         doc.moveDown();
 
-        // Student Results Table
+
         doc.fontSize(12).font('Helvetica-Bold').text('Student Results');
         doc.moveDown(0.5);
 
         const tableTop = doc.y;
-        const colWidths = { rank: 40, roll: 60, name: 150, marks: 80, percentage: 80, result: 60 };
+        const colWidths = {
+            rank: 40,
+            roll: 60,
+            name: 150,
+            marks: 80,
+            percentage: 80,
+            result: 60
+        };
         let xPos = 50;
 
         doc.fontSize(9).font('Helvetica-Bold');
@@ -458,6 +609,7 @@ exports.exportPDF = async (req, res) => {
 
         doc.font('Helvetica');
         sortedStudents.forEach((student, idx) => {
+
             if (doc.y > 700) {
                 doc.addPage();
                 doc.y = 50;
@@ -472,7 +624,7 @@ exports.exportPDF = async (req, res) => {
             xPos += colWidths.roll;
             doc.text(student.student_name || 'Unknown', xPos, yPos, { width: colWidths.name });
             xPos += colWidths.name;
-            doc.text(`${parseFloat(student.total_marks_obtained) || 0}/${exam.total_marks}`, xPos, yPos, { width: colWidths.marks });
+            doc.text(`${parseFloat(student.total_marks_obtained) || 0}/${actualTotalMarks}`, xPos, yPos, { width: colWidths.marks });
             xPos += colWidths.marks;
             doc.text(`${(parseFloat(student.percentage) || 0).toFixed(1)}%`, xPos, yPos, { width: colWidths.percentage });
             xPos += colWidths.percentage;
@@ -489,12 +641,12 @@ exports.exportPDF = async (req, res) => {
         );
 
         doc.end();
+
     } catch (error) {
         console.error('PDF export error:', error);
         res.status(500).json({ error: error.message });
     }
 };
-
 // ============================================
 // EXCEL EXPORT
 // ============================================
@@ -508,6 +660,7 @@ exports.exportExcel = async (req, res) => {
             where: { exam_id, user_id: userId },
             include: [
                 { model: Question, as: 'questions' },
+                { model: OrGroup, as: 'or_groups' },
                 {
                     model: Submission,
                     as: 'submissions',
@@ -522,11 +675,12 @@ exports.exportExcel = async (req, res) => {
             return res.status(404).json({ error: 'Exam not found' });
         }
 
+        const actualTotalMarks = calculateActualTotalMarks(exam);
+
         const workbook = new ExcelJS.Workbook();
         workbook.creator = 'Paper Valuation System';
         workbook.created = new Date();
 
-        // Summary Sheet
         const summarySheet = workbook.addWorksheet('Summary');
         summarySheet.columns = [
             { header: 'Information', key: 'label', width: 25 },
@@ -537,7 +691,7 @@ exports.exportExcel = async (req, res) => {
             { label: 'Exam Name', value: exam.exam_name },
             { label: 'Class', value: exam.class },
             { label: 'Subject', value: exam.subject },
-            { label: 'Total Marks', value: exam.total_marks },
+            { label: 'Total Marks', value: actualTotalMarks },
             { label: 'Total Students', value: exam.submissions.length },
             { label: '', value: '' },
             { label: 'Statistics', value: '' },
@@ -554,11 +708,12 @@ exports.exportExcel = async (req, res) => {
         const passRate = totalStudents > 0 ? (passCount / totalStudents) * 100 : 0;
 
         summarySheet.addRows([
-            { label: 'Average Marks', value: `${avgMarks.toFixed(2)}/${exam.total_marks}` },
+            { label: 'Average Marks', value: `${avgMarks.toFixed(2)}/${actualTotalMarks}` },
             { label: 'Average Percentage', value: `${avgPercentage.toFixed(2)}%` },
             { label: 'Pass Count', value: `${passCount}/${totalStudents}` },
             { label: 'Pass Rate', value: `${passRate.toFixed(1)}%` }
         ]);
+
 
         summarySheet.getRow(1).font = { bold: true };
         summarySheet.getRow(1).fill = {
@@ -567,7 +722,6 @@ exports.exportExcel = async (req, res) => {
             fgColor: { argb: 'FF667eea' }
         };
 
-        // Results Sheet
         const resultsSheet = workbook.addWorksheet('Student Results');
         resultsSheet.columns = [
             { header: 'Rank', key: 'rank', width: 8 },
@@ -589,7 +743,7 @@ exports.exportExcel = async (req, res) => {
                 roll_no: student.roll_no,
                 name: student.student_name || 'Unknown',
                 marks: parseFloat(student.total_marks_obtained) || 0,
-                total: exam.total_marks,
+                total: actualTotalMarks,
                 percentage: `${(parseFloat(student.percentage) || 0).toFixed(1)}%`,
                 result: (parseFloat(student.percentage) || 0) >= 40 ? 'Pass' : 'Fail'
             });
@@ -602,7 +756,6 @@ exports.exportExcel = async (req, res) => {
             fgColor: { argb: 'FF667eea' }
         };
 
-        // Detailed Results Sheet
         const detailedSheet = workbook.addWorksheet('Detailed Results');
         const detailedColumns = [
             { header: 'Roll No', key: 'roll_no', width: 12 },
@@ -657,6 +810,7 @@ exports.exportExcel = async (req, res) => {
 
         await workbook.xlsx.write(res);
         res.end();
+
     } catch (error) {
         console.error('Excel export error:', error);
         res.status(500).json({ error: error.message });
@@ -743,7 +897,6 @@ exports.postSaveAnswerKey = async (req, res) => {
 
         let shortMarksList = [];
         let longMarksList = [];
-        let totalMarks = 0;
 
         if (shortQuestions.length > 0) {
             if (!short_marks) {
@@ -753,7 +906,6 @@ exports.postSaveAnswerKey = async (req, res) => {
                 });
             }
             shortMarksList = parseMarksString(short_marks, shortQuestions.length);
-            totalMarks += shortMarksList.reduce((a, b) => a + b, 0);
         }
 
         if (longQuestions.length > 0) {
@@ -764,8 +916,119 @@ exports.postSaveAnswerKey = async (req, res) => {
                 });
             }
             longMarksList = parseMarksString(long_marks, longQuestions.length);
-            totalMarks += longMarksList.reduce((a, b) => a + b, 0);
         }
+
+        // ============================================
+        // CALCULATE ACTUAL TOTAL MARKS (WITH OR GROUPS)
+        // ============================================
+        let totalMarks = 0;
+        const orGroupQuestions = new Set();
+        const orGroupMaxMarks = {};
+
+        // Process OR groups to identify which questions are in groups
+        if (or_groups && or_groups.length > 0) {
+            or_groups.forEach(group => {
+                if (group.type === 'single' && group.options && group.options.length === 2) {
+                    const q1 = group.options[0];
+                    const q2 = group.options[1];
+
+                    orGroupQuestions.add(q1);
+                    orGroupQuestions.add(q2);
+
+                    // Find marks for both questions
+                    let q1Marks = 0;
+                    let q2Marks = 0;
+
+                    const q1IndexShort = shortQuestions.indexOf(q1);
+                    const q2IndexShort = shortQuestions.indexOf(q2);
+                    const q1IndexLong = longQuestions.indexOf(q1);
+                    const q2IndexLong = longQuestions.indexOf(q2);
+
+                    if (q1IndexShort !== -1) q1Marks = shortMarksList[q1IndexShort];
+                    else if (q1IndexLong !== -1) q1Marks = longMarksList[q1IndexLong];
+
+                    if (q2IndexShort !== -1) q2Marks = shortMarksList[q2IndexShort];
+                    else if (q2IndexLong !== -1) q2Marks = longMarksList[q2IndexLong];
+
+                    const groupKey = `${Math.min(q1, q2)}-${Math.max(q1, q2)}`;
+                    orGroupMaxMarks[groupKey] = Math.max(q1Marks, q2Marks);
+
+                } else if (group.type === 'pair' && group.option_a && group.option_b) {
+                    group.option_a.forEach(q => orGroupQuestions.add(q));
+                    group.option_b.forEach(q => orGroupQuestions.add(q));
+
+                    let optionAMarks = 0;
+                    let optionBMarks = 0;
+
+                    group.option_a.forEach(qNum => {
+                        const idxShort = shortQuestions.indexOf(qNum);
+                        const idxLong = longQuestions.indexOf(qNum);
+                        if (idxShort !== -1) optionAMarks += shortMarksList[idxShort];
+                        else if (idxLong !== -1) optionAMarks += longMarksList[idxLong];
+                    });
+
+                    group.option_b.forEach(qNum => {
+                        const idxShort = shortQuestions.indexOf(qNum);
+                        const idxLong = longQuestions.indexOf(qNum);
+                        if (idxShort !== -1) optionBMarks += shortMarksList[idxShort];
+                        else if (idxLong !== -1) optionBMarks += longMarksList[idxLong];
+                    });
+
+                    const groupKey = `pair-${group.option_a.join(',')}-${group.option_b.join(',')}`;
+                    orGroupMaxMarks[groupKey] = Math.max(optionAMarks, optionBMarks);
+                }
+            });
+        }
+
+        // Calculate total marks
+        const processedOrGroups = new Set();
+
+        // Add short question marks
+        shortQuestions.forEach((qNum, idx) => {
+            if (orGroupQuestions.has(qNum)) {
+                // Find which OR group this belongs to
+                let groupKey = null;
+
+                or_groups.forEach(group => {
+                    if (group.type === 'single' && group.options.includes(qNum)) {
+                        groupKey = `${Math.min(...group.options)}-${Math.max(...group.options)}`;
+                    } else if (group.type === 'pair' &&
+                        (group.option_a.includes(qNum) || group.option_b.includes(qNum))) {
+                        groupKey = `pair-${group.option_a.join(',')}-${group.option_b.join(',')}`;
+                    }
+                });
+
+                if (groupKey && !processedOrGroups.has(groupKey)) {
+                    totalMarks += orGroupMaxMarks[groupKey];
+                    processedOrGroups.add(groupKey);
+                }
+            } else {
+                totalMarks += shortMarksList[idx];
+            }
+        });
+
+        // Add long question marks
+        longQuestions.forEach((qNum, idx) => {
+            if (orGroupQuestions.has(qNum)) {
+                let groupKey = null;
+
+                or_groups.forEach(group => {
+                    if (group.type === 'single' && group.options.includes(qNum)) {
+                        groupKey = `${Math.min(...group.options)}-${Math.max(...group.options)}`;
+                    } else if (group.type === 'pair' &&
+                        (group.option_a.includes(qNum) || group.option_b.includes(qNum))) {
+                        groupKey = `pair-${group.option_a.join(',')}-${group.option_b.join(',')}`;
+                    }
+                });
+
+                if (groupKey && !processedOrGroups.has(groupKey)) {
+                    totalMarks += orGroupMaxMarks[groupKey];
+                    processedOrGroups.add(groupKey);
+                }
+            } else {
+                totalMarks += longMarksList[idx];
+            }
+        });
 
         const exam_id = generateExamId(exam_name, class_name, subject);
 
@@ -776,7 +1039,7 @@ exports.postSaveAnswerKey = async (req, res) => {
                 exam_name,
                 class: class_name,
                 subject,
-                total_marks: totalMarks
+                total_marks: totalMarks  // NOW THIS IS CORRECT!
             }, { transaction });
 
             const questionsToCreate = [];
@@ -987,7 +1250,7 @@ exports.postEvaluateSeriesBatch = async (req, res) => {
         const global_subject = req.body.global_subject;
 
         let examData = null;
-        
+
         if (exam_id) {
             const exam = await Exam.findOne({
                 where: { exam_id, user_id: req.user.user_id },
@@ -1215,7 +1478,7 @@ exports.getValuationPrep = async (req, res) => {
             option_b: g.option_b ? JSON.parse(g.option_b) : []
         }));
 
-        
+
         const orQuestions = new Set();
         examData.or_groups.forEach(g => {
             if (g.type === 'single') {
