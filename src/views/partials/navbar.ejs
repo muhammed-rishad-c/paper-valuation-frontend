@@ -11,25 +11,25 @@
         <ul class="navbar__links" role="list">
             <li>
                 <a href="/"
-                   class="navbar__link <%= typeof activePage !== 'undefined' && activePage === 'dashboard' ? 'navbar__link--active' : '' %>">
+                    class="navbar__link <%= typeof activePage !== 'undefined' && activePage === 'dashboard' ? 'navbar__link--active' : '' %>">
                     🏠 Dashboard
                 </a>
             </li>
             <li>
                 <a href="/answer-key-setup"
-                   class="navbar__link <%= typeof activePage !== 'undefined' && activePage === 'answer-key' ? 'navbar__link--active' : '' %>">
+                    class="navbar__link <%= typeof activePage !== 'undefined' && activePage === 'answer-key' ? 'navbar__link--active' : '' %>">
                     🔑 Answer Keys
                 </a>
             </li>
             <li>
                 <a href="/upload-individual"
-                   class="navbar__link <%= typeof activePage !== 'undefined' && activePage === 'upload' ? 'navbar__link--active' : '' %>">
+                    class="navbar__link <%= typeof activePage !== 'undefined' && activePage === 'upload' ? 'navbar__link--active' : '' %>">
                     📄 Evaluate
                 </a>
             </li>
             <li>
                 <a href="/history"
-                   class="navbar__link <%= typeof activePage !== 'undefined' && activePage === 'history' ? 'navbar__link--active' : '' %>">
+                    class="navbar__link <%= typeof activePage !== 'undefined' && activePage === 'history' ? 'navbar__link--active' : '' %>">
                     📊 History
                 </a>
             </li>
@@ -43,7 +43,9 @@
                 <div class="navbar__avatar" aria-hidden="true">
                     <%= (user.full_name || user.username).charAt(0).toUpperCase() %>
                 </div>
-                <span class="navbar__username"><%= user.full_name || user.username %></span>
+                <span class="navbar__username">
+                    <%= user.full_name || user.username %>
+                </span>
             </a>
 
             <!-- Logout -->
@@ -54,13 +56,8 @@
             </form>
 
             <!-- Hamburger (mobile only) -->
-            <button
-                class="navbar__burger"
-                id="navBurger"
-                aria-label="Toggle menu"
-                aria-expanded="false"
-                aria-controls="mobileMenu"
-            >
+            <button class="navbar__burger" id="navBurger" aria-label="Toggle menu" aria-expanded="false"
+                aria-controls="mobileMenu">
                 <span class="navbar__burger-bar"></span>
                 <span class="navbar__burger-bar"></span>
                 <span class="navbar__burger-bar"></span>
@@ -71,12 +68,16 @@
 
     <!-- Mobile Dropdown Menu -->
     <div class="navbar__mobile" id="mobileMenu" aria-hidden="true">
-        <a href="/"                  class="navbar__mobile-link">🏠 Dashboard</a>
-        <a href="/answer-key-setup"  class="navbar__mobile-link">🔑 Answer Keys</a>
+        <a href="/" class="navbar__mobile-link">🏠 Dashboard</a>
+        <a href="/answer-key-setup" class="navbar__mobile-link">🔑 Answer Keys</a>
         <a href="/upload-individual" class="navbar__mobile-link">📄 Evaluate</a>
-        <a href="/upload-series"     class="navbar__mobile-link">📦 Batch Evaluate</a>
-        <a href="/history"           class="navbar__mobile-link">📊 History</a>
-        <a href="/profile"           class="navbar__mobile-link">👤 Profile</a>
+        <a href="/upload-series" class="navbar__mobile-link">📦 Batch Evaluate</a>
+        <a href="/barcode-evaluation" class="nav-link">
+            <span class="nav-icon">📱</span>
+            Barcode Eval
+        </a>
+        <a href="/history" class="navbar__mobile-link">📊 History</a>
+        <a href="/profile" class="navbar__mobile-link">👤 Profile</a>
         <div class="navbar__mobile-divider"></div>
         <form action="/logout" method="POST">
             <button type="submit" class="navbar__mobile-logout">🚪 Logout</button>
@@ -85,40 +86,40 @@
 </nav>
 
 <script>
-(function () {
-    var burger = document.getElementById('navBurger');
-    var menu   = document.getElementById('mobileMenu');
+    (function () {
+        var burger = document.getElementById('navBurger');
+        var menu = document.getElementById('mobileMenu');
 
-    burger.addEventListener('click', function () {
-        var isOpen = menu.classList.toggle('is-open');
-        burger.classList.toggle('is-open', isOpen);
-        burger.setAttribute('aria-expanded', String(isOpen));
-        menu.setAttribute('aria-hidden', String(!isOpen));
-        document.body.style.overflow = isOpen ? 'hidden' : '';
-    });
+        burger.addEventListener('click', function () {
+            var isOpen = menu.classList.toggle('is-open');
+            burger.classList.toggle('is-open', isOpen);
+            burger.setAttribute('aria-expanded', String(isOpen));
+            menu.setAttribute('aria-hidden', String(!isOpen));
+            document.body.style.overflow = isOpen ? 'hidden' : '';
+        });
 
-    document.addEventListener('click', function (e) {
-        if (!e.target.closest('#navbar')) {
-            menu.classList.remove('is-open');
-            burger.classList.remove('is-open');
-            burger.setAttribute('aria-expanded', 'false');
-            menu.setAttribute('aria-hidden', 'true');
-            document.body.style.overflow = '';
-        }
-    });
+        document.addEventListener('click', function (e) {
+            if (!e.target.closest('#navbar')) {
+                menu.classList.remove('is-open');
+                burger.classList.remove('is-open');
+                burger.setAttribute('aria-expanded', 'false');
+                menu.setAttribute('aria-hidden', 'true');
+                document.body.style.overflow = '';
+            }
+        });
 
-    document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape' && menu.classList.contains('is-open')) {
-            menu.classList.remove('is-open');
-            burger.classList.remove('is-open');
-            burger.setAttribute('aria-expanded', 'false');
-            menu.setAttribute('aria-hidden', 'true');
-            document.body.style.overflow = '';
-        }
-    });
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && menu.classList.contains('is-open')) {
+                menu.classList.remove('is-open');
+                burger.classList.remove('is-open');
+                burger.setAttribute('aria-expanded', 'false');
+                menu.setAttribute('aria-hidden', 'true');
+                document.body.style.overflow = '';
+            }
+        });
 
-    window.addEventListener('scroll', function () {
-        document.getElementById('navbar').classList.toggle('navbar--scrolled', window.scrollY > 8);
-    }, { passive: true });
-})();
+        window.addEventListener('scroll', function () {
+            document.getElementById('navbar').classList.toggle('navbar--scrolled', window.scrollY > 8);
+        }, { passive: true });
+    })();
 </script>

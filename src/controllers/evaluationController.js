@@ -32,118 +32,118 @@ function calculateActualTotalMarks(exam) {
         let options = [];
         let optionA = [];
         let optionB = [];
-        
+
         if (group.group_type === 'single') {
             try {
-                options = typeof group.option_a === 'string' 
-                    ? JSON.parse(group.option_a) 
+                options = typeof group.option_a === 'string'
+                    ? JSON.parse(group.option_a)
                     : group.option_a;
-                
+
                 options = options.map(q => parseInt(q));
-                
+
             } catch (e) {
                 console.error('Error parsing OR group options:', e);
                 return;
             }
-            
+
             if (options.length === 2) {
                 const q1 = options[0];
                 const q2 = options[1];
-                
+
                 orGroupQuestions.add(q1);
                 orGroupQuestions.add(q2);
-                
+
                 const q1Marks = exam.questions.find(q => q.question_number === q1)?.max_marks || 0;
                 const q2Marks = exam.questions.find(q => q.question_number === q2)?.max_marks || 0;
-                
+
                 const groupKey = `${Math.min(q1, q2)}-${Math.max(q1, q2)}`;
                 orGroupMaxMarks[groupKey] = Math.max(q1Marks, q2Marks);
             }
-            
+
         } else if (group.group_type === 'pair') {
             try {
-                optionA = typeof group.option_a === 'string' 
-                    ? JSON.parse(group.option_a) 
+                optionA = typeof group.option_a === 'string'
+                    ? JSON.parse(group.option_a)
                     : group.option_a;
-                optionB = typeof group.option_b === 'string' 
-                    ? JSON.parse(group.option_b) 
+                optionB = typeof group.option_b === 'string'
+                    ? JSON.parse(group.option_b)
                     : group.option_b;
-                
+
                 optionA = optionA.map(q => parseInt(q));
                 optionB = optionB.map(q => parseInt(q));
-                
+
             } catch (e) {
                 console.error('Error parsing OR group options:', e);
                 return;
             }
-            
+
             optionA.forEach(q => orGroupQuestions.add(q));
             optionB.forEach(q => orGroupQuestions.add(q));
-            
+
             // Calculate total marks for option A
             const optionAMarks = optionA.reduce((sum, qNum) => {
                 const q = exam.questions.find(q => q.question_number === qNum);
                 return sum + (q?.max_marks || 0);
             }, 0);
-            
-            
+
+
             const optionBMarks = optionB.reduce((sum, qNum) => {
                 const q = exam.questions.find(q => q.question_number === qNum);
                 return sum + (q?.max_marks || 0);
             }, 0);
-            
-            
+
+
             const groupKey = `pair-${optionA.join(',')}-${optionB.join(',')}`;
             orGroupMaxMarks[groupKey] = Math.max(optionAMarks, optionBMarks);
         }
     });
 
-    
+
     let totalMarks = 0;
     const processedOrGroups = new Set();
 
     exam.questions.forEach(question => {
         const qNum = question.question_number;
-        
+
         if (orGroupQuestions.has(qNum)) {
 
             let groupKey = null;
-            
+
             exam.or_groups.forEach(group => {
                 if (group.group_type === 'single') {
-                    let options = typeof group.option_a === 'string' 
-                        ? JSON.parse(group.option_a) 
+                    let options = typeof group.option_a === 'string'
+                        ? JSON.parse(group.option_a)
                         : group.option_a;
                     options = options.map(q => parseInt(q));
-                    
+
                     if (options.includes(qNum)) {
                         groupKey = `${Math.min(...options)}-${Math.max(...options)}`;
                     }
                 } else if (group.group_type === 'pair') {
-                    let optionA = typeof group.option_a === 'string' 
-                        ? JSON.parse(group.option_a) 
+                    let optionA = typeof group.option_a === 'string'
+                        ? JSON.parse(group.option_a)
                         : group.option_a;
-                    let optionB = typeof group.option_b === 'string' 
-                        ? JSON.parse(group.option_b) 
+                    let optionB = typeof group.option_b === 'string'
+                        ? JSON.parse(group.option_b)
                         : group.option_b;
-                    
+
                     optionA = optionA.map(q => parseInt(q));
                     optionB = optionB.map(q => parseInt(q));
-                    
+
                     if (optionA.includes(qNum) || optionB.includes(qNum)) {
                         groupKey = `pair-${optionA.join(',')}-${optionB.join(',')}`;
                     }
                 }
             });
-            
-            
+
+
             if (groupKey && !processedOrGroups.has(groupKey)) {
                 totalMarks += orGroupMaxMarks[groupKey] || 0;
                 processedOrGroups.add(groupKey);
             }
-            
+
         } else {
-            
+
             totalMarks += question.max_marks || 0;
         }
     });
@@ -527,12 +527,12 @@ exports.exportPDF = async (req, res) => {
             return res.status(404).json({ error: 'Exam not found' });
         }
 
-        
+
         console.log('calculateActualTotalMarks exists?', typeof calculateActualTotalMarks);
 
         const actualTotalMarks = calculateActualTotalMarks(exam);
 
-        
+
 
         const doc = new PDFDocument({ margin: 50 });
 
@@ -1644,6 +1644,710 @@ exports.postEvaluateExam = async (req, res) => {
         res.status(500).json({
             status: 'Failed',
             error: error.response?.data?.error || error.message
+        });
+    }
+};
+
+// GET: Registration page
+exports.getRegisterBarcodeStudents = async (req, res) => {
+    try {
+        res.render('registerBarcodeStudents', {
+            user: req.user,
+            title: 'Register Public Exam Students'
+        });
+    } catch (error) {
+        console.error('Error loading page:', error);
+        res.status(500).send('Server error');
+    }
+};
+
+exports.postRegisterBarcodeStudents = async (req, res) => {
+    try {
+        const { exam_id, barcode_prefix, students } = req.body;
+        const userId = req.user.user_id;
+
+        console.log('📝 Register barcode students request:', {
+            exam_id,
+            barcode_prefix,
+            student_count: students?.length
+        });
+
+        if (!exam_id || !students || students.length === 0) {
+            return res.status(400).json({
+                status: 'failed',
+                error: 'Missing exam_id or students'
+            });
+        }
+
+        // ✅ AUTO-INCREMENT: Find the highest existing barcode number for this prefix
+        const existingBarcodes = await sequelize.query(`
+            SELECT barcode_id FROM barcode_student_mappings 
+            WHERE barcode_id LIKE :prefix
+            ORDER BY barcode_id DESC
+            LIMIT 1
+        `, {
+            replacements: { prefix: `${barcode_prefix}%` },
+            type: sequelize.QueryTypes.SELECT
+        });
+
+        // Calculate starting number
+        let startNumber = 1;
+        if (existingBarcodes.length > 0) {
+            const lastBarcode = existingBarcodes[0].barcode_id;
+            const lastNumber = parseInt(lastBarcode.replace(barcode_prefix, ''));
+            startNumber = lastNumber + 1;
+            console.log(`✅ Auto-increment: Last barcode was ${lastBarcode}, starting from ${barcode_prefix}${String(startNumber).padStart(5, '0')}`);
+        } else {
+            console.log(`✅ First batch: Starting from ${barcode_prefix}00001`);
+        }
+
+        // Create batch record
+        const batchResult = await sequelize.query(`
+            INSERT INTO barcode_batches (exam_id, prefix, start_number, total_count, generated_by)
+            VALUES (:exam_id, :prefix, :start_number, :count, :user_id)
+            RETURNING batch_id
+        `, {
+            replacements: {
+                exam_id,
+                prefix: barcode_prefix,
+                start_number: startNumber,
+                count: students.length,
+                user_id: userId
+            },
+            type: sequelize.QueryTypes.INSERT
+        });
+
+        const batch_id = batchResult[0][0].batch_id;
+
+        console.log(`✅ Created batch ${batch_id}`);
+
+        // Create student mappings with auto-incremented barcode IDs
+        const mappings = [];
+
+        for (let i = 0; i < students.length; i++) {
+            const student = students[i];
+            const barcodeNumber = startNumber + i;
+            const barcode_id = `${barcode_prefix}${String(barcodeNumber).padStart(5, '0')}`;
+
+            await sequelize.query(`
+                INSERT INTO barcode_student_mappings 
+                (barcode_id, exam_id, batch_id, student_name, roll_no, class, registration_no, created_by)
+                VALUES (:barcode_id, :exam_id, :batch_id, :name, :roll_no, :class, :reg_no, :user_id)
+            `, {
+                replacements: {
+                    barcode_id,
+                    exam_id,
+                    batch_id,
+                    name: student.name,
+                    roll_no: student.roll_no,
+                    class: student.class || '',
+                    reg_no: student.registration_no || '',
+                    user_id: userId
+                }
+            });
+
+            mappings.push({
+                barcode_id,
+                student_name: student.name,
+                roll_no: student.roll_no,
+                class: student.class || '',
+                registration_no: student.registration_no || ''
+            });
+        }
+
+        console.log(`✅ Created ${mappings.length} barcode mappings starting from ${barcode_prefix}${String(startNumber).padStart(5, '0')}`);
+
+        // Get exam details for PDF
+        const [exams] = await sequelize.query(`
+            SELECT exam_name, subject, class FROM exams WHERE exam_id = :exam_id
+        `, {
+            replacements: { exam_id },
+            type: sequelize.QueryTypes.SELECT
+        });
+
+        const exam = exams[0] || {};
+
+        // Call Python backend to generate PDF with QR codes
+        console.log('🐍 Calling Python backend to generate PDF...');
+
+        const pythonResponse = await fetch('http://localhost:5000/api/generate_barcode_facing_sheets', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                batch_id,
+                mappings,
+                exam_details: {
+                    exam_name: exam.exam_name || 'SEMESTER DEGREE EXAMINATION 2024',
+                    course_code: '',
+                    branch: '',
+                    subject_name: exam.subject || ''
+                }
+            })
+        });
+
+        const pythonData = await pythonResponse.json();
+
+        if (pythonData.status === 'success') {
+            console.log('✅ PDF generated successfully');
+        } else {
+            console.warn('⚠️ PDF generation had issues:', pythonData);
+        }
+
+        // ✅ RETURN STUDENT LIST WITH BARCODE IDs
+        res.json({
+            status: 'success',
+            batch_id,
+            total_students: students.length,
+            students: mappings,  // ← IMPORTANT: Return full student list with barcode IDs
+            pdf_download_url: `/api/download-facing-sheets/${batch_id}`
+        });
+
+    } catch (error) {
+        console.error('❌ Error registering students:', error);
+        res.status(500).json({
+            status: 'failed',
+            error: error.message
+        });
+    }
+};
+
+
+
+exports.downloadFacingSheets = async (req, res) => {
+    try {
+        const batch_id = req.params.batch_id;
+        const path = require('path');
+        const fs = require('fs');
+
+        // PDF should be in Node.js project's generated_pdfs folder
+        const pdfPath = path.join(__dirname, '../../generated_pdfs', `facing_sheets_batch_${batch_id}.pdf`);
+
+        console.log('Looking for PDF at:', pdfPath);
+
+        // Check if file exists
+        if (!fs.existsSync(pdfPath)) {
+            console.error('❌ PDF not found at:', pdfPath);
+            return res.status(404).send('PDF not found. Please generate it first.');
+        }
+
+        console.log('✅ PDF found, sending download...');
+        res.download(pdfPath, `facing_sheets_batch_${batch_id}.pdf`);
+
+    } catch (error) {
+        console.error('Error downloading PDF:', error);
+        res.status(500).send('Error downloading PDF: ' + error.message);
+    }
+};
+
+
+exports.downloadSampleCSV = (req, res) => {
+    const csvContent = `name,roll_no,class,registration_no
+John Doe,101,S8-CSE,KTU2024001
+Jane Smith,102,S8-CSE,KTU2024002
+Bob Johnson,103,S8-CSE,KTU2024003`;
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=sample_students.csv');
+    res.send(csvContent);
+};
+
+// GET: Fetch user's exams for dropdown
+exports.getUserExams = async (req, res) => {
+    try {
+        const userId = req.user.user_id;
+
+        const exams = await Exam.findAll({
+            where: { user_id: userId },
+            attributes: ['exam_id', 'exam_name', 'class', 'subject', 'total_marks', 'created_at'],
+            order: [['created_at', 'DESC']],
+            raw: true
+        });
+
+        console.log(`Found ${exams.length} exams for user ${userId}`);
+
+        res.json({
+            status: 'success',
+            exams: exams
+        });
+    } catch (error) {
+        console.error('Error fetching exams:', error);
+        res.status(500).json({
+            status: 'error',
+            error: error.message,
+            exams: []
+        });
+    }
+};
+
+// ============================================
+// BARCODE EVALUATION CONTROLLER METHODS
+// ============================================
+
+// Get Student by Barcode ID
+exports.getStudentByBarcode = async (req, res) => {
+    try {
+        const { barcode_id, exam_id } = req.query;
+
+        if (!barcode_id || !exam_id) {
+            return res.status(400).json({
+                success: false,
+                message: 'Barcode ID and Exam ID are required'
+            });
+        }
+
+        // Query database for student mapping
+        const [students] = await sequelize.query(`
+            SELECT 
+                barcode_id,
+                student_name,
+                roll_no,
+                class,
+                registration_no,
+                exam_id
+            FROM barcode_student_mappings
+            WHERE barcode_id = :barcode_id 
+            AND exam_id = :exam_id
+        `, {
+            replacements: { barcode_id, exam_id },
+            type: sequelize.QueryTypes.SELECT
+        });
+
+        if (students.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Student not found for this barcode ID'
+            });
+        }
+
+        res.json({
+            success: true,
+            student: students[0]
+        });
+
+    } catch (error) {
+        console.error('Error getting student by barcode:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to retrieve student information',
+            error: error.message
+        });
+    }
+};
+
+// Evaluate Barcode Submission
+exports.evaluateBarcodeSubmission = async (req, res) => {
+    try {
+        const { exam_id, barcode_id, student_name, roll_no, class: studentClass } = req.body;
+        const userId = req.user.user_id;
+        const answerScriptFile = req.file;
+
+        console.log('📝 Barcode evaluation request:', {
+            exam_id,
+            barcode_id,
+            student_name,
+            roll_no,
+            file: answerScriptFile?.filename
+        });
+
+        // Validate inputs
+        if (!exam_id || !barcode_id || !answerScriptFile) {
+            return res.status(400).json({
+                success: false,
+                message: 'Missing required fields'
+            });
+        }
+
+        // Get exam details
+        const [exams] = await sequelize.query(`
+            SELECT * FROM exams WHERE exam_id = :exam_id AND created_by = :userId
+        `, {
+            replacements: { exam_id, userId },
+            type: sequelize.QueryTypes.SELECT
+        });
+
+        if (exams.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Exam not found'
+            });
+        }
+
+        const exam = exams[0];
+
+        // Check if answer key exists
+        if (!exam.answer_key_data) {
+            return res.status(400).json({
+                success: false,
+                message: 'Answer key not set for this exam'
+            });
+        }
+
+        // Verify student exists
+        const [students] = await sequelize.query(`
+            SELECT * FROM barcode_student_mappings 
+            WHERE barcode_id = :barcode_id AND exam_id = :exam_id
+        `, {
+            replacements: { barcode_id, exam_id },
+            type: sequelize.QueryTypes.SELECT
+        });
+
+        if (students.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Student not found in barcode mappings'
+            });
+        }
+
+        const student = students[0];
+
+        // Create submission record
+        const submission_id = `SUB-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+        await sequelize.query(`
+            INSERT INTO submissions (
+                submission_id,
+                exam_id,
+                user_id,
+                barcode_id,
+                student_name,
+                roll_no,
+                class,
+                answer_script_path,
+                status,
+                submission_date
+            ) VALUES (
+                :submission_id,
+                :exam_id,
+                :user_id,
+                :barcode_id,
+                :student_name,
+                :roll_no,
+                :class,
+                :answer_script_path,
+                'processing',
+                NOW()
+            )
+        `, {
+            replacements: {
+                submission_id,
+                exam_id,
+                user_id: userId,
+                barcode_id,
+                student_name: student.student_name,
+                roll_no: student.roll_no,
+                class: student.class,
+                answer_script_path: answerScriptFile.path
+            }
+        });
+
+        console.log('✅ Submission record created:', submission_id);
+
+        // Send to Python backend for evaluation
+        console.log('🚀 Sending to Python backend for AI evaluation...');
+
+        const formData = new FormData();
+        formData.append('answer_script', fs.createReadStream(answerScriptFile.path));
+        formData.append('answer_key', JSON.stringify(exam.answer_key_data));
+        formData.append('total_marks', exam.total_marks);
+        formData.append('submission_id', submission_id);
+
+        try {
+            const pythonResponse = await axios.post('http://localhost:5000/api/evaluate', formData, {
+                headers: {
+                    ...formData.getHeaders()
+                },
+                timeout: 120000 // 2 minutes timeout
+            });
+
+            console.log('✅ Python evaluation response:', pythonResponse.data);
+
+            // Update submission with results
+            await sequelize.query(`
+                UPDATE submissions 
+                SET 
+                    total_score = :total_score,
+                    max_score = :max_score,
+                    evaluation_data = :evaluation_data,
+                    status = 'completed',
+                    evaluation_date = NOW()
+                WHERE submission_id = :submission_id
+            `, {
+                replacements: {
+                    submission_id,
+                    total_score: pythonResponse.data.total_score || 0,
+                    max_score: pythonResponse.data.max_score || exam.total_marks,
+                    evaluation_data: JSON.stringify(pythonResponse.data)
+                }
+            });
+
+            res.json({
+                success: true,
+                message: 'Evaluation completed successfully',
+                submission_id,
+                results: pythonResponse.data
+            });
+
+        } catch (pythonError) {
+            console.error('❌ Python evaluation error:', pythonError.message);
+
+            // Update submission status to failed
+            await sequelize.query(`
+                UPDATE submissions 
+                SET status = 'failed'
+                WHERE submission_id = :submission_id
+            `, {
+                replacements: { submission_id }
+            });
+
+            throw pythonError;
+        }
+
+    } catch (error) {
+        console.error('❌ Barcode evaluation error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Evaluation failed',
+            error: error.message
+        });
+    }
+};
+
+// Get Barcode Evaluation Results
+exports.getBarcodeResults = async (req, res) => {
+    try {
+        const { submission_id } = req.params;
+        const userId = req.user.user_id;
+
+        // Get submission details
+        const [submissions] = await sequelize.query(`
+            SELECT 
+                s.*,
+                e.exam_name,
+                e.subject,
+                e.total_marks as exam_total_marks
+            FROM submissions s
+            JOIN exams e ON s.exam_id = e.exam_id
+            WHERE s.submission_id = :submission_id
+            AND s.user_id = :userId
+        `, {
+            replacements: { submission_id, userId },
+            type: sequelize.QueryTypes.SELECT
+        });
+
+        if (submissions.length === 0) {
+            return res.status(404).render('error', {
+                message: 'Submission not found'
+            });
+        }
+
+        const submission = submissions[0];
+
+        // Parse evaluation data
+        let evaluationData = {};
+        if (submission.evaluation_data) {
+            try {
+                evaluationData = typeof submission.evaluation_data === 'string'
+                    ? JSON.parse(submission.evaluation_data)
+                    : submission.evaluation_data;
+            } catch (e) {
+                console.error('Error parsing evaluation data:', e);
+            }
+        }
+
+        res.render('resultsBarcodeEvaluation', {
+            submission,
+            evaluationData,
+            user: req.user
+        });
+
+    } catch (error) {
+        console.error('Error getting barcode results:', error);
+        res.status(500).render('error', {
+            message: 'Failed to load results'
+        });
+    }
+};
+
+// Download Student List (after FIX 2)
+exports.downloadStudentList = async (req, res) => {
+    try {
+        const { batch_id } = req.params;
+        const userId = req.user.user_id;
+        const format = req.query.format || 'pdf';
+
+        console.log(`📥 Downloading student list for batch ${batch_id} in ${format} format`);
+
+        // Get students for this batch
+        const students = await sequelize.query(`
+            SELECT 
+                barcode_id,
+                student_name,
+                roll_no,
+                class,
+                registration_no
+            FROM barcode_student_mappings
+            WHERE batch_id = :batch_id
+            AND created_by = :userId
+            ORDER BY barcode_id ASC
+        `, {
+            replacements: { batch_id, userId },
+            type: sequelize.QueryTypes.SELECT
+        });
+
+        if (students.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'No students found for this batch'
+            });
+        }
+
+        console.log(`✅ Found ${students.length} students for batch ${batch_id}`);
+
+        // Get batch details with LEFT JOIN
+        const batches = await sequelize.query(`
+            SELECT b.*, e.exam_name, e.subject
+            FROM barcode_batches b
+            LEFT JOIN exams e ON b.exam_id = e.exam_id
+            WHERE b.batch_id = :batch_id
+        `, {
+            replacements: { batch_id },
+            type: sequelize.QueryTypes.SELECT
+        });
+
+        if (batches.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Batch not found'
+            });
+        }
+
+        const batch = batches[0];
+
+        // Default values if exam data is missing
+        const examName = batch.exam_name || 'Exam';
+        const examSubject = batch.subject || 'Subject';
+
+        console.log(`✅ Exam: ${examName}, Subject: ${examSubject}`);
+
+        if (format === 'excel') {
+            // ========== EXCEL FORMAT ==========
+            const XLSX = require('xlsx');
+
+            const data = [
+                ['STUDENT LIST - BARCODE ASSIGNMENT'],
+                ['Exam:', examName],
+                ['Subject:', examSubject],
+                ['Total Students:', students.length],
+                ['Generated:', new Date().toLocaleDateString()],
+                [],
+                ['Sr.', 'Barcode ID', 'Student Name', 'Roll No', 'Class', 'Registration No']
+            ];
+
+            students.forEach((student, index) => {
+                data.push([
+                    index + 1,
+                    student.barcode_id,
+                    student.student_name,
+                    student.roll_no,
+                    student.class || '',
+                    student.registration_no || ''
+                ]);
+            });
+
+            const ws = XLSX.utils.aoa_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Students');
+
+            // Set column widths
+            ws['!cols'] = [
+                { wch: 5 },  // Sr.
+                { wch: 18 }, // Barcode ID
+                { wch: 30 }, // Name
+                { wch: 12 }, // Roll No
+                { wch: 10 }, // Class
+                { wch: 20 }  // Registration No
+            ];
+
+            const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+
+            res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            res.setHeader('Content-Disposition', `attachment; filename=student_list_batch_${batch_id}.xlsx`);
+            res.send(buffer);
+
+            console.log('✅ Excel file sent successfully');
+
+        } else {
+            // ========== PDF FORMAT ==========
+            const PDFDocument = require('pdfkit');
+            const doc = new PDFDocument({ margin: 50 });
+
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader('Content-Disposition', `attachment; filename=student_list_batch_${batch_id}.pdf`);
+            doc.pipe(res);
+
+            // Title
+            doc.fontSize(18).font('Helvetica-Bold').text('STUDENT LIST - BARCODE ASSIGNMENT', { align: 'center' });
+            doc.moveDown(0.5);
+
+            // Exam details
+            doc.fontSize(11).font('Helvetica');
+            doc.text(`Exam: ${examName}`);
+            doc.text(`Subject: ${examSubject}`);
+            doc.text(`Total Students: ${students.length}`);
+            doc.text(`Generated: ${new Date().toLocaleDateString()}`);
+            doc.moveDown(1);
+
+            // Table header
+            doc.fontSize(9).font('Helvetica-Bold');
+            const y = doc.y;
+            doc.text('Sr.', 50, y, { width: 30 });
+            doc.text('Barcode ID', 80, y, { width: 100 });
+            doc.text('Student Name', 200, y, { width: 150 });
+            doc.text('Roll No', 360, y, { width: 80 });
+            doc.text('Class', 450, y, { width: 60 });
+
+            doc.moveDown(0.5);
+            doc.moveTo(50, doc.y).lineTo(550, doc.y).stroke();
+            doc.moveDown(0.5);
+
+            // Table rows
+            doc.font('Helvetica').fontSize(8);
+            students.forEach((student, index) => {
+                const rowY = doc.y;
+
+                doc.text(index + 1, 50, rowY, { width: 30 });
+                doc.text(student.barcode_id, 80, rowY, { width: 100 });
+                doc.text(student.student_name, 200, rowY, { width: 150 });
+                doc.text(student.roll_no, 360, rowY, { width: 80 });
+                doc.text(student.class || '-', 450, rowY, { width: 60 });
+
+                doc.moveDown(0.7);
+
+                // Add new page if needed
+                if (doc.y > 700) {
+                    doc.addPage();
+                    doc.fontSize(9).font('Helvetica-Bold');
+                    const newY = 50;
+                    doc.text('Sr.', 50, newY, { width: 30 });
+                    doc.text('Barcode ID', 80, newY, { width: 100 });
+                    doc.text('Student Name', 200, newY, { width: 150 });
+                    doc.text('Roll No', 360, newY, { width: 80 });
+                    doc.text('Class', 450, newY, { width: 60 });
+                    doc.moveDown(1);
+                    doc.font('Helvetica').fontSize(8);
+                }
+            });
+
+            doc.end();
+            console.log('✅ PDF file sent successfully');
+        }
+
+    } catch (error) {
+        console.error('❌ Error downloading student list:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to generate student list',
+            error: error.message
         });
     }
 };

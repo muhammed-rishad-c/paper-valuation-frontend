@@ -23,10 +23,10 @@ app.use(express.static(path.join(__dirname, 'src/public')));
 
  
 app.use(session(sessionConfig));
-app.use(flash());
+app.use(flash()); 
 app.use(passport.initialize());
 app.use(passport.session());
-
+ 
 
 app.use((req, res, next) => {
   res.locals.user = req.user || null;
@@ -36,7 +36,7 @@ app.use((req, res, next) => {
   };
   next();
 });
- 
+    
 
 const authRoutes = require('./src/routes/auth');
 const indexRoutes = require('./src/routes/index');

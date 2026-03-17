@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include('partials/head') %>
+
+    <body>
+        <%- include('partials/navbar') %>
+
+            <main class="page-content">
+                <div class="container">
+
+                    <!-- Header -->
+                    <div class="header">
+                        <div>
+                            <h1>📝 Register Students for Public Exam</h1>
+                            <p>Register students and generate barcode facing sheets</p>
+                        </div>
+                    </div>
+
+                    <!-- Main Content -->
+                    <div class="section content">
+
+                        <!-- Step 1: Select Exam -->
+                        <div class="step-section active" id="step1">
+                            <h2>Step 1: Select Exam</h2>
+
+                            <div class="form-group">
+                                <label>Select Exam:</label>
+                                <select id="exam-select" class="input-box">
+                                    <option value="">-- Select Exam --</option>
+                                </select>
+                            </div>
+
+                            <div class="button-group">
+                                <button type="button" class="btn btn-primary" onclick="goToStep2()">
+                                    Next: Register Students →
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Step 2: Register Students -->
+                        <div class="step-section" id="step2">
+                            <h2>Step 2: Register Students</h2>
+
+                            <div class="info-box">
+                                <strong>ℹ️ Upload CSV or Add Manually</strong><br>
+                                Each student will be assigned a unique barcode ID
+                            </div>
+
+                            <!-- CSV Upload -->
+                            <div style="margin-bottom: 2rem;">
+                                <h3 style="font-size: 1rem; margin-bottom: 0.5rem;">Method 1: Upload CSV</h3>
+                                <input type="file" id="csv-file" accept=".csv" style="margin-bottom: 0.5rem;">
+                                <button type="button" class="btn btn-secondary" onclick="uploadCSV()">
+                                    📤 Upload CSV
+                                </button>
+                                <a href="/api/download-sample-csv" class="btn" style="margin-left: 0.5rem;">
+                                    📥 Download Sample CSV
+                                </a>
+                            </div>
+
+                            <div style="text-align: center; margin: 1.5rem 0;">
+                                <strong>--- OR ---</strong>
+                            </div>
+
+                            <!-- Manual Entry -->
+                            <div>
+                                <h3 style="font-size: 1rem; margin-bottom: 1rem;">Method 2: Add Manually</h3>
+                                <div id="students-container">
+                                    <!-- Students will be added here -->
+                                </div>
+                                <button type="button" class="btn btn-primary" onclick="addStudentRow()">
+                                    + Add Student
+                                </button>
+                            </div>
+
+                            <div class="button-group">
+                                <button type="button" class="btn btn-secondary" onclick="goToStep1()">
+                                    ← Back
+                                </button>
+                                <button type="button" class="btn btn-primary" onclick="goToStep3()">
+                                    Next: Review & Generate →
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Step 3: Review & Generate -->
+                        <div class="step-section" id="step3">
+                            <h2>Step 3: Review & Generate Barcodes</h2>
+
+                            <div class="info-box">
+                                <strong>✅ Ready to generate barcode facing sheets</strong>
+                            </div>
+
+                            <div id="review-container">
+                                <!-- Student list will be shown here -->
+                            </div>
+
+                            <div class="button-group">
+                                <button type="button" class="btn btn-secondary" onclick="goToStep2()">
+                                    ← Back
+                                </button>
+                                <button type="button" class="btn btn-success" onclick="generateBarcodes()">
+                                    🏷️ Generate Barcodes & Save
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Step 4: Success -->
+                        <div class="step-section" id="step4">
+                            <h2>✅ Success!</h2>
+
+                            <div class="info-box" style="background: #f0fdf4; border-color: #86efac;">
+                                <strong>Barcodes generated successfully!</strong><br>
+                                Total students: <span id="total-students"></span>
+                            </div>
+
+                            <div style="margin-top: 2rem;">
+                                <a href="#" id="download-pdf-link" class="btn btn-primary" style="font-size: 1.1rem;">
+                                    📥 Download Facing Sheets PDF
+                                </a>
+                            </div>
+
+                            <div style="margin-top: 1.5rem;">
+                                <p><strong>Next Steps:</strong></p>
+                                <ol style="margin-left: 1.5rem; line-height: 1.8;">
+                                    <li>Print the facing sheets</li>
+                                    <li>Distribute to students during exam</li>
+                                    <li>Students attach to answer booklets</li>
+                                    <li>After exam: Use "Series Batch Evaluation" to scan and evaluate</li>
+                                </ol>
+                            </div>
+
+                            <div class="button-group">
+                                <a href="/history" class="btn btn-secondary">View Exams</a>
+                                <a href="/upload-series" class="btn btn-primary">Start Evaluation</a>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </main>
+
+            <%- include('partials/footer') %>
+
+                <script>
+                    let currentStep = 1;
+                    let students = [];
+                    let selectedExamId = '';
+
+                    // Load exams on page load
+                    window.addEventListener('DOMContentLoaded', async () => {
+                        await loadExams();
+                    });
+
+                    async function loadExams() {
+                        try {
+                            console.log('Fetching exams...');
+
+                            const response = await fetch('/api/get-user-exams');
+
+                            console.log('Response status:', response.status);
+
+                            if (!response.ok) {
+                                throw new Error(`HTTP error! status: ${response.status}`);
+                            }
+
+                            const data = await response.json();
+                            console.log('Received data:', data);
+
+                            const select = document.getElementById('exam-select');
+
+                            // Clear existing options
+                            select.innerHTML = '<option value="">-- Select Exam --</option>';
+
+                            // Check if we have exams
+                            if (!data.exams || data.exams.length === 0) {
+                                console.warn('No exams found');
+                                const option = document.createElement('option');
+                                option.value = '';
+                                option.textContent = '⚠️ No exams found - Create an answer key first';
+                                option.disabled = true;
+                                select.appendChild(option);
+                                return;
+                            }
+
+                            console.log(`Loading ${data.exams.length} exams into dropdown`);
+
+                            // Add each exam to dropdown
+                            data.exams.forEach(exam => {
+                                const option = document.createElement('option');
+                                option.value = exam.exam_id;
+                                option.textContent = `${exam.exam_name} (${exam.class} - ${exam.subject})`;
+                                select.appendChild(option);
+                            });
+
+                            console.log('Exams loaded successfully');
+
+                        } catch (error) {
+                            console.error('Error loading exams:', error);
+
+                            const select = document.getElementById('exam-select');
+                            select.innerHTML = '<option value="">-- Error loading exams --</option>';
+
+                            // Show error to user
+                            alert('Error loading exams: ' + error.message + '\n\nPlease check console for details.');
+                        }
+                    }
+
+                    function goToStep1() { showStep(1); }
+                    function goToStep2() {
+                        selectedExamId = document.getElementById('exam-select').value;
+                        if (!selectedExamId) {
+                            alert('Please select an exam');
+                            return;
+                        }
+                        showStep(2);
+
+
+                    }
+
+                    function goToStep3() {
+                        console.log('=== goToStep3 called ===');
+                        console.log('Current students array:', students);
+                        console.log('Students count:', students.length);
+                        console.log('Students JSON:', JSON.stringify(students, null, 2));
+
+                        if (students.length === 0) {
+                            alert('⚠️ Please add at least one student first!');
+                            return;
+                        }
+
+                        showReview();
+                        showStep(3);
+                    }
+                    function showStep(step) {
+                        document.querySelectorAll('.step-section').forEach(s => s.classList.remove('active'));
+                        document.getElementById('step' + step).classList.add('active');
+                        currentStep = step;
+                    }
+
+                    function addStudentRow() {
+                        const index = students.length;
+                        students.push({ name: '', roll_no: '', class: '', registration_no: '' });
+
+                        const container = document.getElementById('students-container');
+                        const row = document.createElement('div');
+                        row.className = 'student-card';
+                        row.innerHTML = `
+                <div class="student-card__header">
+                    <h4>Student ${index + 1}</h4>
+                    <button type="button" class="btn-remove" onclick="removeStudent(${index})">
+                        🗑️ Remove
+                    </button>
+                </div>
+                <div class="flex-row">
+                    <div class="form-group">
+                        <label>Name:</label>
+                        <input type="text" class="input-box" id="name-${index}" 
+                               oninput="updateStudent(${index}, 'name', this.value)">
+                    </div>
+                    <div class="form-group">
+                        <label>Roll Number:</label>
+                        <input type="text" class="input-box" id="roll-${index}"
+                               oninput="updateStudent(${index}, 'roll_no', this.value)">
+                    </div>
+                </div>
+                <div class="flex-row">
+                    <div class="form-group">
+                        <label>Class:</label>
+                        <input type="text" class="input-box" id="class-${index}"
+                               oninput="updateStudent(${index}, 'class', this.value)">
+                    </div>
+                    <div class="form-group">
+                        <label>Registration No:</label>
+                        <input type="text" class="input-box" id="reg-${index}"
+                               oninput="updateStudent(${index}, 'registration_no', this.value)">
+                    </div>
+                </div>
+            `;
+                        container.appendChild(row);
+                    }
+
+                    function updateStudent(index, field, value) {
+                        students[index][field] = value;
+                    }
+
+                    function removeStudent(index) {
+                        students.splice(index, 1);
+                        renderStudents();
+                    }
+
+                    function renderStudents() {
+                        const container = document.getElementById('students-container');
+                        container.innerHTML = '';
+
+                        console.log('Rendering students:', students);
+
+                        students.forEach((student, index) => {
+                            const row = document.createElement('div');
+                            row.className = 'student-card';
+                            row.innerHTML = `
+            <div class="student-card__header">
+                <h4>Student ${index + 1}</h4>
+                <button type="button" class="btn-remove" onclick="removeStudent(${index})">
+                    🗑️ Remove
+                </button>
+            </div>
+            <div class="flex-row">
+                <div class="form-group">
+                    <label>Name:</label>
+                    <input type="text" class="input-box" 
+                           value="${student.name || ''}"
+                           oninput="updateStudent(${index}, 'name', this.value)">
+                </div>
+                <div class="form-group">
+                    <label>Roll Number:</label>
+                    <input type="text" class="input-box"
+                           value="${student.roll_no || ''}"
+                           oninput="updateStudent(${index}, 'roll_no', this.value)">
+                </div>
+            </div>
+            <div class="flex-row">
+                <div class="form-group">
+                    <label>Class:</label>
+                    <input type="text" class="input-box"
+                           value="${student.class || ''}"
+                           oninput="updateStudent(${index}, 'class', this.value)">
+                </div>
+                <div class="form-group">
+                    <label>Registration No:</label>
+                    <input type="text" class="input-box"
+                           value="${student.registration_no || ''}"
+                           oninput="updateStudent(${index}, 'registration_no', this.value)">
+                </div>
+            </div>
+        `;
+                            container.appendChild(row);
+                        });
+                    }
+
+
+                    function uploadCSV() {
+                        const fileInput = document.getElementById('csv-file');
+                        const file = fileInput.files[0];
+
+                        if (!file) {
+                            alert('⚠️ Please select a CSV file first');
+                            return;
+                        }
+
+                        console.log('📂 Reading CSV file:', file.name);
+                        console.log('📊 File size:', file.size, 'bytes');
+
+                        const reader = new FileReader();
+
+                        reader.onload = function (e) {
+                            try {
+                                const text = e.target.result;
+                                console.log('📄 CSV Raw Content:\n', text);
+
+                                // Handle different line endings (Windows \r\n, Unix \n, Mac \r)
+                                const lines = text.split(/\r?\n|\r/);
+                                console.log('📋 Total lines found:', lines.length);
+
+                                students = [];
+                                let skipped = 0;
+
+                                // Process each line (skip header at index 0)
+                                for (let i = 1; i < lines.length; i++) {
+                                    const line = lines[i].trim();
+
+                                    // Skip empty lines
+                                    if (!line || line.length === 0) {
+                                        console.log(`⏭️ Line ${i}: Empty, skipping`);
+                                        skipped++;
+                                        continue;
+                                    }
+
+                                    console.log(`🔍 Line ${i}: "${line}"`);
+
+                                    // Split by comma
+                                    const parts = line.split(',').map(p => p.trim());
+
+                                    console.log(`   Parts: [${parts.join('] [')}]`);
+
+                                    if (parts.length < 4) {
+                                        console.warn(`⚠️ Line ${i}: Only ${parts.length} columns, need 4. Skipping.`);
+                                        skipped++;
+                                        continue;
+                                    }
+
+                                    const student = {
+                                        name: parts[0],
+                                        roll_no: parts[1],
+                                        class: parts[2],
+                                        registration_no: parts[3]
+                                    };
+
+                                    // Validate student has name and roll
+                                    if (!student.name || !student.roll_no) {
+                                        console.warn(`⚠️ Line ${i}: Missing name or roll number. Skipping.`);
+                                        skipped++;
+                                        continue;
+                                    }
+
+                                    console.log(`✅ Student added:`, student);
+                                    students.push(student);
+                                }
+
+                                console.log(`\n📊 Summary:`);
+                                console.log(`   Total lines: ${lines.length}`);
+                                console.log(`   Students loaded: ${students.length}`);
+                                console.log(`   Lines skipped: ${skipped}`);
+
+                                if (students.length === 0) {
+                                    alert('❌ No valid students found in CSV!\n\nPlease check:\n- File has header row\n- Data rows are not empty\n- Format: name,roll_no,class,registration_no');
+                                    return;
+                                }
+
+                                // Success!
+                                alert(`✅ Success!\n\n${students.length} students loaded from CSV`);
+                                renderStudents();
+
+                            } catch (error) {
+                                console.error('❌ Error parsing CSV:', error);
+                                alert('❌ Error reading CSV file:\n\n' + error.message);
+                            }
+                        };
+
+                        reader.onerror = function (e) {
+                            console.error('❌ File read error:', e);
+                            alert('❌ Error reading file. Please try again.');
+                        };
+
+                        reader.readAsText(file);
+                    }
+
+                    function showReview() {
+                        const container = document.getElementById('review-container');
+
+                        console.log('=== showReview called ===');
+                        console.log('Students:', students);
+                        console.log('Students length:', students.length);
+
+                        if (!students || students.length === 0) {
+                            container.innerHTML = '<p style="color: red;">⚠️ No students to review! Please add students first.</p>';
+                            return;
+                        }
+
+                        let html = `
+        <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: var(--r); padding: 1rem; margin-bottom: 1rem;">
+            <strong>ℹ️ Preview:</strong> Final barcode IDs will be auto-generated when you click "Generate Barcodes & Save"
+        </div>
+        <table style="width:100%; border-collapse: collapse; margin-top: 1rem;">
+    `;
+
+                        // Header
+                        html += '<thead><tr style="background: var(--slate-100); text-align: left;">';
+                        html += '<th style="padding: 0.75rem; border: 1px solid var(--color-border);">Sr. No</th>';
+                        html += '<th style="padding: 0.75rem; border: 1px solid var(--color-border);">Name</th>';
+                        html += '<th style="padding: 0.75rem; border: 1px solid var(--color-border);">Roll No</th>';
+                        html += '<th style="padding: 0.75rem; border: 1px solid var(--color-border);">Class</th>';
+                        html += '<th style="padding: 0.75rem; border: 1px solid var(--color-border);">Registration</th>';
+                        html += '</tr></thead>';
+
+                        // Body
+                        html += '<tbody>';
+                        students.forEach((s, i) => {
+                            html += '<tr style="border: 1px solid var(--color-border);">';
+                            html += '<td style="padding: 0.5rem; border: 1px solid var(--color-border);"><strong>' + (i + 1) + '</strong></td>';
+                            html += '<td style="padding: 0.5rem; border: 1px solid var(--color-border);">' + (s.name || 'N/A') + '</td>';
+                            html += '<td style="padding: 0.5rem; border: 1px solid var(--color-border);">' + (s.roll_no || 'N/A') + '</td>';
+                            html += '<td style="padding: 0.5rem; border: 1px solid var(--color-border);">' + (s.class || 'N/A') + '</td>';
+                            html += '<td style="padding: 0.5rem; border: 1px solid var(--color-border);">' + (s.registration_no || 'N/A') + '</td>';
+                            html += '</tr>';
+                        });
+                        html += '</tbody>';
+
+                        html += '</table>';
+
+                        console.log('Generated HTML length:', html.length);
+                        container.innerHTML = html;
+                    }
+
+
+                    async function generateBarcodes() {
+                        showLoading('Generating barcodes and facing sheets...');
+
+                        try {
+                            const response = await fetch('/api/register-barcode-students', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    exam_id: selectedExamId,
+                                    barcode_prefix: 'EXAM2024-',
+                                    students: students
+                                })
+                            });
+
+                            const data = await response.json();
+                            hideLoading();
+
+                            if (data.status === 'success') {
+                                console.log('✅ Success! Received data:', data);
+
+                                // Update success page
+                                document.getElementById('total-students').textContent = data.total_students;
+                                document.getElementById('download-pdf-link').href = data.pdf_download_url;
+
+                                // ✅ CREATE STUDENT LIST TABLE
+                                const studentListHTML = `
+                <div style="background: #f0fdf4; border: 2px solid #86efac; border-radius: var(--r-lg); padding: 1.5rem; margin: 1.5rem 0;">
+                    <h3 style="color: #15803d; margin-bottom: 1rem; font-size: 1.2rem;">📋 Student List with Barcode IDs</h3>
+                    
+                    <div style="max-height: 400px; overflow-y: auto; background: white; border: 1px solid #86efac; border-radius: var(--r); padding: 1rem; margin-bottom: 1.25rem;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 0.875rem;">
+                            <thead>
+                                <tr style="border-bottom: 2px solid #86efac; text-align: left;">
+                                    <th style="padding: 0.75rem; font-weight: 700;">Barcode ID</th>
+                                    <th style="padding: 0.75rem; font-weight: 700;">Student Name</th>
+                                    <th style="padding: 0.75rem; font-weight: 700;">Roll No</th>
+                                    <th style="padding: 0.75rem; font-weight: 700;">Class</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${data.students.map(s => `
+                                    <tr style="border-bottom: 1px solid #e2e8f0;">
+                                        <td style="padding: 0.75rem; font-weight: 600; color: #2563eb;">${s.barcode_id}</td>
+                                        <td style="padding: 0.75rem;">${s.student_name}</td>
+                                        <td style="padding: 0.75rem;">${s.roll_no}</td>
+                                        <td style="padding: 0.75rem;">${s.class || '-'}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: var(--r); padding: 1rem; margin-bottom: 1.25rem;">
+                        <strong>⚠️ Important:</strong> Use the student list below to match facing sheets to students
+                    </div>
+
+                    <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                        <a href="/api/download-student-list/${data.batch_id}?format=pdf" 
+                           class="btn btn-primary" 
+                           download>
+                            📥 Download Student List (PDF)
+                        </a>
+                        <a href="/api/download-student-list/${data.batch_id}?format=excel" 
+                           class="btn btn-secondary" 
+                           download>
+                            📊 Download Student List (Excel)
+                        </a>
+                    </div>
+                </div>
+            `;
+
+                                // Insert student list in step 4 (before next steps)
+                                const step4 = document.getElementById('step4');
+                                const infoBox = step4.querySelector('.info-box');
+                                infoBox.insertAdjacentHTML('afterend', studentListHTML);
+
+                                // Show success page
+                                showStep(4);
+
+                                // Scroll to top
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+
+                            } else {
+                                alert('❌ Error: ' + data.error);
+                            }
+                        } catch (error) {
+                            hideLoading();
+                            console.error('❌ Error:', error);
+                            alert('❌ Error: ' + error.message);
+                        }
+                    }
+
+                    function showLoading(message) {
+                        document.getElementById('loading-overlay').classList.add('active');
+                        document.querySelector('.loading-content h3').textContent = message;
+                    }
+
+                    function hideLoading() {
+                        document.getElementById('loading-overlay').classList.remove('active');
+                    }
+                </script>
+
+                <!-- Loading Overlay -->
+                <div class="loading-overlay" id="loading-overlay">
+                    <div class="loading-content">
+                        <div class="spinner"></div>
+                        <h3>Processing...</h3>
+                        <p>Please wait</p>
+                    </div>
+                </div>
+    </body>
+
+</html>

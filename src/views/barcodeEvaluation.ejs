@@ -1,0 +1,393 @@
+<%- include('partials/head', { pageTitle: 'Barcode Evaluation' }) %>
+
+<%- include('partials/navbar', { user: user, activePage: 'barcode-evaluation' }) %>
+
+<main class="page-content">
+    <div class="container">
+
+        <!-- Page Header -->
+        <header class="header">
+            <div>
+                <h1>📱 Barcode Evaluation</h1>
+                <p>Scan QR code from facing sheet to identify student, then evaluate answer script</p>
+            </div>
+            <div class="header-actions">
+                <a href="/register-barcode-students" class="btn btn-primary">📋 Register Students</a>
+                <a href="/dashboard" class="btn btn-secondary">🏠 Dashboard</a>
+            </div>
+        </header>
+
+        <!-- Exam Selection Panel -->
+        <section class="panel panel--green">
+            <h3>Select Exam</h3>
+            <div class="exam-selector-row">
+                <div>
+                    <label for="examSelect">Choose Exam</label>
+                    <select id="examSelect" class="input-box" onchange="loadExamDetails()">
+                        <option value="">-- Select Exam --</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Exam Details Preview -->
+            <div id="examPreview" class="exam-preview">
+                <strong>Exam:</strong> <span id="examName"></span><br>
+                <strong>Subject:</strong> <span id="subject"></span><br>
+                <strong>Total Marks:</strong> <span id="totalMarks"></span><br>
+                <strong>Answer Key:</strong> <span id="answerKeyStatus"></span>
+            </div>
+        </section>
+
+        <!-- Upload Section -->
+        <section id="uploadSection" class="panel" style="display: none;">
+            <h3>Step 1: Upload Facing Sheet</h3>
+            <p style="font-size: 0.875rem; color: var(--color-text-2); margin-bottom: 1rem;">
+                Upload the facing sheet with QR code to automatically identify the student
+            </p>
+            
+            <div class="upload-area" id="facingSheetZone">
+                <div class="upload-icon">📄</div>
+                <div class="upload-text">Upload Facing Sheet</div>
+                <div class="upload-subtext">Click or drag facing sheet image here (JPG, PNG, PDF)</div>
+                <input type="file" id="facingSheetInput" accept=".jpg,.jpeg,.png,.pdf" style="display: none;">
+            </div>
+
+            <div id="facingSheetPreview" style="display: none; margin-top: 1.5rem; text-align: center;">
+                <h4 style="font-size: 0.9rem; font-weight: 600; margin-bottom: 0.75rem;">Facing Sheet Preview</h4>
+                <img id="facingSheetImg" style="max-width: 100%; max-height: 400px; border: 1px solid var(--color-border); border-radius: var(--r);">
+            </div>
+
+            <!-- Student Info (Success) -->
+            <div id="studentInfo" style="display: none; background: #f0fdf4; border: 2px solid #86efac; border-radius: var(--r-lg); padding: 1.5rem; margin-top: 1.5rem;">
+                <h3 style="color: #15803d; margin-bottom: 1rem; font-size: 1.1rem;">✅ Student Identified</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.25rem;">
+                    <div><strong>Barcode ID:</strong> <span id="barcodeId"></span></div>
+                    <div><strong>Name:</strong> <span id="studentName"></span></div>
+                    <div><strong>Roll No:</strong> <span id="rollNo"></span></div>
+                    <div><strong>Class:</strong> <span id="studentClass"></span></div>
+                </div>
+                <button class="btn btn-primary" onclick="proceedToAnswerUpload()">✓ Proceed to Upload Answer Script</button>
+            </div>
+
+            <!-- Manual Entry (Scan Failed) -->
+            <div id="manualEntry" style="display: none; background: #fffbeb; border: 2px solid #fde68a; border-radius: var(--r-lg); padding: 1.5rem; margin-top: 1.5rem;">
+                <h3 style="color: #92400e; margin-bottom: 0.75rem; font-size: 1.1rem;">⚠️ Barcode Scan Failed - Manual Entry Required</h3>
+                <p style="font-size: 0.875rem; color: var(--color-text-2); margin-bottom: 1rem;">
+                    Please enter the barcode ID manually from the facing sheet
+                </p>
+                <div style="display: flex; gap: 0.75rem; align-items: flex-end; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 200px;">
+                        <label style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 0.4rem;">Barcode ID</label>
+                        <input type="text" id="manualBarcodeInput" placeholder="EXAM2024-00001" class="input-box" maxlength="14">
+                    </div>
+                    <button class="btn btn-secondary" onclick="lookupBarcode()">🔍 Lookup Student</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Answer Script Upload -->
+        <section id="answerScriptSection" class="panel" style="display: none;">
+            <h3>Step 2: Upload Answer Script</h3>
+            <p style="font-size: 0.875rem; color: var(--color-text-2); margin-bottom: 1rem;">
+                Upload the student's answer script for AI evaluation
+            </p>
+            
+            <div class="upload-area" id="answerScriptZone">
+                <div class="upload-icon">📝</div>
+                <div class="upload-text">Upload Answer Script</div>
+                <div class="upload-subtext">Click or drag answer script here (JPG, PNG, PDF)</div>
+                <input type="file" id="answerScriptInput" accept=".jpg,.jpeg,.png,.pdf" style="display: none;">
+            </div>
+
+            <div id="answerScriptPreview" style="display: none; margin-top: 1.5rem; text-align: center;">
+                <h4 style="font-size: 0.9rem; font-weight: 600; margin-bottom: 0.75rem;">Answer Script Preview</h4>
+                <img id="answerScriptImg" style="max-width: 100%; max-height: 400px; border: 1px solid var(--color-border); border-radius: var(--r);">
+            </div>
+
+            <button id="evaluateBtn" class="btn btn-success" onclick="startEvaluation()" style="display: none; width: 100%; margin-top: 1.5rem; padding: 0.875rem; font-size: 1rem;">
+                🚀 Start AI Evaluation
+            </button>
+        </section>
+
+    </div>
+</main>
+
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-content">
+        <div class="spinner"></div>
+        <h3 id="loadingText">Processing...</h3>
+        <p>Please wait while we process your request</p>
+    </div>
+</div>
+
+<%- include('partials/footer') %>
+
+<script>
+    let selectedExam = null;
+    let selectedExamId = null;
+    let detectedBarcodeId = null;
+    let studentData = null;
+    let facingSheetFile = null;
+    let answerScriptFile = null;
+
+    // Load exams on page load
+    window.onload = async function() {
+        await loadExams();
+    };
+
+    async function loadExams() {
+        try {
+            const response = await fetch('/api/get-user-exams');
+            const data = await response.json();
+            
+            const examSelect = document.getElementById('examSelect');
+            examSelect.innerHTML = '<option value="">-- Select Exam --</option>';
+            
+            data.exams.forEach(exam => {
+                const option = document.createElement('option');
+                option.value = exam.exam_id;
+                option.textContent = `${exam.exam_name} - ${exam.subject}`;
+                option.dataset.exam = JSON.stringify(exam);
+                examSelect.appendChild(option);
+            });
+        } catch (error) {
+            console.error('Error loading exams:', error);
+            alert('Failed to load exams');
+        }
+    }
+
+    function loadExamDetails() {
+        const examSelect = document.getElementById('examSelect');
+        const selectedOption = examSelect.options[examSelect.selectedIndex];
+        
+        if (!selectedOption.value) {
+            document.getElementById('examPreview').style.display = 'none';
+            document.getElementById('uploadSection').style.display = 'none';
+            return;
+        }
+
+        selectedExam = JSON.parse(selectedOption.dataset.exam);
+        selectedExamId = selectedExam.exam_id;
+
+        // Show exam details
+        document.getElementById('examName').textContent = selectedExam.exam_name;
+        document.getElementById('subject').textContent = selectedExam.subject;
+        document.getElementById('totalMarks').textContent = selectedExam.total_marks;
+        document.getElementById('answerKeyStatus').textContent = selectedExam.answer_key_data ? '✅ Available' : '❌ Not Set';
+        
+        document.getElementById('examPreview').style.display = 'block';
+        document.getElementById('uploadSection').style.display = 'block';
+    }
+
+    // Facing Sheet Upload
+    const facingSheetZone = document.getElementById('facingSheetZone');
+    const facingSheetInput = document.getElementById('facingSheetInput');
+
+    facingSheetZone.addEventListener('click', () => facingSheetInput.click());
+
+    facingSheetZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        facingSheetZone.classList.add('dragover');
+    });
+
+    facingSheetZone.addEventListener('dragleave', () => {
+        facingSheetZone.classList.remove('dragover');
+    });
+
+    facingSheetZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        facingSheetZone.classList.remove('dragover');
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            handleFacingSheetUpload(files[0]);
+        }
+    });
+
+    facingSheetInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+            handleFacingSheetUpload(e.target.files[0]);
+        }
+    });
+
+    async function handleFacingSheetUpload(file) {
+        facingSheetFile = file;
+
+        // Show preview
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            document.getElementById('facingSheetImg').src = e.target.result;
+            document.getElementById('facingSheetPreview').style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+
+        // Scan barcode
+        showLoading('Scanning barcode...');
+
+        try {
+            const formData = new FormData();
+            formData.append('image', file);
+
+            const response = await fetch('http://localhost:5000/api/scan_barcode', {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+            hideLoading();
+
+            if (result.status === 'success') {
+                detectedBarcodeId = result.details.barcode_id;
+                await lookupStudent(detectedBarcodeId);
+            } else {
+                // Scan failed - show manual entry
+                document.getElementById('manualEntry').style.display = 'block';
+                document.getElementById('studentInfo').style.display = 'none';
+            }
+        } catch (error) {
+            hideLoading();
+            console.error('Barcode scan error:', error);
+            document.getElementById('manualEntry').style.display = 'block';
+        }
+    }
+
+    async function lookupBarcode() {
+        const manualId = document.getElementById('manualBarcodeInput').value.trim().toUpperCase();
+        if (!manualId) {
+            alert('Please enter barcode ID');
+            return;
+        }
+
+        await lookupStudent(manualId);
+    }
+
+    async function lookupStudent(barcodeId) {
+        showLoading('Looking up student...');
+
+        try {
+            const response = await fetch(`/api/get-student-by-barcode?barcode_id=${barcodeId}&exam_id=${selectedExamId}`);
+            const data = await response.json();
+
+            hideLoading();
+
+            if (data.success) {
+                studentData = data.student;
+                detectedBarcodeId = barcodeId;
+
+                // Show student info
+                document.getElementById('barcodeId').textContent = barcodeId;
+                document.getElementById('studentName').textContent = studentData.student_name;
+                document.getElementById('rollNo').textContent = studentData.roll_no;
+                document.getElementById('studentClass').textContent = studentData.class || 'N/A';
+
+                document.getElementById('studentInfo').style.display = 'block';
+                document.getElementById('manualEntry').style.display = 'none';
+            } else {
+                alert('Student not found for this barcode ID');
+            }
+        } catch (error) {
+            hideLoading();
+            console.error('Student lookup error:', error);
+            alert('Failed to lookup student');
+        }
+    }
+
+    function proceedToAnswerUpload() {
+        document.getElementById('answerScriptSection').style.display = 'block';
+        document.getElementById('answerScriptSection').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // Answer Script Upload
+    const answerScriptZone = document.getElementById('answerScriptZone');
+    const answerScriptInput = document.getElementById('answerScriptInput');
+
+    answerScriptZone.addEventListener('click', () => answerScriptInput.click());
+
+    answerScriptZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        answerScriptZone.classList.add('dragover');
+    });
+
+    answerScriptZone.addEventListener('dragleave', () => {
+        answerScriptZone.classList.remove('dragover');
+    });
+
+    answerScriptZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        answerScriptZone.classList.remove('dragover');
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            handleAnswerScriptUpload(files[0]);
+        }
+    });
+
+    answerScriptInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+            handleAnswerScriptUpload(e.target.files[0]);
+        }
+    });
+
+    function handleAnswerScriptUpload(file) {
+        answerScriptFile = file;
+
+        // Show preview
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            document.getElementById('answerScriptImg').src = e.target.result;
+            document.getElementById('answerScriptPreview').style.display = 'block';
+            document.getElementById('evaluateBtn').style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+    }
+
+    async function startEvaluation() {
+        if (!answerScriptFile) {
+            alert('Please upload answer script');
+            return;
+        }
+
+        if (!studentData) {
+            alert('Student not identified');
+            return;
+        }
+
+        showLoading('Starting AI evaluation...');
+
+        try {
+            const formData = new FormData();
+            formData.append('answer_script', answerScriptFile);
+            formData.append('exam_id', selectedExamId);
+            formData.append('barcode_id', detectedBarcodeId);
+            formData.append('student_name', studentData.student_name);
+            formData.append('roll_no', studentData.roll_no);
+            formData.append('class', studentData.class || '');
+
+            const response = await fetch('/api/evaluate-barcode-submission', {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+            hideLoading();
+
+            if (result.success) {
+                window.location.href = `/results-barcode/${result.submission_id}`;
+            } else {
+                alert('Evaluation failed: ' + result.message);
+            }
+        } catch (error) {
+            hideLoading();
+            console.error('Evaluation error:', error);
+            alert('Evaluation failed');
+        }
+    }
+
+    function showLoading(text) {
+        document.querySelector('#loadingOverlay h3').textContent = text;
+        document.getElementById('loadingOverlay').classList.add('active');
+    }
+
+    function hideLoading() {
+        document.getElementById('loadingOverlay').classList.remove('active');
+    }
+</script>

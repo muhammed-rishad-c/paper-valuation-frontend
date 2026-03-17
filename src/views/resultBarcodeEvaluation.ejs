@@ -1,0 +1,169 @@
+<%- include('partials/head', { pageTitle: 'Evaluation Results' }) %>
+
+<%- include('partials/navbar', { user: user, activePage: 'results' }) %>
+
+<main class="page-content">
+    <div class="container">
+
+        <!-- Page Header -->
+        <div style="margin-bottom: 1rem;">
+            <a href="/barcode-evaluation" class="back-link">← Back to Barcode Evaluation</a>
+        </div>
+
+        <header class="header">
+            <div>
+                <h1>📊 Evaluation Results</h1>
+                <p><%= submission.exam_name %> - <%= submission.subject %></p>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-primary" onclick="window.print()">🖨️ Print</button>
+                <a href="/barcode-evaluation" class="btn btn-success">➕ New Evaluation</a>
+            </div>
+        </header>
+
+        <!-- Student Information -->
+        <section class="score-summary">
+            <h2>Student Information</h2>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+                <div class="score-item">
+                    <span class="score-label">Student Name</span>
+                    <div style="font-size: 1.25rem; font-weight: 600; margin-top: 0.5rem;"><%= submission.student_name %></div>
+                </div>
+                <div class="score-item">
+                    <span class="score-label">Barcode ID</span>
+                    <div style="font-size: 1.25rem; font-weight: 600; margin-top: 0.5rem;"><%= submission.barcode_id %></div>
+                </div>
+                <div class="score-item">
+                    <span class="score-label">Roll Number</span>
+                    <div style="font-size: 1.25rem; font-weight: 600; margin-top: 0.5rem;"><%= submission.roll_no %></div>
+                </div>
+                <% if (submission.class) { %>
+                <div class="score-item">
+                    <span class="score-label">Class</span>
+                    <div style="font-size: 1.25rem; font-weight: 600; margin-top: 0.5rem;"><%= submission.class %></div>
+                </div>
+                <% } %>
+            </div>
+
+            <!-- Score Display -->
+            <div class="score-grid">
+                <div class="score-item">
+                    <span class="score-label">Score Obtained</span>
+                    <div class="score-value"><%= submission.total_score || 0 %></div>
+                </div>
+                <div class="score-item">
+                    <span class="score-label">Maximum Marks</span>
+                    <div class="score-value"><%= submission.max_score || submission.exam_total_marks %></div>
+                </div>
+                <div class="score-item">
+                    <span class="score-label">Percentage</span>
+                    <div class="score-value">
+                        <% 
+                            const percentage = submission.max_score 
+                                ? ((submission.total_score / submission.max_score) * 100).toFixed(1)
+                                : 0;
+                        %>
+                        <%= percentage %>%
+                    </div>
+                </div>
+            </div>
+
+            <!-- Status Badge -->
+            <div style="text-align: center; margin-top: 1.5rem;">
+                <% 
+                    const gradeColor = percentage >= 80 ? '#48bb78' : 
+                                     percentage >= 60 ? '#ed8936' : 
+                                     percentage >= 40 ? '#ecc94b' : '#f56565';
+                %>
+                <div class="result-badge" style="background: <%= gradeColor %>;">
+                    <% if (percentage >= 40) { %>
+                        ✅ PASS
+                    <% } else { %>
+                        ❌ FAIL
+                    <% } %>
+                </div>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="progress-bar-container" style="margin-top: 1.25rem;">
+                <div class="progress-bar <%= percentage >= 80 ? 'progress-excellent' : percentage >= 60 ? 'progress-good' : 'progress-poor' %>" 
+                     style="width: <%= percentage %>%;"></div>
+            </div>
+        </section>
+
+        <!-- Question-wise Breakdown -->
+        <% if (evaluationData && evaluationData.question_scores) { %>
+        <section class="panel">
+            <h3>📝 Question-wise Breakdown</h3>
+            
+            <% evaluationData.question_scores.forEach((q, index) => { 
+                const qPercentage = q.max_marks ? ((q.marks_obtained / q.max_marks) * 100).toFixed(0) : 0;
+            %>
+            <div class="question-card">
+                <div class="question-header">
+                    <div>
+                        <span class="question-label">Question <%= index + 1 %></span>
+                        <span class="question-type">MCQ</span>
+                    </div>
+                    <div class="marks-display">
+                        <span class="marks-obtained"><%= q.marks_obtained %></span> / <%= q.max_marks %>
+                    </div>
+                </div>
+                
+                <div class="progress-bar-container">
+                    <div class="progress-bar <%= qPercentage >= 80 ? 'progress-excellent' : qPercentage >= 60 ? 'progress-good' : 'progress-poor' %>" 
+                         style="width: <%= qPercentage %>%;"></div>
+                </div>
+
+                <% if (q.feedback) { %>
+                <div class="answer-text">
+                    <pre><%= q.feedback %></pre>
+                </div>
+                <% } %>
+            </div>
+            <% }); %>
+        </section>
+        <% } %>
+
+        <!-- AI Feedback -->
+        <% if (evaluationData && evaluationData.overall_feedback) { %>
+        <section class="panel">
+            <h3>💬 AI Feedback</h3>
+            <div class="answer-text">
+                <pre><%= evaluationData.overall_feedback %></pre>
+            </div>
+        </section>
+        <% } %>
+
+        <!-- Exam Details -->
+        <section class="panel">
+            <h3>Exam Details</h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;">
+                <div><strong>Exam:</strong> <%= submission.exam_name %></div>
+                <div><strong>Subject:</strong> <%= submission.subject %></div>
+                <div><strong>Date:</strong> <%= new Date(submission.submission_date).toLocaleDateString() %></div>
+                <div>
+                    <strong>Status:</strong> 
+                    <% if (submission.status === 'completed') { %>
+                        <span style="color: #15803d;">✅ Completed</span>
+                    <% } else if (submission.status === 'processing') { %>
+                        <span style="color: #f59e0b;">⏳ Processing</span>
+                    <% } else { %>
+                        <span style="color: var(--red-500);">❌ Failed</span>
+                    <% } %>
+                </div>
+            </div>
+        </section>
+
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+            <button class="btn btn-primary" onclick="window.print()">🖨️ Print Results</button>
+            <button class="btn btn-secondary" onclick="window.print()">📥 Download PDF</button>
+            <a href="/barcode-evaluation" class="btn btn-success">➕ New Evaluation</a>
+            <a href="/history" class="btn btn-secondary">📊 View History</a>
+        </div>
+
+    </div>
+</main>
+
+<%- include('partials/footer') %>

@@ -1,90 +1,99 @@
 <%- include('partials/head', { pageTitle: 'Dashboard' }) %>
 
-<%- include('partials/navbar', { user: user, activePage: 'dashboard' }) %>
+    <%- include('partials/navbar', { user: user, activePage: 'dashboard' }) %>
 
-<main class="page-content">
-    <div class="container">
+        <main class="page-content">
+            <div class="container">
 
-        <!-- Welcome Header -->
-        <header class="header">
-            <div>
-                <h1>Welcome, <%= user.full_name || user.username %>! 👋</h1>
-                <p>Paper Valuation System Dashboard</p>
+                <!-- Welcome Header -->
+                <header class="header">
+                    <div>
+                        <h1>Welcome, <%= user.full_name || user.username %>! 👋</h1>
+                        <p>Paper Valuation System Dashboard</p>
+                    </div>
+                    <div class="header-actions">
+                        <a href="/profile" class="btn btn-primary">👤 Profile</a>
+                        <a href="/history" class="btn btn-secondary">📊 History</a>
+                        <form action="/logout" method="POST" style="display: inline;">
+                            <button type="submit" class="btn btn-danger">🚪 Logout</button>
+                        </form>
+                    </div>
+                </header>
+
+                <!-- Statistics -->
+                <section class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">📝</div>
+                        <div class="stat-value" id="totalExams">-</div>
+                        <div class="stat-label">Total Exams Created</div>
+                    </div>
+                </section>
+
+                <!-- Quick Actions -->
+                <section class="section">
+                    <h2>Quick Actions</h2>
+                    <div class="actions-grid">
+                        <a href="/answer-key-setup" class="action-card">
+                            <span class="action-icon">🔑</span>
+                            <span class="action-label">Create Answer Key</span>
+                        </a>
+                        <a href="/upload-individual" class="action-card">
+                            <span class="action-icon">📄</span>
+                            <span class="action-label">Individual Evaluation</span>
+                        </a>
+                        <a href="/upload-series" class="action-card">
+                            <span class="action-icon">📦</span>
+                            <span class="action-label">Batch Evaluation</span>
+                        </a>
+                        <!-- Inside the actions-grid div -->
+                        <a href="/register-barcode-students" class="action-card">
+                            <span class="action-icon">📋</span>
+                            <span class="action-label">Register Students</span>
+                        </a>
+                        <a href="/barcode-evaluation" class="action-card">
+                            <span class="action-icon">📱</span>
+                            <span class="action-label">Barcode Evaluation</span>
+                        </a>
+                        <a href="/history" class="action-card">
+                            <span class="action-icon">📊</span>
+                            <span class="action-label">View History</span>
+                        </a>
+                    </div>
+                </section>
+
+                <!-- Recent Activity -->
+                <section class="section">
+                    <h2>Recent Activity</h2>
+                    <ul class="activity-list" id="activityList">
+                        <li class="loading">Loading recent activity...</li>
+                    </ul>
+                </section>
+
             </div>
-            <div class="header-actions">
-                <a href="/profile" class="btn btn-primary">👤 Profile</a>
-                <a href="/history" class="btn btn-secondary">📊 History</a>
-                <form action="/logout" method="POST" style="display: inline;">
-                    <button type="submit" class="btn btn-danger">🚪 Logout</button>
-                </form>
-            </div>
-        </header>
+        </main>
 
-        <!-- Statistics -->
-        <section class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-icon">📝</div>
-                <div class="stat-value" id="totalExams">-</div>
-                <div class="stat-label">Total Exams Created</div>
-            </div>
-        </section>
+        <%- include('partials/footer') %>
 
-        <!-- Quick Actions -->
-        <section class="section">
-            <h2>Quick Actions</h2>
-            <div class="actions-grid">
-                <a href="/answer-key-setup" class="action-card">
-                    <span class="action-icon">🔑</span>
-                    <span class="action-label">Create Answer Key</span>
-                </a>
-                <a href="/upload-individual" class="action-card">
-                    <span class="action-icon">📄</span>
-                    <span class="action-label">Individual Evaluation</span>
-                </a>
-                <a href="/upload-series" class="action-card">
-                    <span class="action-icon">📦</span>
-                    <span class="action-label">Batch Evaluation</span>
-                </a>
-                <a href="/history" class="action-card">
-                    <span class="action-icon">📊</span>
-                    <span class="action-label">View History</span>
-                </a>
-            </div>
-        </section>
+            <script>
+                async function loadDashboardStats() {
+                    try {
+                        const response = await fetch('/api/dashboard/stats');
+                        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                        const data = await response.json();
+                        if (data.status === 'Success') {
+                            document.getElementById('totalExams').textContent = data.stats.total_exams || 0;
+                            displayRecentActivity(data.recent_activity);
+                        } else throw new Error(data.error || 'Failed');
+                    } catch (e) { showError(); }
+                }
 
-        <!-- Recent Activity -->
-        <section class="section">
-            <h2>Recent Activity</h2>
-            <ul class="activity-list" id="activityList">
-                <li class="loading">Loading recent activity...</li>
-            </ul>
-        </section>
-
-    </div>
-</main>
-
-<%- include('partials/footer') %>
-
-<script>
-    async function loadDashboardStats() {
-        try {
-            const response = await fetch('/api/dashboard/stats');
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            const data = await response.json();
-            if (data.status === 'Success') {
-                document.getElementById('totalExams').textContent = data.stats.total_exams || 0;
-                displayRecentActivity(data.recent_activity);
-            } else throw new Error(data.error || 'Failed');
-        } catch (e) { showError(); }
-    }
-
-    function displayRecentActivity(activities) {
-        const list = document.getElementById('activityList');
-        if (!activities || !activities.length) {
-            list.innerHTML = `<li class="empty-state"><div class="empty-icon">📭</div><div class="empty-text">No recent activity</div><div class="empty-subtext">Start by creating an answer key or uploading papers!</div></li>`;
-            return;
-        }
-        list.innerHTML = activities.map(a => `
+                function displayRecentActivity(activities) {
+                    const list = document.getElementById('activityList');
+                    if (!activities || !activities.length) {
+                        list.innerHTML = `<li class="empty-state"><div class="empty-icon">📭</div><div class="empty-text">No recent activity</div><div class="empty-subtext">Start by creating an answer key or uploading papers!</div></li>`;
+                        return;
+                    }
+                    list.innerHTML = activities.map(a => `
             <li class="activity-item">
                 <div class="activity-content">
                     <div class="activity-title">${escapeHtml(a.title)}</div>
@@ -92,16 +101,16 @@
                 </div>
                 <div class="activity-date">${escapeHtml(a.date)}</div>
             </li>`).join('');
-    }
+                }
 
-    function showError() {
-        document.getElementById('activityList').innerHTML = `<li class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-text">Failed to load dashboard</div><div class="empty-subtext">Please refresh the page to try again</div></li>`;
-        document.getElementById('totalExams').textContent = '?';
-    }
+                function showError() {
+                    document.getElementById('activityList').innerHTML = `<li class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-text">Failed to load dashboard</div><div class="empty-subtext">Please refresh the page to try again</div></li>`;
+                    document.getElementById('totalExams').textContent = '?';
+                }
 
-    function escapeHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+                function escapeHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
 
-    document.readyState === 'loading'
-        ? document.addEventListener('DOMContentLoaded', loadDashboardStats)
-        : loadDashboardStats();
-</script>
+                document.readyState === 'loading'
+                    ? document.addEventListener('DOMContentLoaded', loadDashboardStats)
+                    : loadDashboardStats();
+            </script>
