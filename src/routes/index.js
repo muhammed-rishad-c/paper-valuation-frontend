@@ -61,12 +61,14 @@ router.get('/barcode-evaluation', requireAuth, (req, res) => {
 router.get('/api/get-student-by-barcode', requireAuth, evaluationController.getStudentByBarcode);
 
 // Evaluate Barcode Submission
-router.post('/api/evaluate-barcode-submission', requireAuth, upload.single('answer_script'), evaluationController.evaluateBarcodeSubmission);
-
+router.post('/api/evaluate-barcode-submission', requireAuth, upload.array('answer_script', 20), evaluationController.evaluateBarcodeSubmission);
 // Barcode Results Page
 router.get('/results-barcode/:submission_id', requireAuth, evaluationController.getBarcodeResults);
 
 // Download Student List (PDF or Excel)
 router.get('/api/download-student-list/:batch_id', requireAuth, evaluationController.downloadStudentList);
 
-module.exports = router;  
+// Check which exam a barcode belongs to
+router.get('/api/check-barcode-exam', requireAuth, evaluationController.checkBarcodeExam);
+
+module.exports = router;   

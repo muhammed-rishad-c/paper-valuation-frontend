@@ -1888,6 +1888,8 @@ exports.getStudentByBarcode = async (req, res) => {
     try {
         const { barcode_id, exam_id } = req.query;
 
+        console.log('🔍 Looking up barcode:', { barcode_id, exam_id });
+
         if (!barcode_id || !exam_id) {
             return res.status(400).json({
                 success: false,
@@ -1895,8 +1897,8 @@ exports.getStudentByBarcode = async (req, res) => {
             });
         }
 
-        // Query database for student mapping
-        const [students] = await sequelize.query(`
+        // ✅ REMOVE THE [students] DESTRUCTURING!
+        const students = await sequelize.query(`
             SELECT 
                 barcode_id,
                 student_name,
@@ -1912,12 +1914,17 @@ exports.getStudentByBarcode = async (req, res) => {
             type: sequelize.QueryTypes.SELECT
         });
 
+        console.log('📊 Query result:', students);
+        console.log('📊 Students found:', students.length);
+
         if (students.length === 0) {
             return res.status(404).json({
                 success: false,
-                message: 'Student not found for this barcode ID'
+                message: `Student not found for barcode ${barcode_id} in this exam`
             });
         }
+
+        console.log('✅ Student found:', students[0]);
 
         res.json({
             success: true,
@@ -1925,7 +1932,7 @@ exports.getStudentByBarcode = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Error getting student by barcode:', error);
+        console.error('❌ Error getting student by barcode:', error);
         res.status(500).json({
             success: false,
             message: 'Failed to retrieve student information',
@@ -1935,56 +1942,50 @@ exports.getStudentByBarcode = async (req, res) => {
 };
 
 // Evaluate Barcode Submission
+// ============================================
+// REPLACE these two functions in evaluationController.js
+// ============================================
+
+// Evaluate Barcode Submission
 exports.evaluateBarcodeSubmission = async (req, res) => {
     try {
-        const { exam_id, barcode_id, student_name, roll_no, class: studentClass } = req.body;
+        const { exam_id, barcode_id } = req.body;
         const userId = req.user.user_id;
-        const answerScriptFile = req.file;
+        const answerScriptFiles = req.files;
 
         console.log('📝 Barcode evaluation request:', {
             exam_id,
             barcode_id,
-            student_name,
-            roll_no,
-            file: answerScriptFile?.filename
+            files: answerScriptFiles?.length || 0
         });
 
-        // Validate inputs
-        if (!exam_id || !barcode_id || !answerScriptFile) {
+        if (!exam_id || !barcode_id || !answerScriptFiles || answerScriptFiles.length === 0) {
             return res.status(400).json({
                 success: false,
-                message: 'Missing required fields'
+                message: 'Missing required fields or answer script files'
             });
         }
 
-        // Get exam details
-        const [exams] = await sequelize.query(`
-            SELECT * FROM exams WHERE exam_id = :exam_id AND created_by = :userId
-        `, {
-            replacements: { exam_id, userId },
-            type: sequelize.QueryTypes.SELECT
+        // Load exam with questions and OR groups (same pattern as postEvaluate)
+        const exam = await Exam.findOne({
+            where: { exam_id, user_id: userId },
+            include: [
+                { model: Question, as: 'questions' },
+                { model: OrGroup, as: 'or_groups' }
+            ]
         });
 
-        if (exams.length === 0) {
+        if (!exam) {
             return res.status(404).json({
                 success: false,
-                message: 'Exam not found'
+                message: `Exam not found or access denied for exam_id: ${exam_id}`
             });
         }
 
-        const exam = exams[0];
-
-        // Check if answer key exists
-        if (!exam.answer_key_data) {
-            return res.status(400).json({
-                success: false,
-                message: 'Answer key not set for this exam'
-            });
-        }
-
-        // Verify student exists
-        const [students] = await sequelize.query(`
-            SELECT * FROM barcode_student_mappings 
+        // Verify student exists in barcode mappings
+        const students = await sequelize.query(`
+            SELECT barcode_id, student_name, roll_no, class, registration_no
+            FROM barcode_student_mappings
             WHERE barcode_id = :barcode_id AND exam_id = :exam_id
         `, {
             replacements: { barcode_id, exam_id },
@@ -1994,113 +1995,148 @@ exports.evaluateBarcodeSubmission = async (req, res) => {
         if (students.length === 0) {
             return res.status(404).json({
                 success: false,
-                message: 'Student not found in barcode mappings'
+                message: `Student not found for barcode ${barcode_id} in exam ${exam_id}`
             });
         }
 
         const student = students[0];
+        console.log('✅ Student found:', student.student_name, '| Roll:', student.roll_no);
 
-        // Create submission record
-        const submission_id = `SUB-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        // Build exam data for Python (same structure as postEvaluate)
+        const examData = {
+            exam_id: exam.exam_id,
+            exam_name: exam.exam_name,
+            class: exam.class,
+            subject: exam.subject,
+            total_marks: exam.total_marks,
+            question_types: {},
+            question_marks: {},
+            teacher_answers: {},
+            or_groups: []
+        };
 
-        await sequelize.query(`
-            INSERT INTO submissions (
-                submission_id,
-                exam_id,
-                user_id,
-                barcode_id,
-                student_name,
-                roll_no,
-                class,
-                answer_script_path,
-                status,
-                submission_date
-            ) VALUES (
-                :submission_id,
-                :exam_id,
-                :user_id,
-                :barcode_id,
-                :student_name,
-                :roll_no,
-                :class,
-                :answer_script_path,
-                'processing',
-                NOW()
-            )
-        `, {
-            replacements: {
-                submission_id,
-                exam_id,
-                user_id: userId,
-                barcode_id,
-                student_name: student.student_name,
-                roll_no: student.roll_no,
-                class: student.class,
-                answer_script_path: answerScriptFile.path
-            }
+        exam.questions.forEach(q => {
+            examData.question_types[q.question_number.toString()] = q.question_type;
+            examData.question_marks[q.question_number.toString()] = q.max_marks;
+            examData.teacher_answers[`Q${q.question_number}`] = q.teacher_answer;
         });
 
-        console.log('✅ Submission record created:', submission_id);
+        exam.or_groups.forEach(g => {
+            examData.or_groups.push({
+                type: g.group_type,
+                options: JSON.parse(g.option_a),
+                option_b: g.option_b ? JSON.parse(g.option_b) : []
+            });
+        });
 
-        // Send to Python backend for evaluation
-        console.log('🚀 Sending to Python backend for AI evaluation...');
-
+        // Send to Python /api/evaluate_individual_with_data (same as postEvaluate)
         const formData = new FormData();
-        formData.append('answer_script', fs.createReadStream(answerScriptFile.path));
-        formData.append('answer_key', JSON.stringify(exam.answer_key_data));
-        formData.append('total_marks', exam.total_marks);
-        formData.append('submission_id', submission_id);
+        formData.append('exam_data', JSON.stringify(examData));
 
-        try {
-            const pythonResponse = await axios.post('http://localhost:5000/api/evaluate', formData, {
-                headers: {
-                    ...formData.getHeaders()
-                },
-                timeout: 120000 // 2 minutes timeout
+        for (const file of answerScriptFiles) {
+            formData.append('paper_images', fs.createReadStream(file.path), {
+                filename: file.originalname,
+                contentType: file.mimetype
             });
-
-            console.log('✅ Python evaluation response:', pythonResponse.data);
-
-            // Update submission with results
-            await sequelize.query(`
-                UPDATE submissions 
-                SET 
-                    total_score = :total_score,
-                    max_score = :max_score,
-                    evaluation_data = :evaluation_data,
-                    status = 'completed',
-                    evaluation_date = NOW()
-                WHERE submission_id = :submission_id
-            `, {
-                replacements: {
-                    submission_id,
-                    total_score: pythonResponse.data.total_score || 0,
-                    max_score: pythonResponse.data.max_score || exam.total_marks,
-                    evaluation_data: JSON.stringify(pythonResponse.data)
-                }
-            });
-
-            res.json({
-                success: true,
-                message: 'Evaluation completed successfully',
-                submission_id,
-                results: pythonResponse.data
-            });
-
-        } catch (pythonError) {
-            console.error('❌ Python evaluation error:', pythonError.message);
-
-            // Update submission status to failed
-            await sequelize.query(`
-                UPDATE submissions 
-                SET status = 'failed'
-                WHERE submission_id = :submission_id
-            `, {
-                replacements: { submission_id }
-            });
-
-            throw pythonError;
         }
+
+        console.log('🚀 Sending to Python for OCR + evaluation...');
+
+        const pythonResponse = await valuationService.sendToPythonAPI(
+            formData,
+            '/api/evaluate_individual_with_data',
+            {
+                headers: { ...formData.getHeaders() },
+                maxContentLength: Infinity,
+                maxBodyLength: Infinity,
+                timeout: 180000
+            }
+        );
+
+        if (pythonResponse.status !== 'Success') {
+            return res.status(500).json({
+                success: false,
+                message: 'Python evaluation failed',
+                error: pythonResponse.error || 'Unknown error'
+            });
+        }
+
+        console.log('✅ Python evaluation complete');
+
+        const evalResult = pythonResponse.evaluation_result;
+        const recognitionResult = pythonResponse.recognition_result;
+        const totalMarksObtained = evalResult.total_marks_obtained;
+        const percentage = evalResult.percentage;
+        const marksBreakdown = evalResult.marks_breakdown;
+
+        // Save/update submission in DB (same pattern as postEvaluateSeriesBatch)
+        let submission = await Submission.findOne({
+            where: { exam_id, roll_no: student.roll_no }
+        });
+
+        if (!submission) {
+            submission = await Submission.create({
+                exam_id,
+                roll_no: student.roll_no,
+                student_name: student.student_name,
+                valuation_status: 'completed',
+                total_marks_obtained: totalMarksObtained,
+                percentage: percentage
+            });
+        } else {
+            await Submission.update(
+                {
+                    valuation_status: 'completed',
+                    total_marks_obtained: totalMarksObtained,
+                    percentage: percentage
+                },
+                { where: { submission_id: submission.submission_id } }
+            );
+        }
+
+        // Save per-question answers and marks
+        const studentAnswers = recognitionResult.answers || {};
+        const answersToInsert = [];
+
+        for (const [qLabel, answerText] of Object.entries(studentAnswers)) {
+            const qNum = parseInt(qLabel.replace('Q', ''));
+            const breakdown = marksBreakdown[qLabel] || {};
+
+            answersToInsert.push({
+                submission_id: submission.submission_id,
+                question_number: qNum,
+                answer_text: answerText,
+                marks_obtained: breakdown.marks_obtained ?? null,
+                is_or_question: breakdown.or_group || false,
+                or_option_chosen: breakdown.chosen_option || null
+            });
+        }
+
+        // Delete old answers then re-insert cleanly
+        await StudentAnswer.destroy({
+            where: { submission_id: submission.submission_id }
+        });
+        await StudentAnswer.bulkCreate(answersToInsert);
+
+        console.log(`✅ Saved ${answersToInsert.length} answers for ${student.student_name}`);
+
+        return res.json({
+            success: true,
+            message: 'Evaluation completed successfully',
+            submission_id: submission.submission_id,
+            student: {
+                name: student.student_name,
+                roll_no: student.roll_no,
+                barcode_id: student.barcode_id
+            },
+            result: {
+                total_marks_obtained: totalMarksObtained,
+                total_marks_possible: evalResult.total_marks_possible,
+                percentage: percentage,
+                result: evalResult.result,
+                marks_breakdown: marksBreakdown
+            }
+        });
 
     } catch (error) {
         console.error('❌ Barcode evaluation error:', error);
@@ -2109,8 +2145,19 @@ exports.evaluateBarcodeSubmission = async (req, res) => {
             message: 'Evaluation failed',
             error: error.message
         });
+    } finally {
+        if (req.files) {
+            req.files.forEach(file => {
+                if (fs.existsSync(file.path)) {
+                    fs.unlink(file.path, err => {
+                        if (err) console.error('Cleanup error:', err);
+                    });
+                }
+            });
+        }
     }
 };
+
 
 // Get Barcode Evaluation Results
 exports.getBarcodeResults = async (req, res) => {
@@ -2118,17 +2165,25 @@ exports.getBarcodeResults = async (req, res) => {
         const { submission_id } = req.params;
         const userId = req.user.user_id;
 
-        // Get submission details
-        const [submissions] = await sequelize.query(`
+        // Fixed: removed wrong [submissions] destructuring, use correct join
+        const submissions = await sequelize.query(`
             SELECT 
-                s.*,
+                s.submission_id,
+                s.exam_id,
+                s.roll_no,
+                s.student_name,
+                s.valuation_status,
+                s.total_marks_obtained,
+                s.percentage,
+                s.created_at,
                 e.exam_name,
                 e.subject,
+                e.class,
                 e.total_marks as exam_total_marks
             FROM submissions s
             JOIN exams e ON s.exam_id = e.exam_id
             WHERE s.submission_id = :submission_id
-            AND s.user_id = :userId
+            AND e.user_id = :userId
         `, {
             replacements: { submission_id, userId },
             type: sequelize.QueryTypes.SELECT
@@ -2142,21 +2197,30 @@ exports.getBarcodeResults = async (req, res) => {
 
         const submission = submissions[0];
 
-        // Parse evaluation data
-        let evaluationData = {};
-        if (submission.evaluation_data) {
-            try {
-                evaluationData = typeof submission.evaluation_data === 'string'
-                    ? JSON.parse(submission.evaluation_data)
-                    : submission.evaluation_data;
-            } catch (e) {
-                console.error('Error parsing evaluation data:', e);
-            }
-        }
+        // Get per-question answers with marks
+        const answers = await StudentAnswer.findAll({
+            where: { submission_id },
+            order: [['question_number', 'ASC']],
+            raw: true
+        });
+
+        // Get question max marks for display
+        const questions = await Question.findAll({
+            where: { exam_id: submission.exam_id },
+            order: [['question_number', 'ASC']],
+            raw: true
+        });
+
+        const questionMap = {};
+        questions.forEach(q => {
+            questionMap[q.question_number] = q;
+        });
 
         res.render('resultsBarcodeEvaluation', {
+            title: 'Evaluation Results',
             submission,
-            evaluationData,
+            answers,
+            questionMap,
             user: req.user
         });
 
@@ -2347,6 +2411,64 @@ exports.downloadStudentList = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Failed to generate student list',
+            error: error.message
+        });
+    }
+};
+
+// Check which exam a barcode belongs to
+exports.checkBarcodeExam = async (req, res) => {
+    try {
+        const { barcode_id } = req.query;
+
+        if (!barcode_id) {
+            return res.status(400).json({
+                success: false,
+                message: 'Barcode ID is required'
+            });
+        }
+
+        const results = await sequelize.query(`
+            SELECT 
+                b.barcode_id,
+                b.student_name,
+                b.exam_id,
+                e.exam_name,
+                e.subject,
+                e.class
+            FROM barcode_student_mappings b
+            LEFT JOIN exams e ON b.exam_id = e.exam_id
+            WHERE b.barcode_id = :barcode_id
+            LIMIT 1
+        `, {
+            replacements: { barcode_id },
+            type: sequelize.QueryTypes.SELECT
+        });
+
+        if (results.length === 0) {
+            return res.json({
+                success: false,
+                message: 'Barcode not found in any exam'
+            });
+        }
+
+        const student = results[0];
+
+        res.json({
+            success: true,
+            barcode_id: student.barcode_id,
+            student_name: student.student_name,
+            exam_id: student.exam_id,
+            exam_name: student.exam_name || 'Unknown Exam',
+            subject: student.subject,
+            class: student.class
+        });
+
+    } catch (error) {
+        console.error('Error checking barcode exam:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to check barcode',
             error: error.message
         });
     }
