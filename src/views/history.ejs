@@ -1,11 +1,9 @@
 <%- include('partials/head', { pageTitle: 'History' }) %>
-
 <%- include('partials/navbar', { user: user, activePage: 'history' }) %>
 
 <main class="page-content">
     <div class="container">
 
-        <!-- Header -->
         <div class="history-header">
             <h1>📊 Evaluation History</h1>
             <p>View all your past exams and export results</p>
@@ -28,12 +26,10 @@
             </div>
         </div>
 
-        <!-- Loading -->
         <div id="loadingIndicator" class="loading">
             Loading your exam history...
         </div>
 
-        <!-- Exam list -->
         <div class="exam-list" id="examList" style="display:none;"></div>
 
     </div>
@@ -83,9 +79,15 @@
                     <div class="exam-card-header">
                         <div>
                             <div class="exam-title">${exam.exam_name}</div>
-                            <div class="exam-meta">${exam.class} &nbsp;•&nbsp; ${exam.subject} &nbsp;•&nbsp; Total Marks: ${exam.total_marks}</div>
-                            <div class="exam-meta">Created: ${new Date(exam.created_at).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })}</div>
-                            ${exam.completed_count > 0 ? `
+                            <div class="exam-meta">
+                                ${exam.class} &nbsp;•&nbsp; ${exam.subject} &nbsp;•&nbsp; Total Marks: ${exam.total_marks}
+                            </div>
+                            <div class="exam-meta">
+                                Created: ${new Date(exam.created_at).toLocaleDateString('en-GB', {
+                                    day: 'numeric', month: 'short', year: 'numeric'
+                                })}
+                            </div>
+                            ${exam.submissions_count > 0 ? `
                                 <div class="status-badges">
                                     <span class="status-badge status-completed">✓ ${exam.completed_count} Evaluated</span>
                                     ${pendingCount > 0 ? `<span class="status-badge status-pending">⏳ ${pendingCount} Pending</span>` : ''}
@@ -95,8 +97,11 @@
                         <div class="exam-actions">
                             ${exam.submissions_count > 0 ? `
                                 <a href="/valuation-prep/${exam.exam_id}" class="action-btn view">📋 View Details</a>
+                                <button onclick="toggleSubmissions('${exam.exam_id}')" class="action-btn view">
+                                    👥 Students
+                                </button>
                                 ${exam.completed_count > 0 ? `
-                                    <button onclick="exportPDF('${exam.exam_id}')"   class="action-btn pdf">📄 PDF</button>
+                                    <button onclick="exportPDF('${exam.exam_id}')" class="action-btn pdf">📄 PDF</button>
                                     <button onclick="exportExcel('${exam.exam_id}')" class="action-btn excel">📊 Excel</button>
                                 ` : ''}
                             ` : `<span style="font-size:0.85rem; color:var(--color-muted);">No submissions yet</span>`}
@@ -121,8 +126,86 @@
                             <div class="stat-label">Avg Score</div>
                         </div>
                     </div>
-                </div>`;
+
+                    <!-- Submissions dropdown -->
+                    <div id="submissions-${exam.exam_id}" style="display:none; margin-top:1rem; border-top:1px solid var(--color-border); padding-top:1rem;">
+                        <div id="submissions-loading-${exam.exam_id}" style="color:var(--color-text-2); font-size:0.875rem;">
+                            Loading students...
+                        </div>
+                        <div id="submissions-list-${exam.exam_id}"></div>
+                    </div>
+                </div>
+            `;
         }).join('');
+    }
+
+    async function toggleSubmissions(examId) {
+        const panel = document.getElementById('submissions-' + examId);
+
+        if (panel.style.display !== 'none') {
+            panel.style.display = 'none';
+            return;
+        }
+
+        panel.style.display = 'block';
+        const listDiv = document.getElementById('submissions-list-' + examId);
+
+        if (listDiv.innerHTML !== '') return;
+
+        try {
+            const response = await fetch('/api/exam-submissions/' + examId);
+            const data = await response.json();
+
+            document.getElementById('submissions-loading-' + examId).style.display = 'none';
+
+            if (data.status === 'Success' && data.submissions.length > 0) {
+                listDiv.innerHTML = `
+                    <table style="width:100%; border-collapse:collapse; font-size:0.875rem; margin-top:0.5rem;">
+                        <thead>
+                            <tr style="background:var(--color-bg-2); text-align:left;">
+                                <th style="padding:0.6rem 1rem; border-bottom:2px solid var(--color-border);">Roll No</th>
+                                <th style="padding:0.6rem 1rem; border-bottom:2px solid var(--color-border);">Name</th>
+                                <th style="padding:0.6rem 1rem; border-bottom:2px solid var(--color-border);">Marks</th>
+                                <th style="padding:0.6rem 1rem; border-bottom:2px solid var(--color-border);">Percentage</th>
+                                <th style="padding:0.6rem 1rem; border-bottom:2px solid var(--color-border);">Result</th>
+                                <th style="padding:0.6rem 1rem; border-bottom:2px solid var(--color-border);">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${data.submissions.map(s => {
+                                const pct = parseFloat(s.percentage || 0);
+                                const pass = pct >= 40;
+                                return `
+                                    <tr style="border-bottom:1px solid var(--color-border);">
+                                        <td style="padding:0.6rem 1rem;">${s.roll_no}</td>
+                                        <td style="padding:0.6rem 1rem;">${s.student_name || '—'}</td>
+                                        <td style="padding:0.6rem 1rem;">${s.total_marks_obtained ?? '—'}</td>
+                                        <td style="padding:0.6rem 1rem;">${pct.toFixed(1)}%</td>
+                                        <td style="padding:0.6rem 1rem;">
+                                            <span style="font-weight:600; color:${pass ? '#16a34a' : '#dc2626'};">
+                                                ${pass ? '✅ Pass' : '❌ Fail'}
+                                            </span>
+                                        </td>
+                                        <td style="padding:0.6rem 1rem;">
+                                            ${s.valuation_status === 'completed' ? `
+                                                <a href="/results-barcode/${s.submission_id}" class="action-btn view" style="font-size:0.8rem; padding:0.3rem 0.75rem;">
+                                                    📊 View
+                                                </a>
+                                            ` : '<span style="color:var(--color-text-2); font-size:0.8rem;">Pending</span>'}
+                                        </td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                `;
+            } else {
+                listDiv.innerHTML = '<p style="color:var(--color-text-2); font-size:0.875rem;">No submissions found.</p>';
+            }
+        } catch (error) {
+            document.getElementById('submissions-loading-' + examId).innerHTML =
+                '<span style="color:var(--red-500);">Failed to load students.</span>';
+        }
     }
 
     function populateFilters(exams) {
@@ -136,25 +219,25 @@
     }
 
     function filterExams() {
-        const examVal   = document.getElementById('examFilter').value;
+        const examVal = document.getElementById('examFilter').value;
         const statusVal = document.getElementById('statusFilter').value;
-        const sortVal   = document.getElementById('sortFilter').value;
+        const sortVal = document.getElementById('sortFilter').value;
 
         let filtered = allExams.filter(exam => {
             const examMatch = !examVal || exam.exam_name === examVal;
             let statusMatch = true;
             if (statusVal === 'completed') statusMatch = exam.completed_count > 0;
-            if (statusVal === 'pending')   statusMatch = exam.submissions_count > exam.completed_count;
+            if (statusVal === 'pending') statusMatch = exam.submissions_count > exam.completed_count;
             return examMatch && statusMatch;
         });
 
         filtered.sort((a, b) => {
             switch (sortVal) {
-                case 'date_desc':     return new Date(b.created_at) - new Date(a.created_at);
-                case 'date_asc':      return new Date(a.created_at) - new Date(b.created_at);
-                case 'name_asc':      return a.exam_name.localeCompare(b.exam_name);
+                case 'date_desc': return new Date(b.created_at) - new Date(a.created_at);
+                case 'date_asc': return new Date(a.created_at) - new Date(b.created_at);
+                case 'name_asc': return a.exam_name.localeCompare(b.exam_name);
                 case 'students_desc': return b.submissions_count - a.submissions_count;
-                default:              return 0;
+                default: return 0;
             }
         });
 
@@ -183,7 +266,7 @@
 
     function downloadBlob(blob, filename) {
         const url = window.URL.createObjectURL(blob);
-        const a   = document.createElement('a');
+        const a = document.createElement('a');
         a.href = url;
         a.download = filename;
         document.body.appendChild(a);
@@ -208,4 +291,15 @@
     }
 
     loadHistory();
+
+    (function () {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('batch_done')) {
+            const summary = JSON.parse(sessionStorage.getItem('batch_summary') || '{}');
+            if (summary.total) {
+                showToast(`✅ Batch complete: ${summary.success} evaluated, ${summary.failed} failed`);
+                sessionStorage.removeItem('batch_summary');
+            }
+        }
+    })();
 </script>

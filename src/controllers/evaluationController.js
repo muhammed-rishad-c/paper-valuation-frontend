@@ -523,29 +523,23 @@ exports.exportPDF = async (req, res) => {
             ]
         });
 
-        if (!exam) {
-            return res.status(404).json({ error: 'Exam not found' });
-        }
-
-
-        console.log('calculateActualTotalMarks exists?', typeof calculateActualTotalMarks);
+        if (!exam) return res.status(404).json({ error: 'Exam not found' });
 
         const actualTotalMarks = calculateActualTotalMarks(exam);
-
-
-
         const doc = new PDFDocument({ margin: 50 });
 
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename=exam_results_${exam_id}.pdf`);
-
         doc.pipe(res);
 
+        // Check if any submission has registration_no
+        const hasRegNo = exam.submissions.some(s => s.registration_no && s.registration_no.trim() !== '');
 
+        // Title
         doc.fontSize(20).font('Helvetica-Bold').text('Exam Results Report', { align: 'center' });
         doc.moveDown();
 
-
+        // Exam info
         doc.fontSize(12).font('Helvetica-Bold').text('Exam Information');
         doc.fontSize(10).font('Helvetica')
             .text(`Exam: ${exam.exam_name}`)
@@ -554,14 +548,12 @@ exports.exportPDF = async (req, res) => {
             .text(`Date: ${new Date().toLocaleDateString()}`);
         doc.moveDown();
 
-
+        // Summary
         const totalStudents = exam.submissions.length;
         const avgMarks = totalStudents > 0
-            ? exam.submissions.reduce((sum, s) => sum + (parseFloat(s.total_marks_obtained) || 0), 0) / totalStudents
-            : 0;
+            ? exam.submissions.reduce((sum, s) => sum + (parseFloat(s.total_marks_obtained) || 0), 0) / totalStudents : 0;
         const avgPercentage = totalStudents > 0
-            ? exam.submissions.reduce((sum, s) => sum + (parseFloat(s.percentage) || 0), 0) / totalStudents
-            : 0;
+            ? exam.submissions.reduce((sum, s) => sum + (parseFloat(s.percentage) || 0), 0) / totalStudents : 0;
         const passCount = exam.submissions.filter(s => (parseFloat(s.percentage) || 0) >= 40).length;
 
         doc.fontSize(12).font('Helvetica-Bold').text('Summary');
@@ -572,33 +564,29 @@ exports.exportPDF = async (req, res) => {
             .text(`Pass Rate: ${totalStudents > 0 ? ((passCount / totalStudents) * 100).toFixed(1) : 0}% (${passCount}/${totalStudents})`);
         doc.moveDown();
 
-
+        // Table
         doc.fontSize(12).font('Helvetica-Bold').text('Student Results');
         doc.moveDown(0.5);
 
         const tableTop = doc.y;
-        const colWidths = {
-            rank: 40,
-            roll: 60,
-            name: 150,
-            marks: 80,
-            percentage: 80,
-            result: 60
-        };
+
+        // Column widths — include Reg No only if barcode exam
+        const colWidths = hasRegNo
+            ? { rank: 35, roll: 55, name: 110, regno: 90, marks: 60, percentage: 60, result: 50 }
+            : { rank: 35, roll: 70, name: 160, regno: 0,  marks: 80, percentage: 75, result: 70 };
+
         let xPos = 50;
 
         doc.fontSize(9).font('Helvetica-Bold');
-        doc.text('Rank', xPos, tableTop, { width: colWidths.rank });
-        xPos += colWidths.rank;
-        doc.text('Roll No', xPos, tableTop, { width: colWidths.roll });
-        xPos += colWidths.roll;
-        doc.text('Name', xPos, tableTop, { width: colWidths.name });
-        xPos += colWidths.name;
-        doc.text('Marks', xPos, tableTop, { width: colWidths.marks });
-        xPos += colWidths.marks;
-        doc.text('Percentage', xPos, tableTop, { width: colWidths.percentage });
-        xPos += colWidths.percentage;
-        doc.text('Result', xPos, tableTop, { width: colWidths.result });
+        doc.text('Rank',       xPos, tableTop, { width: colWidths.rank });       xPos += colWidths.rank;
+        doc.text('Roll No',    xPos, tableTop, { width: colWidths.roll });       xPos += colWidths.roll;
+        doc.text('Name',       xPos, tableTop, { width: colWidths.name });       xPos += colWidths.name;
+        if (hasRegNo) {
+            doc.text('Reg No', xPos, tableTop, { width: colWidths.regno });      xPos += colWidths.regno;
+        }
+        doc.text('Marks',      xPos, tableTop, { width: colWidths.marks });      xPos += colWidths.marks;
+        doc.text('Percentage', xPos, tableTop, { width: colWidths.percentage }); xPos += colWidths.percentage;
+        doc.text('Result',     xPos, tableTop, { width: colWidths.result });
 
         doc.moveTo(50, tableTop + 15).lineTo(550, tableTop + 15).stroke();
         doc.moveDown();
@@ -609,7 +597,6 @@ exports.exportPDF = async (req, res) => {
 
         doc.font('Helvetica');
         sortedStudents.forEach((student, idx) => {
-
             if (doc.y > 700) {
                 doc.addPage();
                 doc.y = 50;
@@ -618,26 +605,22 @@ exports.exportPDF = async (req, res) => {
             xPos = 50;
             const yPos = doc.y;
 
-            doc.text(idx + 1, xPos, yPos, { width: colWidths.rank });
-            xPos += colWidths.rank;
-            doc.text(student.roll_no, xPos, yPos, { width: colWidths.roll });
-            xPos += colWidths.roll;
-            doc.text(student.student_name || 'Unknown', xPos, yPos, { width: colWidths.name });
-            xPos += colWidths.name;
-            doc.text(`${parseFloat(student.total_marks_obtained) || 0}/${actualTotalMarks}`, xPos, yPos, { width: colWidths.marks });
-            xPos += colWidths.marks;
-            doc.text(`${(parseFloat(student.percentage) || 0).toFixed(1)}%`, xPos, yPos, { width: colWidths.percentage });
-            xPos += colWidths.percentage;
-            doc.text((parseFloat(student.percentage) || 0) >= 40 ? 'Pass' : 'Fail', xPos, yPos, { width: colWidths.result });
+            doc.text(idx + 1,                                                                    xPos, yPos, { width: colWidths.rank });       xPos += colWidths.rank;
+            doc.text(student.roll_no,                                                            xPos, yPos, { width: colWidths.roll });       xPos += colWidths.roll;
+            doc.text(student.student_name || 'Unknown',                                          xPos, yPos, { width: colWidths.name });       xPos += colWidths.name;
+            if (hasRegNo) {
+                doc.text(student.registration_no || '—',                                         xPos, yPos, { width: colWidths.regno });      xPos += colWidths.regno;
+            }
+            doc.text(`${parseFloat(student.total_marks_obtained) || 0}/${actualTotalMarks}`,     xPos, yPos, { width: colWidths.marks });      xPos += colWidths.marks;
+            doc.text(`${(parseFloat(student.percentage) || 0).toFixed(1)}%`,                     xPos, yPos, { width: colWidths.percentage }); xPos += colWidths.percentage;
+            doc.text((parseFloat(student.percentage) || 0) >= 40 ? 'Pass' : 'Fail',             xPos, yPos, { width: colWidths.result });
 
             doc.moveDown();
         });
 
         doc.fontSize(8).font('Helvetica').text(
             `Generated on ${new Date().toLocaleString()} | Paper Valuation System`,
-            50,
-            doc.page.height - 50,
-            { align: 'center' }
+            50, doc.page.height - 50, { align: 'center' }
         );
 
         doc.end();
@@ -671,96 +654,106 @@ exports.exportExcel = async (req, res) => {
             ]
         });
 
-        if (!exam) {
-            return res.status(404).json({ error: 'Exam not found' });
-        }
+        if (!exam) return res.status(404).json({ error: 'Exam not found' });
 
         const actualTotalMarks = calculateActualTotalMarks(exam);
+
+        // Check if any submission has registration_no
+        const hasRegNo = exam.submissions.some(s => s.registration_no && s.registration_no.trim() !== '');
 
         const workbook = new ExcelJS.Workbook();
         workbook.creator = 'Paper Valuation System';
         workbook.created = new Date();
 
+        // Summary sheet
         const summarySheet = workbook.addWorksheet('Summary');
         summarySheet.columns = [
             { header: 'Information', key: 'label', width: 25 },
             { header: 'Value', key: 'value', width: 40 }
         ];
 
-        summarySheet.addRows([
-            { label: 'Exam Name', value: exam.exam_name },
-            { label: 'Class', value: exam.class },
-            { label: 'Subject', value: exam.subject },
-            { label: 'Total Marks', value: actualTotalMarks },
-            { label: 'Total Students', value: exam.submissions.length },
-            { label: '', value: '' },
-            { label: 'Statistics', value: '' },
-        ]);
-
         const totalStudents = exam.submissions.length;
         const avgMarks = totalStudents > 0
-            ? exam.submissions.reduce((sum, s) => sum + (parseFloat(s.total_marks_obtained) || 0), 0) / totalStudents
-            : 0;
+            ? exam.submissions.reduce((sum, s) => sum + (parseFloat(s.total_marks_obtained) || 0), 0) / totalStudents : 0;
         const avgPercentage = totalStudents > 0
-            ? exam.submissions.reduce((sum, s) => sum + (parseFloat(s.percentage) || 0), 0) / totalStudents
-            : 0;
+            ? exam.submissions.reduce((sum, s) => sum + (parseFloat(s.percentage) || 0), 0) / totalStudents : 0;
         const passCount = exam.submissions.filter(s => (parseFloat(s.percentage) || 0) >= 40).length;
         const passRate = totalStudents > 0 ? (passCount / totalStudents) * 100 : 0;
 
         summarySheet.addRows([
-            { label: 'Average Marks', value: `${avgMarks.toFixed(2)}/${actualTotalMarks}` },
+            { label: 'Exam Name',          value: exam.exam_name },
+            { label: 'Class',              value: exam.class },
+            { label: 'Subject',            value: exam.subject },
+            { label: 'Total Marks',        value: actualTotalMarks },
+            { label: 'Total Students',     value: totalStudents },
+            { label: '',                   value: '' },
+            { label: 'Statistics',         value: '' },
+            { label: 'Average Marks',      value: `${avgMarks.toFixed(2)}/${actualTotalMarks}` },
             { label: 'Average Percentage', value: `${avgPercentage.toFixed(2)}%` },
-            { label: 'Pass Count', value: `${passCount}/${totalStudents}` },
-            { label: 'Pass Rate', value: `${passRate.toFixed(1)}%` }
+            { label: 'Pass Count',         value: `${passCount}/${totalStudents}` },
+            { label: 'Pass Rate',          value: `${passRate.toFixed(1)}%` }
         ]);
 
-
         summarySheet.getRow(1).font = { bold: true };
-        summarySheet.getRow(1).fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: 'FF667eea' }
-        };
+        summarySheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF667eea' } };
 
+        // Results sheet — conditionally add Reg No column
         const resultsSheet = workbook.addWorksheet('Student Results');
-        resultsSheet.columns = [
-            { header: 'Rank', key: 'rank', width: 8 },
-            { header: 'Roll No', key: 'roll_no', width: 12 },
-            { header: 'Student Name', key: 'name', width: 25 },
-            { header: 'Marks Obtained', key: 'marks', width: 15 },
-            { header: 'Total Marks', key: 'total', width: 12 },
-            { header: 'Percentage', key: 'percentage', width: 12 },
-            { header: 'Result', key: 'result', width: 10 }
+
+        const resultsColumns = [
+            { header: 'Rank',           key: 'rank',       width: 8  },
+            { header: 'Roll No',        key: 'roll_no',    width: 12 },
+            { header: 'Student Name',   key: 'name',       width: 25 },
         ];
+
+        if (hasRegNo) {
+            resultsColumns.push({ header: 'Registration No', key: 'regno', width: 18 });
+        }
+
+        resultsColumns.push(
+            { header: 'Marks Obtained', key: 'marks',      width: 15 },
+            { header: 'Total Marks',    key: 'total',      width: 12 },
+            { header: 'Percentage',     key: 'percentage', width: 12 },
+            { header: 'Result',         key: 'result',     width: 10 }
+        );
+
+        resultsSheet.columns = resultsColumns;
 
         const sortedStudents = [...exam.submissions].sort((a, b) =>
             (parseFloat(b.total_marks_obtained) || 0) - (parseFloat(a.total_marks_obtained) || 0)
         );
 
         sortedStudents.forEach((student, idx) => {
-            resultsSheet.addRow({
-                rank: idx + 1,
-                roll_no: student.roll_no,
-                name: student.student_name || 'Unknown',
-                marks: parseFloat(student.total_marks_obtained) || 0,
-                total: actualTotalMarks,
+            const row = {
+                rank:       idx + 1,
+                roll_no:    student.roll_no,
+                name:       student.student_name || 'Unknown',
+                marks:      parseFloat(student.total_marks_obtained) || 0,
+                total:      actualTotalMarks,
                 percentage: `${(parseFloat(student.percentage) || 0).toFixed(1)}%`,
-                result: (parseFloat(student.percentage) || 0) >= 40 ? 'Pass' : 'Fail'
-            });
+                result:     (parseFloat(student.percentage) || 0) >= 40 ? 'Pass' : 'Fail'
+            };
+
+            if (hasRegNo) {
+                row.regno = student.registration_no || '—';
+            }
+
+            resultsSheet.addRow(row);
         });
 
         resultsSheet.getRow(1).font = { bold: true };
-        resultsSheet.getRow(1).fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: 'FF667eea' }
-        };
+        resultsSheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF667eea' } };
 
+        // Detailed sheet
         const detailedSheet = workbook.addWorksheet('Detailed Results');
         const detailedColumns = [
-            { header: 'Roll No', key: 'roll_no', width: 12 },
-            { header: 'Student Name', key: 'name', width: 25 }
+            { header: 'Roll No',      key: 'roll_no', width: 12 },
+            { header: 'Student Name', key: 'name',    width: 25 }
         ];
+
+        if (hasRegNo) {
+            detailedColumns.push({ header: 'Registration No', key: 'regno', width: 18 });
+        }
 
         exam.questions.forEach(q => {
             detailedColumns.push({
@@ -771,7 +764,7 @@ exports.exportExcel = async (req, res) => {
         });
 
         detailedColumns.push(
-            { header: 'Total', key: 'total', width: 10 },
+            { header: 'Total',      key: 'total',      width: 10 },
             { header: 'Percentage', key: 'percentage', width: 12 }
         );
 
@@ -779,11 +772,15 @@ exports.exportExcel = async (req, res) => {
 
         sortedStudents.forEach(student => {
             const row = {
-                roll_no: student.roll_no,
-                name: student.student_name || 'Unknown',
-                total: parseFloat(student.total_marks_obtained) || 0,
+                roll_no:    student.roll_no,
+                name:       student.student_name || 'Unknown',
+                total:      parseFloat(student.total_marks_obtained) || 0,
                 percentage: `${(parseFloat(student.percentage) || 0).toFixed(1)}%`
             };
+
+            if (hasRegNo) {
+                row.regno = student.registration_no || '—';
+            }
 
             student.answers.forEach(answer => {
                 row[`q${answer.question_number}`] = parseFloat(answer.marks_obtained) || 0;
@@ -793,20 +790,10 @@ exports.exportExcel = async (req, res) => {
         });
 
         detailedSheet.getRow(1).font = { bold: true };
-        detailedSheet.getRow(1).fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: 'FF667eea' }
-        };
+        detailedSheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF667eea' } };
 
-        res.setHeader(
-            'Content-Type',
-            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        );
-        res.setHeader(
-            'Content-Disposition',
-            `attachment; filename=exam_results_${exam_id}.xlsx`
-        );
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', `attachment; filename=exam_results_${exam_id}.xlsx`);
 
         await workbook.xlsx.write(res);
         res.end();
@@ -1346,13 +1333,14 @@ exports.postEvaluateSeriesBatch = async (req, res) => {
                 try {
                     const extractedRollNo = roll_no || studentResult.student_info.roll_no;
                     const extractedName = studentResult.student_info.name || 'Unknown';
+                    const answers = studentResult.recognition_result.answers;
 
-                    const existingSubmission = await Submission.findOne({
+                    let submission = await Submission.findOne({
                         where: { exam_id, roll_no: extractedRollNo }
                     });
 
-                    if (!existingSubmission) {
-                        const submission = await Submission.create({
+                    if (!submission) {
+                        submission = await Submission.create({
                             exam_id,
                             roll_no: extractedRollNo,
                             student_name: extractedName,
@@ -1360,24 +1348,37 @@ exports.postEvaluateSeriesBatch = async (req, res) => {
                             total_marks_obtained: null,
                             percentage: null
                         });
+                    } else {
+                        await Submission.update(
+                            {
+                                student_name: extractedName,
+                                valuation_status: 'pending',
+                                total_marks_obtained: null,
+                                percentage: null
+                            },
+                            { where: { submission_id: submission.submission_id } }
+                        );
 
-                        const answers = studentResult.recognition_result.answers;
-                        const answersToCreate = [];
-
-                        for (const [qLabel, answerText] of Object.entries(answers)) {
-                            const qNum = parseInt(qLabel.replace('Q', ''));
-                            answersToCreate.push({
-                                submission_id: submission.submission_id,
-                                question_number: qNum,
-                                answer_text: answerText,
-                                marks_obtained: null,
-                                is_or_question: false,
-                                or_option_chosen: null
-                            });
-                        }
-
-                        await StudentAnswer.bulkCreate(answersToCreate);
+                        await StudentAnswer.destroy({
+                            where: { submission_id: submission.submission_id }
+                        });
                     }
+
+                    const answersToCreate = [];
+                    for (const [qLabel, answerText] of Object.entries(answers)) {
+                        const qNum = parseInt(qLabel.replace('Q', ''));
+                        answersToCreate.push({
+                            submission_id: submission.submission_id,
+                            question_number: qNum,
+                            answer_text: answerText,
+                            marks_obtained: null,
+                            is_or_question: false,
+                            or_option_chosen: null
+                        });
+                    }
+
+                    await StudentAnswer.bulkCreate(answersToCreate);
+
                 } catch (dbError) {
                     console.error(`Database error for Student #${i + 1}:`, dbError.message);
                 }
@@ -1403,6 +1404,7 @@ exports.postEvaluateSeriesBatch = async (req, res) => {
             studentCount: finalBatchResults.length,
             examInfo
         });
+
     } catch (error) {
         console.error('Batch Processing Error:', error.message);
         res.status(500).render('error', {
@@ -1439,6 +1441,8 @@ exports.getValuationPrep = async (req, res) => {
                 {
                     model: Submission,
                     as: 'submissions',
+                    where: { valuation_status: 'pending' },
+                    required: false,
                     include: [{ model: StudentAnswer, as: 'answers' }]
                 }
             ]
@@ -1471,13 +1475,11 @@ exports.getValuationPrep = async (req, res) => {
             examData.teacher_answers[`Q${q.question_number}`] = q.teacher_answer;
         });
 
-        // Build or_groups
         examData.or_groups = exam.or_groups.map(g => ({
             type: g.group_type,
             options: JSON.parse(g.option_a),
             option_b: g.option_b ? JSON.parse(g.option_b) : []
         }));
-
 
         const orQuestions = new Set();
         examData.or_groups.forEach(g => {
@@ -1510,6 +1512,7 @@ exports.getValuationPrep = async (req, res) => {
             title: `Valuation: ${exam.exam_name}`,
             examData
         });
+
     } catch (error) {
         console.error('Error fetching exam data:', error.message);
         res.status(500).render('error', {
@@ -2079,6 +2082,7 @@ exports.evaluateBarcodeSubmission = async (req, res) => {
                 exam_id,
                 roll_no: student.roll_no,
                 student_name: student.student_name,
+                registration_no: student.registration_no || null,
                 valuation_status: 'completed',
                 total_marks_obtained: totalMarksObtained,
                 percentage: percentage
@@ -2088,7 +2092,8 @@ exports.evaluateBarcodeSubmission = async (req, res) => {
                 {
                     valuation_status: 'completed',
                     total_marks_obtained: totalMarksObtained,
-                    percentage: percentage
+                    percentage: percentage,
+                    registration_no: student.registration_no || null
                 },
                 { where: { submission_id: submission.submission_id } }
             );
@@ -2165,7 +2170,6 @@ exports.getBarcodeResults = async (req, res) => {
         const { submission_id } = req.params;
         const userId = req.user.user_id;
 
-        // Fixed: removed wrong [submissions] destructuring, use correct join
         const submissions = await sequelize.query(`
             SELECT 
                 s.submission_id,
@@ -2190,21 +2194,27 @@ exports.getBarcodeResults = async (req, res) => {
         });
 
         if (submissions.length === 0) {
-            return res.status(404).render('error', {
-                message: 'Submission not found'
-            });
+            return res.status(404).render('error', { message: 'Submission not found' });
         }
 
         const submission = submissions[0];
 
-        // Get per-question answers with marks
         const answers = await StudentAnswer.findAll({
             where: { submission_id },
             order: [['question_number', 'ASC']],
             raw: true
         });
 
-        // Get question max marks for display
+        const exam = await Exam.findOne({
+            where: { exam_id: submission.exam_id },
+            include: [
+                { model: Question, as: 'questions' },
+                { model: OrGroup, as: 'or_groups' }
+            ]
+        });
+
+        const actualTotalMarks = calculateActualTotalMarks(exam);
+
         const questions = await Question.findAll({
             where: { exam_id: submission.exam_id },
             order: [['question_number', 'ASC']],
@@ -2221,14 +2231,13 @@ exports.getBarcodeResults = async (req, res) => {
             submission,
             answers,
             questionMap,
+            actualTotalMarks,
             user: req.user
         });
 
     } catch (error) {
         console.error('Error getting barcode results:', error);
-        res.status(500).render('error', {
-            message: 'Failed to load results'
-        });
+        res.status(500).render('error', { message: 'Failed to load results' });
     }
 };
 
@@ -2471,5 +2480,36 @@ exports.checkBarcodeExam = async (req, res) => {
             message: 'Failed to check barcode',
             error: error.message
         });
+    }
+};
+
+exports.getExamSubmissions = async (req, res) => {
+    try {
+        const { exam_id } = req.params;
+        const userId = req.user.user_id;
+
+        const exam = await Exam.findOne({
+            where: { exam_id, user_id: userId }
+        });
+
+        if (!exam) {
+            return res.status(404).json({ status: 'Failed', error: 'Exam not found' });
+        }
+
+        const submissions = await Submission.findAll({
+            where: { exam_id },
+            attributes: ['submission_id', 'roll_no', 'student_name', 'valuation_status', 'total_marks_obtained', 'percentage', 'created_at'],
+            order: [['created_at', 'DESC']],
+            raw: true
+        });
+
+        res.json({
+            status: 'Success',
+            submissions
+        });
+
+    } catch (error) {
+        console.error('Error fetching exam submissions:', error);
+        res.status(500).json({ status: 'Failed', error: error.message });
     }
 };

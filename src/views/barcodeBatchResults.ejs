@@ -1,0 +1,99 @@
+<%- include('partials/head', { pageTitle: 'Batch Evaluation Results' }) %>
+<%- include('partials/navbar', { user: user, activePage: 'barcode-evaluation' }) %>
+
+<main class="page-content">
+    <div class="container">
+
+        <!-- Header bar -->
+        <div class="batch-result-header">
+            <h1>📦 Batch Evaluation Summary</h1>
+            <div style="font-size:0.875rem; color:var(--color-text-2);">
+                Total Students Processed: <strong style="color:var(--color-text);" id="totalCount">0</strong>
+            </div>
+        </div>
+
+        <!-- Summary banner -->
+        <div class="exam-info-banner" id="summaryBanner" style="display:none;">
+            <h3>✅ Evaluations Complete</h3>
+            <p><strong>Successfully Evaluated:</strong> <span id="successCount">0</span> / <span id="totalCount2">0</span></p>
+            <p style="opacity:0.85; font-size:0.825rem; margin-top:0.5rem;">
+                All student answer scripts have been evaluated and marks calculated.
+            </p>
+            <a href="/history" class="valuation-btn">📋 View Full History →</a>
+        </div>
+
+        <!-- Student blocks -->
+        <div id="resultsContainer"></div>
+
+        <a href="/" class="back-link">← Return to Dashboard</a>
+
+    </div>
+</main>
+
+<%- include('partials/footer') %>
+
+<script>
+    window.addEventListener('DOMContentLoaded', () => {
+        const data = JSON.parse(sessionStorage.getItem('batch_results') || '{}');
+        sessionStorage.removeItem('batch_results');
+
+        if (!data.results || data.results.length === 0) {
+            window.location.href = '/barcode-evaluation';
+            return;
+        }
+
+        document.getElementById('totalCount').textContent = data.total;
+        document.getElementById('totalCount2').textContent = data.total;
+        document.getElementById('successCount').textContent = data.success;
+        document.getElementById('summaryBanner').style.display = 'block';
+
+        const container = document.getElementById('resultsContainer');
+
+        data.results.forEach((r, i) => {
+            const block = document.createElement('div');
+            block.className = 'student-block';
+
+            if (r.success) {
+                const percentage = r.percentage || 0;
+                const resultText = percentage >= 40 ? '✅ Pass' : '❌ Fail';
+                const resultColor = percentage >= 40 ? '#15803d' : '#dc2626';
+
+                block.innerHTML = `
+                    <div class="student-header">
+                        <span><strong>Student #${i + 1}</strong></span>
+                        <span style="color:#15803d; font-weight:600;">✅ Evaluated</span>
+                    </div>
+
+                    <div class="info-grid">
+                        <div class="info-item"><strong>Name:</strong> ${r.student}</div>
+                        <div class="info-item"><strong>Roll No:</strong> ${r.roll_no || '—'}</div>
+                        <div class="info-item"><strong>Barcode:</strong> ${r.barcode_id || '—'}</div>
+                        <div class="info-item"><strong>Marks:</strong> ${r.total_marks_obtained ?? '—'} / ${r.total_marks_possible ?? '—'}</div>
+                        <div class="info-item"><strong>Percentage:</strong> ${parseFloat(percentage).toFixed(1)}%</div>
+                        <div class="info-item"><strong>Result:</strong> <span style="color:${resultColor}; font-weight:600;">${resultText}</span></div>
+                    </div>
+
+                    <div class="save-status saved" style="margin-top:0.75rem;">
+                        ✅ Evaluated & Saved Successfully
+                    </div>
+
+                    <div style="margin-top:1rem;">
+                        <a href="/results-barcode/${r.submission_id}" class="btn btn-primary">
+                            📊 View Detailed Results →
+                        </a>
+                    </div>
+                `;
+            } else {
+                block.innerHTML = `
+                    <div class="student-header">
+                        <span><strong>Student #${i + 1}</strong> — ${r.student}</span>
+                        <span style="color:var(--red-500); font-weight:600;">❌ Failed</span>
+                    </div>
+                    <p class="error-msg">Error: ${r.error || 'Unknown error'}</p>
+                `;
+            }
+
+            container.appendChild(block);
+        });
+    });
+</script>

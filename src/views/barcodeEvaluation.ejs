@@ -1,203 +1,200 @@
 <%- include('partials/head', { pageTitle: 'Barcode Evaluation' }) %>
+    <%- include('partials/navbar', { user: user, activePage: 'barcode-evaluation' }) %>
 
-<%- include('partials/navbar', { user: user, activePage: 'barcode-evaluation' }) %>
+        <main class="page-content">
+            <div class="container">
 
-<main class="page-content">
-    <div class="container">
+                <h1 class="page-heading">📱 Barcode-Based Evaluation</h1>
 
-        <h1 class="page-heading">📱 Barcode-Based Evaluation</h1>
+                <!-- Exam Selection Panel -->
+                <div class="panel panel--green">
+                    <h3>🎯 Select Answer Key</h3>
+                    <p style="font-size:0.875rem; color:var(--color-text-2); margin-bottom:1rem;">
+                        Choose which exam's answer key to use for evaluation
+                    </p>
 
-        <!-- Exam Selection Panel -->
-        <div class="panel panel--green">
-            <h3>🎯 Select Answer Key</h3>
-            <p style="font-size:0.875rem; color:var(--color-text-2); margin-bottom:1rem;">
-                Choose which exam's answer key to use for evaluation
-            </p>
+                    <div class="exam-selector-row">
+                        <div>
+                            <label>Select Exam:</label>
+                            <select id="examSelect" class="input-box" onchange="loadExamDetails()">
+                                <option value="">-- Select an exam --</option>
+                            </select>
+                        </div>
+                        <button type="button" class="btn btn-secondary" onclick="goToCreateAnswerKey()">
+                            ➕ Create New
+                        </button>
+                    </div>
 
-            <!-- Selector row -->
-            <div class="exam-selector-row">
-                <div>
-                    <label>Select Exam:</label>
-                    <select id="examSelect" class="input-box" onchange="loadExamDetails()">
-                        <option value="">-- Select an exam --</option>
-                    </select>
-                </div>
-                <button type="button" class="btn btn-secondary" onclick="goToCreateAnswerKey()">
-                    ➕ Create New
-                </button>
-            </div>
+                    <div id="examPreview" class="exam-preview">
+                        <strong>Selected Exam:</strong>
+                        <div id="examDetails" style="margin-top:0.4rem;"></div>
+                    </div>
 
-            <!-- Exam Details Preview -->
-            <div id="examPreview" class="exam-preview">
-                <strong>Selected Exam:</strong>
-                <div id="examDetails" style="margin-top:0.4rem;"></div>
-            </div>
-
-            <!-- No exams warning -->
-            <div id="noExamsWarning" class="no-exams-warning">
-                <div class="no-exams-warning__inner">
-                    <div class="no-exams-warning__icon">⚠️</div>
-                    <div>
-                        <h4>No Answer Keys Found!</h4>
-                        <p>Before evaluating students, you need to create an answer key first.</p>
-                        <div class="btn-group">
-                            <button class="btn btn-secondary" onclick="goToCreateAnswerKey()">
-                                🔑 Create Answer Key Now →
-                            </button>
-                            <button class="btn" onclick="window.location.reload()">
-                                🔄 Refresh
-                            </button>
+                    <div id="noExamsWarning" class="no-exams-warning">
+                        <div class="no-exams-warning__inner">
+                            <div class="no-exams-warning__icon">⚠️</div>
+                            <div>
+                                <h4>No Answer Keys Found!</h4>
+                                <p>Before evaluating students, you need to create an answer key first.</p>
+                                <div class="btn-group">
+                                    <button class="btn btn-secondary" onclick="goToCreateAnswerKey()">
+                                        🔑 Create Answer Key Now →
+                                    </button>
+                                    <button class="btn" onclick="window.location.reload()">
+                                        🔄 Refresh
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
+
+                <!-- Student Cards Container -->
+                <div id="studentContainer"></div>
+
+                <!-- Action Bar -->
+                <div class="batch-actions">
+                    <button type="button" class="btn btn-add-student" onclick="addStudentBlock()">
+                        ➕ Add Student
+                    </button>
+                    <button type="button" id="submitBatchButton" class="btn btn-batch-submit"
+                        onclick="submitBatchEvaluation()">
+                        🚀 Start Batch Evaluation
+                    </button>
+                </div>
+
+                <!-- Loading Bar -->
+                <div id="loadingMessage" class="loading-bar">
+                    <div class="spinner"></div>
+                    <p>Processing evaluations... Please wait.</p>
+                </div>
+
             </div>
-        </div>
+        </main>
 
-        <!-- Student Cards Container -->
-        <div id="studentContainer"></div>
+        <!-- Hidden file inputs -->
+        <input type="file" id="facingSheetInput" accept="image/*,.pdf" style="display:none;">
+        <input type="file" id="answerScriptInput" accept="image/*,.pdf" multiple style="display:none;">
 
-        <!-- Action Bar -->
-        <div class="batch-actions">
-            <button type="button" class="btn btn-add-student" onclick="addStudentBlock()">
-                ➕ Add Student
-            </button>
-            <button type="button" id="submitBatchButton" class="btn btn-batch-submit" onclick="submitBatchEvaluation()">
-                🚀 Start Batch Evaluation
-            </button>
-        </div>
+        <%- include('partials/footer') %>
 
-        <!-- Loading Bar -->
-        <div id="loadingMessage" class="loading-bar">
-            <div class="spinner"></div>
-            <p>Processing evaluations... Please wait.</p>
-        </div>
+            <script>
+                let selectedExam = null;
+                let selectedExamId = null;
+                let studentData = [];
+                let currentTargetStudentId = null;
+                let currentInputType = null;
 
-    </div>
-</main>
+                const facingSheetInput = document.getElementById('facingSheetInput');
+                const answerScriptInput = document.getElementById('answerScriptInput');
 
-<!-- Hidden file inputs -->
-<input type="file" id="facingSheetInput" accept="image/*,.pdf" style="display:none;">
-<input type="file" id="answerScriptInput" accept="image/*,.pdf" multiple style="display:none;">
+                // ===== LOAD EXAMS ON PAGE LOAD =====
 
-<%- include('partials/footer') %>
+                window.addEventListener('DOMContentLoaded', loadExams);
 
-<script>
-    let selectedExam = null;
-    let selectedExamId = null;
-    let studentData = [];
-    let currentTargetStudentId = null;
-    let currentInputType = null;
+                async function loadExams() {
+                    try {
+                        const response = await fetch('/api/list_answer_keys');
+                        const data = await response.json();
 
-    const facingSheetInput = document.getElementById('facingSheetInput');
-    const answerScriptInput = document.getElementById('answerScriptInput');
+                        const select = document.getElementById('examSelect');
+                        const noExamsWarning = document.getElementById('noExamsWarning');
+                        const examSelector = document.querySelector('.exam-selector-row');
 
-    // ===== LOAD EXAMS ON PAGE LOAD =====
+                        if (data.status === 'Success' && data.answer_keys.length > 0) {
+                            data.answer_keys.forEach(exam => {
+                                const opt = document.createElement('option');
+                                opt.value = exam.exam_id;
+                                opt.textContent = `${exam.exam_name} (${exam.class} - ${exam.subject})`;
+                                opt.dataset.exam = JSON.stringify(exam);
+                                select.appendChild(opt);
+                            });
 
-    window.addEventListener('DOMContentLoaded', loadExams);
+                            noExamsWarning.style.display = 'none';
+                            examSelector.style.display = 'flex';
 
-    async function loadExams() {
-        try {
-            const response = await fetch('/api/list_answer_keys');
-            const data = await response.json();
-
-            const select = document.getElementById('examSelect');
-            const noExamsWarning = document.getElementById('noExamsWarning');
-            const examSelector = document.querySelector('.exam-selector-row');
-
-            if (data.status === 'Success' && data.answer_keys.length > 0) {
-                data.answer_keys.forEach(exam => {
-                    const opt = document.createElement('option');
-                    opt.value = exam.exam_id;
-                    opt.textContent = `${exam.exam_name} (${exam.class} - ${exam.subject})`;
-                    opt.dataset.exam = JSON.stringify(exam);
-                    select.appendChild(opt);
-                });
-
-                noExamsWarning.style.display = 'none';
-                examSelector.style.display = 'flex';
-
-                // Auto-select if returning from answer key creation
-                const latestExamId = sessionStorage.getItem('latest_exam_id');
-                if (latestExamId && sessionStorage.getItem('return_to_barcode') === 'true') {
-                    select.value = latestExamId;
-                    loadExamDetails();
-                    sessionStorage.removeItem('return_to_barcode');
-                    showToast('✅ Answer key loaded! You can now evaluate students.');
+                            // Auto-select if returning from answer key creation
+                            const latestExamId = sessionStorage.getItem('latest_exam_id');
+                            if (latestExamId && sessionStorage.getItem('return_to_barcode') === 'true') {
+                                select.value = latestExamId;
+                                loadExamDetails();
+                                sessionStorage.removeItem('return_to_barcode');
+                                showToast('✅ Answer key loaded! You can now evaluate students.');
+                            }
+                        } else {
+                            noExamsWarning.style.display = 'block';
+                            examSelector.style.display = 'none';
+                            document.getElementById('studentContainer').style.display = 'none';
+                        }
+                    } catch (error) {
+                        console.error('Error loading exams:', error);
+                        alert('Failed to load answer keys');
+                    }
                 }
-            } else {
-                noExamsWarning.style.display = 'block';
-                examSelector.style.display = 'none';
-                document.getElementById('studentContainer').style.display = 'none';
-            }
-        } catch (error) {
-            console.error('Error loading exams:', error);
-            alert('Failed to load answer keys');
-        }
-    }
 
-    function loadExamDetails() {
-        const examSelect = document.getElementById('examSelect');
-        const selectedOption = examSelect.options[examSelect.selectedIndex];
+                function loadExamDetails() {
+                    const examSelect = document.getElementById('examSelect');
+                    const selectedOption = examSelect.options[examSelect.selectedIndex];
 
-        if (!selectedOption.value) {
-            document.getElementById('examPreview').style.display = 'none';
-            return;
-        }
+                    if (!selectedOption.value) {
+                        document.getElementById('examPreview').style.display = 'none';
+                        return;
+                    }
 
-        selectedExam = JSON.parse(selectedOption.dataset.exam);
-        selectedExamId = selectedExam.exam_id;
+                    selectedExam = JSON.parse(selectedOption.dataset.exam);
+                    selectedExamId = selectedExam.exam_id;
 
-        document.getElementById('examDetails').innerHTML =
-            `<div><strong>Exam:</strong> ${selectedExam.exam_name}</div>` +
-            `<div><strong>Class:</strong> ${selectedExam.class} &nbsp;|&nbsp; <strong>Subject:</strong> ${selectedExam.subject}</div>`;
+                    document.getElementById('examDetails').innerHTML =
+                        `<div><strong>Exam:</strong> ${selectedExam.exam_name}</div>` +
+                        `<div><strong>Class:</strong> ${selectedExam.class} &nbsp;|&nbsp; <strong>Subject:</strong> ${selectedExam.subject}</div>`;
 
-        document.getElementById('examPreview').style.display = 'block';
-    }
+                    document.getElementById('examPreview').style.display = 'block';
+                }
 
-    function goToCreateAnswerKey() {
-        sessionStorage.setItem('return_to_barcode', 'true');
-        const hasStudents = studentData.length > 0;
-        if (hasStudents && !confirm('You have students added. Leaving will lose this data. Continue?')) return;
-        window.location.href = '/answer-key-setup';
-    }
+                function goToCreateAnswerKey() {
+                    sessionStorage.setItem('return_to_barcode', 'true');
+                    const hasStudents = studentData.length > 0;
+                    if (hasStudents && !confirm('You have students added. Leaving will lose this data. Continue?')) return;
+                    window.location.href = '/answer-key-setup';
+                }
 
-    function showToast(message) {
-        const toast = document.createElement('div');
-        toast.className = 'toast';
-        toast.textContent = message;
-        document.body.appendChild(toast);
-        setTimeout(() => {
-            toast.style.animation = 'toastOut 0.3s ease forwards';
-            setTimeout(() => toast.remove(), 300);
-        }, 4000);
-    }
+                function showToast(message) {
+                    const toast = document.createElement('div');
+                    toast.className = 'toast';
+                    toast.textContent = message;
+                    document.body.appendChild(toast);
+                    setTimeout(() => {
+                        toast.style.animation = 'toastOut 0.3s ease forwards';
+                        setTimeout(() => toast.remove(), 300);
+                    }, 4000);
+                }
 
-    // ===== STUDENT BLOCK MANAGEMENT =====
+                // ===== STUDENT BLOCK MANAGEMENT =====
 
-    function addStudentBlock() {
-        if (!selectedExamId) {
-            alert('⚠️ Please select an exam first!');
-            return;
-        }
+                function addStudentBlock() {
+                    if (!selectedExamId) {
+                        alert('⚠️ Please select an exam first!');
+                        return;
+                    }
 
-        const studentId = Date.now();
-        studentData.push({
-            id: studentId,
-            barcode_id: '',
-            student_name: '',
-            roll_no: '',
-            class: '',
-            facingSheet: null,
-            answerPages: [],
-            isIdentified: false
-        });
+                    const studentId = Date.now();
+                    studentData.push({
+                        id: studentId,
+                        barcode_id: '',
+                        student_name: '',
+                        roll_no: '',
+                        class: '',
+                        facingSheet: null,
+                        answerPages: [],
+                        isIdentified: false
+                    });
 
-        const container = document.getElementById('studentContainer');
-        const card = document.createElement('div');
-        card.id = 'card-' + studentId;
-        card.className = 'student-card';
+                    const container = document.getElementById('studentContainer');
+                    const card = document.createElement('div');
+                    card.id = 'card-' + studentId;
+                    card.className = 'student-card';
 
-        card.innerHTML = `
+                    card.innerHTML = `
             <div class="student-card__header">
                 <div class="student-card__field">
                     <label>Student #${studentData.length}</label>
@@ -222,106 +219,106 @@
             <div id="list-${studentId}" class="student-card__files"></div>
         `;
 
-        container.appendChild(card);
-        updateSubmitBtn();
-    }
+                    container.appendChild(card);
+                    updateSubmitBtn();
+                }
 
-    function triggerFacingSheet(id) {
-        currentTargetStudentId = id;
-        currentInputType = 'facing';
-        facingSheetInput.click();
-    }
+                function triggerFacingSheet(id) {
+                    currentTargetStudentId = id;
+                    currentInputType = 'facing';
+                    facingSheetInput.click();
+                }
 
-    function triggerAnswerPages(id) {
-        currentTargetStudentId = id;
-        currentInputType = 'answer';
-        answerScriptInput.click();
-    }
+                function triggerAnswerPages(id) {
+                    currentTargetStudentId = id;
+                    currentInputType = 'answer';
+                    answerScriptInput.click();
+                }
 
-    // ===== FILE UPLOAD HANDLERS =====
+                // ===== FILE UPLOAD HANDLERS =====
 
-    facingSheetInput.addEventListener('change', async function (e) {
-        if (e.target.files.length > 0 && currentTargetStudentId) {
-            const file = e.target.files[0];
-            const student = studentData.find(s => s.id === currentTargetStudentId);
-            student.facingSheet = file;
+                facingSheetInput.addEventListener('change', async function (e) {
+                    if (e.target.files.length > 0 && currentTargetStudentId) {
+                        const file = e.target.files[0];
+                        const student = studentData.find(s => s.id === currentTargetStudentId);
+                        student.facingSheet = file;
 
-            showLoading('Scanning QR code...');
+                        showLoading('Scanning QR code...');
 
-            try {
-                const formData = new FormData();
-                formData.append('image', file);
+                        try {
+                            const formData = new FormData();
+                            formData.append('image', file);
 
-                const response = await fetch('http://localhost:5000/api/scan_barcode', {
-                    method: 'POST',
-                    body: formData
+                            const response = await fetch('http://localhost:5000/api/scan_barcode', {
+                                method: 'POST',
+                                body: formData
+                            });
+
+                            if (!response.ok) {
+                                throw new Error('Scan failed');
+                            }
+
+                            const result = await response.json();
+                            hideLoading();
+
+                            if (result.status === 'success' && result.barcode_id) {
+                                await identifyStudent(currentTargetStudentId, result.barcode_id);
+                            } else {
+                                showManualEntry(currentTargetStudentId);
+                            }
+                        } catch (error) {
+                            hideLoading();
+                            console.error('Scan error:', error);
+                            showManualEntry(currentTargetStudentId);
+                        }
+                    }
+                    facingSheetInput.value = '';
                 });
 
-                if (!response.ok) {
-                    throw new Error('Scan failed');
+                answerScriptInput.addEventListener('change', function (e) {
+                    const newFiles = Array.from(e.target.files);
+                    if (newFiles.length > 0 && currentTargetStudentId) {
+                        const student = studentData.find(s => s.id === currentTargetStudentId);
+                        student.answerPages = student.answerPages.concat(newFiles);
+                        renderFileList(currentTargetStudentId);
+                    }
+                    answerScriptInput.value = '';
+                });
+
+                // ===== STUDENT IDENTIFICATION =====
+
+                async function identifyStudent(studentId, barcodeId) {
+                    showLoading('Looking up student...');
+
+                    try {
+                        const response = await fetch(`/api/get-student-by-barcode?barcode_id=${barcodeId}&exam_id=${selectedExamId}`);
+                        const data = await response.json();
+
+                        hideLoading();
+
+                        if (data.success) {
+                            const student = studentData.find(s => s.id === studentId);
+                            student.barcode_id = barcodeId;
+                            student.student_name = data.student.student_name;
+                            student.roll_no = data.student.roll_no;
+                            student.class = data.student.class || '';
+                            student.isIdentified = true;
+
+                            updateStudentDisplay(studentId);
+                        } else {
+                            alert(`❌ Student not found for barcode: ${barcodeId}\n\nPlease check:\n- Barcode ID is correct\n- Student is registered for this exam`);
+                            showManualEntry(studentId);
+                        }
+                    } catch (error) {
+                        hideLoading();
+                        console.error('Lookup error:', error);
+                        showManualEntry(studentId);
+                    }
                 }
 
-                const result = await response.json();
-                hideLoading();
-
-                if (result.status === 'success' && result.barcode_id) {
-                    await identifyStudent(currentTargetStudentId, result.barcode_id);
-                } else {
-                    showManualEntry(currentTargetStudentId);
-                }
-            } catch (error) {
-                hideLoading();
-                console.error('Scan error:', error);
-                showManualEntry(currentTargetStudentId);
-            }
-        }
-        facingSheetInput.value = '';
-    });
-
-    answerScriptInput.addEventListener('change', function (e) {
-        const newFiles = Array.from(e.target.files);
-        if (newFiles.length > 0 && currentTargetStudentId) {
-            const student = studentData.find(s => s.id === currentTargetStudentId);
-            student.answerPages = student.answerPages.concat(newFiles);
-            renderFileList(currentTargetStudentId);
-        }
-        answerScriptInput.value = '';
-    });
-
-    // ===== STUDENT IDENTIFICATION =====
-
-    async function identifyStudent(studentId, barcodeId) {
-        showLoading('Looking up student...');
-
-        try {
-            const response = await fetch(`/api/get-student-by-barcode?barcode_id=${barcodeId}&exam_id=${selectedExamId}`);
-            const data = await response.json();
-
-            hideLoading();
-
-            if (data.success) {
-                const student = studentData.find(s => s.id === studentId);
-                student.barcode_id = barcodeId;
-                student.student_name = data.student.student_name;
-                student.roll_no = data.student.roll_no;
-                student.class = data.student.class || '';
-                student.isIdentified = true;
-
-                updateStudentDisplay(studentId);
-            } else {
-                alert(`❌ Student not found for barcode: ${barcodeId}\n\nPlease check:\n- Barcode ID is correct\n- Student is registered for this exam`);
-                showManualEntry(studentId);
-            }
-        } catch (error) {
-            hideLoading();
-            console.error('Lookup error:', error);
-            showManualEntry(studentId);
-        }
-    }
-
-    function showManualEntry(studentId) {
-        const infoDiv = document.getElementById('info-' + studentId);
-        infoDiv.innerHTML = `
+                function showManualEntry(studentId) {
+                    const infoDiv = document.getElementById('info-' + studentId);
+                    infoDiv.innerHTML = `
             <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: var(--r); padding: 1rem; margin-top: 1rem;">
                 <strong style="color: #92400e;">⚠️ Manual Entry Required</strong>
                 <div style="display: flex; gap: 0.75rem; margin-top: 0.75rem; align-items: flex-end;">
@@ -333,25 +330,25 @@
                 </div>
             </div>
         `;
-    }
+                }
 
-    async function manualLookup(studentId) {
-        const barcodeId = document.getElementById('manual-barcode-' + studentId).value.trim().toUpperCase();
-        if (!barcodeId) {
-            alert('Please enter barcode ID');
-            return;
-        }
-        await identifyStudent(studentId, barcodeId);
-    }
+                async function manualLookup(studentId) {
+                    const barcodeId = document.getElementById('manual-barcode-' + studentId).value.trim().toUpperCase();
+                    if (!barcodeId) {
+                        alert('Please enter barcode ID');
+                        return;
+                    }
+                    await identifyStudent(studentId, barcodeId);
+                }
 
-    function updateStudentDisplay(studentId) {
-        const student = studentData.find(s => s.id === studentId);
+                function updateStudentDisplay(studentId) {
+                    const student = studentData.find(s => s.id === studentId);
 
-        const statusDiv = document.getElementById('student-status-' + studentId);
-        statusDiv.innerHTML = `<strong style="color: #15803d;">✅ ${student.student_name}</strong>`;
+                    const statusDiv = document.getElementById('student-status-' + studentId);
+                    statusDiv.innerHTML = `<strong style="color: #15803d;">✅ ${student.student_name}</strong>`;
 
-        const infoDiv = document.getElementById('info-' + studentId);
-        infoDiv.innerHTML = `
+                    const infoDiv = document.getElementById('info-' + studentId);
+                    infoDiv.innerHTML = `
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.75rem; margin-top: 0.75rem; font-size: 0.875rem;">
                 <div><strong>Barcode:</strong> ${student.barcode_id}</div>
                 <div><strong>Name:</strong> ${student.student_name}</div>
@@ -360,110 +357,133 @@
             </div>
         `;
 
-        document.getElementById('answer-btn-' + studentId).style.display = 'inline-flex';
-        renderFileList(studentId);
-        updateSubmitBtn();
-    }
+                    document.getElementById('answer-btn-' + studentId).style.display = 'inline-flex';
+                    renderFileList(studentId);
+                    updateSubmitBtn();
+                }
 
-    function renderFileList(studentId) {
-        const student = studentData.find(s => s.id === studentId);
-        const listDiv = document.getElementById('list-' + studentId);
+                function renderFileList(studentId) {
+                    const student = studentData.find(s => s.id === studentId);
+                    const listDiv = document.getElementById('list-' + studentId);
 
-        if (student.answerPages.length > 0) {
-            listDiv.innerHTML = '<div style="margin-top: 0.75rem; font-size: 0.875rem;"><strong>Answer Pages:</strong></div>' +
-                student.answerPages.map((f, i) =>
-                    `<span class="file-tag">📄 Page ${i + 1} — ${f.name}</span>`
-                ).join('');
-        }
-        updateSubmitBtn();
-    }
+                    if (student.answerPages.length > 0) {
+                        listDiv.innerHTML = '<div style="margin-top: 0.75rem; font-size: 0.875rem;"><strong>Answer Pages:</strong></div>' +
+                            student.answerPages.map((f, i) =>
+                                `<span class="file-tag">📄 Page ${i + 1} — ${f.name}</span>`
+                            ).join('');
+                    }
+                    updateSubmitBtn();
+                }
 
-    function removeStudent(id) {
-        if (!confirm('Remove this student?')) return;
-        studentData = studentData.filter(s => s.id !== id);
-        document.getElementById('card-' + id).remove();
-        updateSubmitBtn();
-    }
+                function removeStudent(id) {
+                    if (!confirm('Remove this student?')) return;
+                    studentData = studentData.filter(s => s.id !== id);
+                    document.getElementById('card-' + id).remove();
+                    updateSubmitBtn();
+                }
 
-    function updateSubmitBtn() {
-        const btn = document.getElementById('submitBatchButton');
-        const hasReady = studentData.some(s => s.isIdentified && s.answerPages.length > 0);
-        btn.style.display = hasReady ? 'inline-flex' : 'none';
-    }
+                function updateSubmitBtn() {
+                    const btn = document.getElementById('submitBatchButton');
+                    const hasReady = studentData.some(s => s.isIdentified && s.answerPages.length > 0);
+                    btn.style.display = hasReady ? 'inline-flex' : 'none';
+                }
 
-    // ===== BATCH SUBMISSION =====
+                // ===== BATCH SUBMISSION =====
 
-    async function submitBatchEvaluation() {
-        const readyStudents = studentData.filter(s => s.isIdentified && s.answerPages.length > 0);
+                async function submitBatchEvaluation() {
+                    const readyStudents = studentData.filter(s => s.isIdentified && s.answerPages.length > 0);
 
-        if (readyStudents.length === 0) {
-            alert('No students ready for evaluation!');
-            return;
-        }
+                    if (readyStudents.length === 0) {
+                        alert('No students ready for evaluation!');
+                        return;
+                    }
 
-        document.getElementById('loadingMessage').style.display = 'flex';
+                    document.getElementById('loadingMessage').style.display = 'flex';
 
-        let completed = 0;
-        const results = [];
+                    let completed = 0;
+                    const results = [];
 
-        for (const student of readyStudents) {
-            try {
-                const formData = new FormData();
-                
-                student.answerPages.forEach(file => {
-                    formData.append('answer_script', file);
-                });
+                    for (const student of readyStudents) {
+                        try {
+                            document.querySelector('#loadingMessage p').textContent =
+                                `Processing ${completed + 1}/${readyStudents.length}: ${student.student_name}...`;
 
-                formData.append('exam_id', selectedExamId);
-                formData.append('barcode_id', student.barcode_id);
-                formData.append('student_name', student.student_name);
-                formData.append('roll_no', student.roll_no);
-                formData.append('class', student.class);
+                            const formData = new FormData();
+                            student.answerPages.forEach(file => formData.append('answer_script', file));
+                            formData.append('exam_id', selectedExamId);
+                            formData.append('barcode_id', student.barcode_id);
+                            formData.append('student_name', student.student_name);
+                            formData.append('roll_no', student.roll_no);
+                            formData.append('class', student.class);
 
-                const response = await fetch('/api/evaluate-barcode-submission', {
-                    method: 'POST',
-                    body: formData
-                });
+                            const response = await fetch('/api/evaluate-barcode-submission', {
+                                method: 'POST',
+                                body: formData
+                            });
 
-                const result = await response.json();
-                completed++;
+                            const result = await response.json();
+                            completed++;
 
-                results.push({
-                    student: student.student_name,
-                    success: result.success,
-                    submission_id: result.submission_id
-                });
+                            results.push({
+                                student: student.student_name,
+                                roll_no: student.roll_no,
+                                barcode_id: student.barcode_id,
+                                success: result.success,
+                                submission_id: result.submission_id,
+                                total_marks_obtained: result.result?.total_marks_obtained,
+                                total_marks_possible: result.result?.total_marks_possible,
+                                percentage: result.result?.percentage,
+                                error: result.message || null
+                            });
 
-                document.querySelector('#loadingMessage p').textContent = 
-                    `Processing ${completed}/${readyStudents.length}...`;
+                        } catch (error) {
+                            console.error('Error evaluating student:', student.student_name, error);
+                            completed++;
+                            results.push({
+                                student: student.student_name,
+                                roll_no: student.roll_no,
+                                barcode_id: student.barcode_id,
+                                success: false,
+                                error: error.message
+                            });
+                        }
+                    }
 
-            } catch (error) {
-                console.error('Error evaluating student:', student.student_name, error);
-                results.push({
-                    student: student.student_name,
-                    success: false,
-                    error: error.message
-                });
-            }
-        }
+                    document.getElementById('loadingMessage').style.display = 'none';
 
-        document.getElementById('loadingMessage').style.display = 'none';
+                    const successCount = results.filter(r => r.success).length;
+                    const failCount = results.length - successCount;
 
-        const successCount = results.filter(r => r.success).length;
-        alert(`Batch Evaluation Complete!\n\n✅ Success: ${successCount}\n❌ Failed: ${results.length - successCount}`);
+                    console.log('Results:', results);
+                    console.log('Success count:', successCount);
+                    console.log('Results length:', results.length);
 
-        if (successCount > 0) {
-            window.location.href = '/history';
-        }
-    }
+                    if (successCount === 0) {
+                        alert(`All evaluations failed!\n\n${results.map(r => `${r.student}: ${r.error}`).join('\n')}`);
+                        return;
+                    }
 
-    function showLoading(text) {
-        const overlay = document.getElementById('loadingMessage');
-        overlay.querySelector('p').textContent = text;
-        overlay.style.display = 'flex';
-    }
+                    if (results.length === 1 && results[0].success) {
+                        window.location.href = `/results-barcode/${results[0].submission_id}`;
+                        return;
+                    }
 
-    function hideLoading() {
-        document.getElementById('loadingMessage').style.display = 'none';
-    }
-</script>
+                    sessionStorage.setItem('batch_results', JSON.stringify({
+                        total: results.length,
+                        success: successCount,
+                        failed: failCount,
+                        results
+                    }));
+                    window.location.href = '/barcode-batch-results';
+                }
+
+                function showLoading(text) {
+                    const overlay = document.getElementById('loadingMessage');
+                    overlay.querySelector('p').textContent = text;
+                    overlay.style.display = 'flex';
+                }
+
+                function hideLoading() {
+                    document.getElementById('loadingMessage').style.display = 'none';
+                }
+            </script>

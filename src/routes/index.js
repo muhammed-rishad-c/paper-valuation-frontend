@@ -54,16 +54,19 @@ router.get('/api/get-user-exams', requireAuth, evaluationController.getUserExams
 
 // Barcode Evaluation Page
 router.get('/barcode-evaluation', requireAuth, (req, res) => {
-    res.render('barcodeEvaluation');
+    res.render('barcodeEvaluation',{ user: req.user });
 });
 
+router.get('/barcode-batch-results', requireAuth, (req, res) => {
+    res.render('barcodeBatchResults', { user: req.user });
+});
+ 
 // Get Student by Barcode ID
 router.get('/api/get-student-by-barcode', requireAuth, evaluationController.getStudentByBarcode);
-
-// Evaluate Barcode Submission
+ 
+// Evaluate Barcode Submission 
 router.post('/api/evaluate-barcode-submission', requireAuth, upload.array('answer_script', 20), evaluationController.evaluateBarcodeSubmission);
 // Barcode Results Page
-router.get('/results-barcode/:submission_id', requireAuth, evaluationController.getBarcodeResults);
 
 // Download Student List (PDF or Excel)
 router.get('/api/download-student-list/:batch_id', requireAuth, evaluationController.downloadStudentList);
@@ -71,4 +74,6 @@ router.get('/api/download-student-list/:batch_id', requireAuth, evaluationContro
 // Check which exam a barcode belongs to
 router.get('/api/check-barcode-exam', requireAuth, evaluationController.checkBarcodeExam);
 
-module.exports = router;   
+router.get('/api/exam-submissions/:exam_id', requireAuth, evaluationController.getExamSubmissions);
+
+module.exports = router;    
