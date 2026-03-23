@@ -36,7 +36,7 @@ app.use((req, res, next) => {
   }; 
   next();
 });
-    
+       
 
 const authRoutes = require('./src/routes/auth');
 const indexRoutes = require('./src/routes/index');
